@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -16,11 +22,31 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here would be the login logic - For now just console log the data
-    console.log('Login Attempt:', formData);
-    // Add authentication logic here later
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await axios.post('http://localhost:5000/api/auth/login', {
+        email: formData.email,
+        password: formData.password
+      });
+      
+      login(response.data, formData.rememberMe);
+      
+      // Redirect to homepage or dashboard
+      navigate('/');
+      
+    } catch (error) {
+      setError(
+        error.response && error.response.data.message 
+          ? error.response.data.message 
+          : 'Đăng nhập không thành công. Vui lòng thử lại sau.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -31,6 +57,8 @@ const Login = () => {
             <h1 className="auth-title">Đăng Nhập</h1>
             <p className="auth-subtitle">Đăng nhập để đặt lịch khám và xem hồ sơ sức khỏe</p>
           </div>
+
+          {error && <div className="alert alert-danger">{error}</div>}
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="form-group">
@@ -75,7 +103,9 @@ const Login = () => {
               <Link to="/forgot-password" className="forgot-password">Quên mật khẩu?</Link>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-block">Đăng Nhập</button>
+            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+              {loading ? 'Đang xử lý...' : 'Đăng Nhập'}
+            </button>
           </form>
 
           <div className="auth-divider">

@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -13,6 +17,8 @@ const Register = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -70,13 +76,36 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setApiError(null);
     
     if (validateForm()) {
-      // Here would be the registration logic - For now just console log the data
-      console.log('Registration Data:', formData);
-      // Add registration logic here later
+      setLoading(true);
+      try {
+        const response = await axios.post('http://localhost:5000/api/auth/register', {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password
+        });
+        
+        // Use the login function from AuthContext
+        login(response.data, true);
+        
+        // Redirect to homepage
+        navigate('/');
+        
+      } catch (error) {
+        setApiError(
+          error.response && error.response.data.message 
+            ? error.response.data.message 
+            : 'Đăng ký không thành công. Vui lòng thử lại sau.'
+        );
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -88,6 +117,8 @@ const Register = () => {
             <h1 className="auth-title">Đăng Ký</h1>
             <p className="auth-subtitle">Tạo tài khoản để đặt lịch khám và quản lý hồ sơ sức khỏe</p>
           </div>
+
+          {apiError && <div className="alert alert-danger">{apiError}</div>}
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="form-row">
@@ -193,7 +224,9 @@ const Register = () => {
               {errors.acceptTerms && <div className="invalid-feedback">{errors.acceptTerms}</div>}
             </div>
 
-            <button type="submit" className="btn btn-primary btn-block">Đăng Ký</button>
+            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+              {loading ? 'Đang xử lý...' : 'Đăng Ký'}
+            </button>
           </form>
 
           <div className="auth-divider">
