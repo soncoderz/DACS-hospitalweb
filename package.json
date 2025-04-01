@@ -1,0 +1,22 @@
+{
+  "name": "hospital-web",
+  "version": "1.0.0",
+  "description": "Hospital Management Web Application",
+  "main": "index.js",
+  "scripts": {
+    "client": "cd client && npm run dev",
+    "server": "cd backend && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd client && npm install && cd ../backend && npm install"
+  },
+  "keywords": [
+    "hospital",
+    "healthcare",
+    "mern"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
