@@ -133,7 +133,13 @@ const doctorSchema = new mongoose.Schema({
     min: 0
   },
   workingHours: [workingHoursSchema],
-  onlineConsultationHours: [onlineConsultationHoursSchema]
+  onlineConsultationHours: [onlineConsultationHoursSchema],
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  }
 }, {
   timestamps: true
 });

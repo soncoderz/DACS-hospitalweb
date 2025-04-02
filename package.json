@@ -5,9 +5,14 @@
   "main": "index.js",
   "scripts": {
     "client": "cd client && npm run dev",
-    "server": "cd backend && npm run dev",
+    "server": "cd server && nodemon server.js",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "install-all": "npm install && cd client && npm install && cd ../backend && npm install"
+    "start": "cd server && node server.js",
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "init-roles": "node server/scripts/initRoles.js",
+    "init-roles-permissions": "node server/scripts/initRolesAndPermissions.js",
+    "create-users": "node server/scripts/createUsers.js",
+    "setup": "node server/scripts/setupSystem.js"
   },
   "keywords": [
     "hospital",

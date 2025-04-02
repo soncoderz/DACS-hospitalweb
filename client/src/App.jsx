@@ -18,81 +18,77 @@ import Profile from './pages/Profile.jsx';
 import Appointments from './pages/Appointments.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import AdminDashboard from './pages/admin/Dashboard';
-import AdminLogin from './pages/Admin/Login.jsx';
+import AdminRoute from './components/AdminRoute';
 import ForgotPassword from './pages/ForgotPassword';
 import OtpVerification from './pages/OtpVerification';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import NeedVerification from './pages/NeedVerification';
-import AdminRoute from './components/AdminRoute';
+import AdminForbidden from './pages/admin/Forbidden';
+import DoctorRoute from './components/DoctorRoute';
+import UserRoute from './components/UserRoute';
+import DoctorDashboard from './pages/doctor/Dashboard';
+import DoctorAppointments from './pages/doctor/Appointments';
+import DoctorPatients from './pages/doctor/Patients';
+import DoctorProfile from './pages/doctor/Profile';
+import RoleManagement from './pages/admin/RoleManagement';
+import PermissionManagement from './pages/admin/PermissionManagement';
+import UserManagement from './pages/admin/UserManagement';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <div className="app">
-          <AppContent />
+          <Navbar />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email/:token" element={<VerifyEmail />} />
+            <Route path="/otp-verification" element={<OtpVerification />} />
+            <Route path="/need-verification" element={<NeedVerification />} />
+            
+            {/* User Protected Routes */}
+            <Route element={<UserRoute />}>
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/appointments" element={<Appointments />} />
+            </Route>
+            
+            {/* Doctor Protected Routes */}
+            <Route element={<DoctorRoute />}>
+              <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+              <Route path="/doctor/appointments" element={<DoctorAppointments />} />
+              <Route path="/doctor/patients" element={<DoctorPatients />} />
+              <Route path="/doctor/profile" element={<DoctorProfile />} />
+            </Route>
+            
+            {/* Admin Protected Routes */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/roles" element={<RoleManagement />} />
+              <Route path="/admin/permissions" element={<PermissionManagement />} />
+            </Route>
+            
+            {/* Catch All */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Footer />
         </div>
       </Router>
     </AuthProvider>
   );
 }
 
-function AppContent() {
-  const { isAdmin } = useAuth();
-  const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
-
-  // Không hiển thị Navbar và Footer cho các trang Admin
-  return (
-    <>
-      {!isAdminRoute && <Navbar />}
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-otp" element={<OtpVerification />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/need-verification" element={<NeedVerification />} />
-        <Route path="/doctors" element={<Doctors />} />
-        <Route path="/branches" element={<Branches />} />
-        
-        {/* Protected User Routes */}
-        <Route path="/appointment" element={<PrivateRoute><Appointment /></PrivateRoute>} />
-        <Route path="/appointments" element={<PrivateRoute><Appointments /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-        <Route path="/admin/users" element={<AdminRoute><UsersManagement /></AdminRoute>} />
-        <Route path="/admin/hospitals" element={<AdminRoute><BranchesManagement /></AdminRoute>} />
-        <Route path="/admin/doctors" element={<AdminRoute><DoctorsManagement /></AdminRoute>} />
-        <Route path="/admin/appointments" element={<AdminRoute><AppointmentsManagement /></AdminRoute>} />
-        <Route path="/admin/services" element={<AdminRoute><ServicesManagement /></AdminRoute>} />
-        <Route path="/admin/promotions" element={<AdminRoute><PromotionsManagement /></AdminRoute>} />
-        <Route path="/admin/admins" element={<AdminRoute superAdminOnly={true}><AdminsManagement /></AdminRoute>} />
-        
-        {/* Catch-all route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      {!isAdminRoute && <Footer />}
-    </>
-  );
-}
-
 // Protected route component for authenticated users
 function PrivateRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
-
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
 
   if (!user) {
     // Redirect to login if not authenticated, but remember where they were going
@@ -101,14 +97,5 @@ function PrivateRoute({ children }) {
 
   return children;
 }
-
-// Import Admin Pages
-import UsersManagement from './pages/admin/UsersManagement';
-import BranchesManagement from './pages/admin/BranchesManagement';
-import AppointmentsManagement from './pages/admin/AppointmentsManagement';
-import ServicesManagement from './pages/admin/ServicesManagement';
-import AdminsManagement from './pages/admin/AdminsManagement';
-import PromotionsManagement from './pages/admin/PromotionsManagement';
-import DoctorsManagement from './pages/admin/DoctorsManagement';
 
 export default App; 

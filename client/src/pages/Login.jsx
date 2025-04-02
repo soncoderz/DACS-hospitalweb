@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { navigateByRole } from '../utils/roleUtils';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -63,9 +64,11 @@ const Login = () => {
         });
         
         if (response.data.success) {
+          // Store user data in auth context
           login(response.data.data, formData.rememberMe);
-          // Redirect to homepage or dashboard
-          navigate(from);
+          
+          // Use utility function for role-based navigation
+          navigateByRole(response.data.data, navigate, from);
         } else {
           setApiError(response.data.message || 'Đăng nhập không thành công');
         }

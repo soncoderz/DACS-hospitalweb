@@ -1,117 +1,122 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import '../styles/verification.css';
 
 const VerifyEmail = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const location = useLocation();
   const navigate = useNavigate();
-  const { login } = useAuth();
-
+  const location = useLocation();
+  const { updateUserData } = useAuth();
+  const [status, setStatus] = useState('loading'); // loading, success, error
+  const [message, setMessage] = useState('');
+  
   useEffect(() => {
-    const verifyToken = async () => {
-      // Lấy token từ URL query params
-      const query = new URLSearchParams(location.search);
-      const token = query.get('token');
-
+    const verifyEmailToken = async () => {
+      // Extract token from URL query params
+      const searchParams = new URLSearchParams(location.search);
+      const token = searchParams.get('token');
+      
       if (!token) {
-        setError('Liên kết xác thực không hợp lệ');
-        setLoading(false);
+        setStatus('error');
+        setMessage('Token xác thực không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.');
         return;
       }
-
+      
       try {
-        const response = await api.get(`/auth/verify-email/${token}`);
+        const response = await api.post('/auth/verify-email', { token });
         
         if (response.data.success) {
-          setSuccess(true);
+          setStatus('success');
+          setMessage(response.data.message || 'Email của bạn đã được xác thực thành công!');
           
-          // Đăng nhập tự động nếu xác thực thành công
-          if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-            // Đợi 2 giây trước khi redirect
-            setTimeout(() => {
-              login(response.data.token);
-              navigate('/');
-            }, 2000);
+          // Update user data if available
+          if (response.data.user) {
+            updateUserData(response.data.user);
           }
+          
+          // Redirect to home after 3 seconds
+          setTimeout(() => {
+            navigate('/');
+          }, 3000);
         } else {
-          setError(response.data.message || 'Xác thực không thành công');
+          setStatus('error');
+          setMessage(response.data.message || 'Không thể xác thực email. Vui lòng thử lại.');
         }
-      } catch (error) {
-        console.error('Verify email error:', error);
+      } catch (err) {
+        console.error('Email verification error:', err);
         
-        if (error.response) {
-          setError(error.response.data.message || 'Xác thực không thành công');
-        } else if (error.request) {
-          setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+        setStatus('error');
+        if (err.response) {
+          setMessage(err.response.data.message || 'Không thể xác thực email. Vui lòng thử lại.');
+        } else if (err.request) {
+          setMessage('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
         } else {
-          setError('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+          setMessage('Đã xảy ra lỗi. Vui lòng thử lại sau.');
         }
-      } finally {
-        setLoading(false);
       }
     };
-
-    verifyToken();
-  }, [location, navigate, login]);
-
-  return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-header">
-            <h1 className="auth-title">Xác Thực Email</h1>
+    
+    verifyEmailToken();
+  }, [location.search, navigate, updateUserData]);
+  
+  const renderContent = () => {
+    switch (status) {
+      case 'loading':
+        return (
+          <div className="verification-status">
+            <div className="spinner"></div>
+            <p>Đang xác thực email của bạn...</p>
           </div>
-          
-          {loading && (
-            <div className="text-center my-5">
-              <div className="spinner"></div>
-              <p className="mt-3">Đang xác thực email của bạn...</p>
-            </div>
-          )}
-          
-          {error && !loading && (
-            <div className="alert alert-danger">{error}</div>
-          )}
-          
-          {success && !loading && (
-            <div className="alert alert-success">
-              Email của bạn đã được xác thực thành công! Bạn sẽ được chuyển hướng đến trang chủ sau vài giây.
-            </div>
-          )}
-          
-          {!loading && (
-            <div className="auth-footer">
-              <p>
-                {success ? (
-                  <Link to="/" className="auth-link">Đến trang chủ</Link>
-                ) : (
-                  <Link to="/login" className="auth-link">Đến trang đăng nhập</Link>
-                )}
-              </p>
-            </div>
-          )}
-        </div>
+        );
         
-        <div className="auth-info">
-          <div className="info-content">
-            <h2 className="info-title">Xác Thực Tài Khoản</h2>
-            <ul className="info-list">
-              <li>Xác thực email giúp bảo vệ tài khoản của bạn</li>
-              <li>Sau khi xác thực, bạn có thể sử dụng đầy đủ các dịch vụ</li>
-              <li>Chúng tôi không bao giờ yêu cầu mật khẩu qua email</li>
-              <li>Liên kết xác thực chỉ có hiệu lực trong vòng 24 giờ</li>
-            </ul>
-            <div className="auth-support">
-              <h3>Cần hỗ trợ?</h3>
-              <p>Gọi cho chúng tôi tại: <a href="tel:02838221234" className="support-phone">(028) 3822 1234</a></p>
+      case 'success':
+        return (
+          <div className="verification-status success">
+            <div className="verification-icon">
+              <i className="fas fa-check-circle"></i>
+            </div>
+            <h2>Xác thực thành công!</h2>
+            <p>{message}</p>
+            <p>Bạn sẽ được chuyển hướng về trang chủ sau vài giây...</p>
+          </div>
+        );
+        
+      case 'error':
+        return (
+          <div className="verification-status error">
+            <div className="verification-icon">
+              <i className="fas fa-exclamation-circle"></i>
+            </div>
+            <h2>Xác thực không thành công</h2>
+            <p>{message}</p>
+            <div className="verification-actions">
+              <button
+                className="btn-primary"
+                onClick={() => navigate('/need-verification')}
+              >
+                Yêu cầu xác thực lại
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => navigate('/')}
+              >
+                Về trang chủ
+              </button>
             </div>
           </div>
-        </div>
+        );
+        
+      default:
+        return null;
+    }
+  };
+  
+  return (
+    <div className="verification-container">
+      <div className="verification-card">
+        <h1>Xác thực email</h1>
+        {renderContent()}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, getCurrentUser, updateProfile, uploadAvatar, forgotPassword, verifyOtp, resetPassword, verifyEmail, resendVerification } = require('../controllers/authController');
+const { register, login, getCurrentUser, updateProfile, uploadAvatar, forgotPassword, verifyOtp, resetPassword, verifyEmail, resendVerification, changePassword } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 
@@ -18,6 +18,9 @@ router.put('/profile', protect, updateProfile);
 
 // Upload avatar
 router.post('/avatar', protect, upload.single('avatar'), uploadAvatar);
+
+// Change password
+router.put('/change-password', protect, changePassword);
 
 // Forgot password - request OTP
 router.post('/forgot-password', forgotPassword);

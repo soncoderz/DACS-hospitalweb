@@ -50,9 +50,14 @@ const userSchema = new mongoose.Schema({
     maxlength: [200, 'Địa chỉ không được vượt quá 200 ký tự']
   },
   role: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Role',
+    required: true
+  },
+  roleType: {
     type: String,
-    enum: ['patient', 'doctor', 'admin'],
-    default: 'patient'
+    enum: ['admin', 'doctor', 'user'],
+    default: 'user'
   },
   registrationDate: {
     type: Date,
@@ -132,19 +137,21 @@ userSchema.methods.generatePasswordResetToken = function() {
 
 // Phương thức tạo token xác thực email
 userSchema.methods.generateVerificationToken = function() {
+  // Vô hiệu hóa token cũ bằng cách tạo token mới
   const verificationToken = crypto.randomBytes(32).toString('hex');
   this.verificationToken = crypto
     .createHash('sha256')
     .update(verificationToken)
     .digest('hex');
-  this.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 giờ
+  // Đặt thời gian hết hạn là 5 phút thay vì 24 giờ
+  this.verificationTokenExpires = Date.now() + 5 * 60 * 1000; // 5 phút
   return verificationToken;
 };
 
-// Phương thức tạo mã OTP 4 chữ số
+// Phương thức tạo mã OTP 6 chữ số
 userSchema.methods.generateOTP = function() {
-  // Tạo OTP ngẫu nhiên 4 chữ số
-  const otp = Math.floor(1000 + Math.random() * 9000).toString();
+  // Tạo OTP ngẫu nhiên 6 chữ số
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
   
   // Lưu OTP và thời gian hết hạn (2 phút)
   this.otpCode = otp;

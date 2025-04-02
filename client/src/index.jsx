@@ -4,8 +4,7 @@ import './index.css';
 import App from './App.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  // Temporarily disable StrictMode to fix the removeChild error
-  // <React.StrictMode>
+  <React.StrictMode>
     <App />
-  // </React.StrictMode>
+  </React.StrictMode>
 ); 

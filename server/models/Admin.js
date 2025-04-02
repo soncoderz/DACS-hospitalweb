@@ -73,9 +73,6 @@ const adminSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index để tìm kiếm theo email
-adminSchema.index({ email: 1 });
-
 // Index để tìm kiếm theo hospital
 adminSchema.index({ hospitalId: 1 });
 

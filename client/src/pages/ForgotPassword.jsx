@@ -33,7 +33,7 @@ const ForgotPassword = () => {
         setSuccess(true);
         // Navigate to OTP verification page with email
         setTimeout(() => {
-          navigate('/verify-otp', { state: { email } });
+          navigate('/otp-verification', { state: { email } });
         }, 2000);
       } else {
         setError(response.data.message || 'Có lỗi xảy ra. Vui lòng thử lại sau.');

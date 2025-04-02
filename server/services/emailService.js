@@ -99,7 +99,7 @@ const sendOtpEmail = async (email, otp) => {
             </div>
           </div>
           
-          <p>Mã này có hiệu lực trong <strong>2 phút</strong>.</p>
+          <p>Mã này có hiệu lực trong <strong>2 phút</strong> từ thời điểm nhận được email này.</p>
           
           <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi ngay lập tức.</p>
           
@@ -161,7 +161,9 @@ const sendVerificationEmail = async (email, verificationToken, fullName) => {
           <p>Hoặc bạn có thể sao chép và dán đường dẫn sau vào trình duyệt:</p>
           <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">${verificationUrl}</p>
           
-          <p>Liên kết này có hiệu lực trong <strong>24 giờ</strong>.</p>
+          <p>Liên kết này chỉ có hiệu lực trong <strong>5 phút</strong>. Nếu quá thời gian, vui lòng yêu cầu gửi lại email xác thực.</p>
+          
+          <p><strong>Lưu ý:</strong> Mỗi khi bạn yêu cầu gửi lại email xác thực, liên kết cũ sẽ không còn hiệu lực.</p>
           
           <p>Nếu bạn không tạo tài khoản này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi ngay lập tức.</p>
           

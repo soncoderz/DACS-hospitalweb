@@ -1,145 +1,186 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import '../styles/verification.css';
 
 const OtpVerification = () => {
+  const { user, updateUserData } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const email = location.state?.email;
+  const email = location.state?.email || user?.email;
   
-  const [otp, setOtp] = useState(['', '', '', '']);
-  const [loading, setLoading] = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
-  const [resending, setResending] = useState(false);
-  const [isExpired, setIsExpired] = useState(false);
+  const [canResend, setCanResend] = useState(false);
   
-  const inputRefs = [useRef(), useRef(), useRef(), useRef()];
-  
-  // Redirect if no email is provided
+  const inputRefs = useRef([]);
+
+  // Redirect if no email
   useEffect(() => {
     if (!email) {
       navigate('/forgot-password', { replace: true });
     }
   }, [email, navigate]);
   
-  // Timer countdown
+  // Timer for OTP expiration
   useEffect(() => {
     if (timeLeft <= 0) {
-      setIsExpired(true);
+      setCanResend(true);
       return;
     }
     
-    const timerId = setTimeout(() => {
+    const timer = setTimeout(() => {
       setTimeLeft(timeLeft - 1);
     }, 1000);
     
-    return () => clearTimeout(timerId);
+    return () => clearTimeout(timer);
   }, [timeLeft]);
   
-  // Format time as mm:ss
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  // Format time left as MM:SS
+  const formatTimeLeft = () => {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
   
-  const handleInputChange = (index, value) => {
-    // Allow only numbers
-    if (!/^\d*$/.test(value)) return;
+  // Handle OTP input change
+  const handleOtpChange = (e, index) => {
+    const value = e.target.value;
     
-    // Update OTP array
+    // Allow only numbers
+    if (value && !/^\d+$/.test(value)) {
+      return;
+    }
+    
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = value.slice(-1); // Take only the last digit
     setOtp(newOtp);
     
-    // Auto focus next input if current is filled
-    if (value && index < 3) {
-      inputRefs[index + 1].current.focus();
+    // Auto-focus next input after filling current one
+    if (value && index < 5) {
+      inputRefs.current[index + 1].focus();
     }
   };
   
-  const handleKeyDown = (index, e) => {
-    // Handle backspace to focus previous input
+  // Handle key down in OTP inputs
+  const handleKeyDown = (e, index) => {
+    // Move focus to previous input on backspace
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs[index - 1].current.focus();
+      inputRefs.current[index - 1].focus();
     }
   };
   
-  const handleResendOtp = async () => {
-    setError('');
-    setResending(true);
-    
-    try {
-      const response = await api.post('/auth/forgot-password', { email });
-      
-      if (response.data.success) {
-        // Reset timer and expired state
-        setTimeLeft(120);
-        setIsExpired(false);
-        // Clear inputs
-        setOtp(['', '', '', '']);
-        // Focus first input
-        inputRefs[0].current.focus();
-      } else {
-        setError(response.data.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
-      }
-    } catch (error) {
-      console.error('Resend OTP error:', error);
-      setError('Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
-    } finally {
-      setResending(false);
-    }
-  };
-  
-  const handleSubmit = async (e) => {
+  // Handle pasting OTP
+  const handlePaste = (e) => {
     e.preventDefault();
+    const pasteData = e.clipboardData.getData('text');
+    const pasteDataDigits = pasteData.replace(/\D/g, '').slice(0, 6);
     
-    // Check if OTP is complete
+    if (pasteDataDigits) {
+      const newOtp = [...otp];
+      for (let i = 0; i < Math.min(pasteDataDigits.length, 6); i++) {
+        newOtp[i] = pasteDataDigits[i];
+      }
+      setOtp(newOtp);
+      
+      // Focus last filled input or the next empty one
+      const lastIndex = Math.min(pasteDataDigits.length - 1, 5);
+      inputRefs.current[lastIndex].focus();
+    }
+  };
+  
+  // Verify OTP
+  const verifyOtp = async () => {
     const otpValue = otp.join('');
-    if (otpValue.length !== 4) {
-      setError('Vui lòng nhập đầy đủ mã OTP 4 chữ số');
+    
+    if (otpValue.length !== 6) {
+      setError('Vui lòng nhập đầy đủ mã OTP 6 số');
       return;
     }
     
-    // Check if OTP is expired
-    if (isExpired) {
-      setError('Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.');
-      return;
-    }
-    
-    setError('');
     setLoading(true);
+    setError('');
+    setSuccess('');
     
     try {
       const response = await api.post('/auth/verify-otp', {
-        email,
+        email: email,
         otp: otpValue
       });
       
       if (response.data.success) {
-        // Navigate to reset password page with token
-        navigate('/reset-password', {
-          state: {
-            email,
-            resetToken: response.data.resetToken
-          }
-        });
+        setSuccess('Xác thực OTP thành công!');
+        
+        // Redirect to reset password page with token
+        setTimeout(() => {
+          navigate('/reset-password', {
+            state: {
+              email: email,
+              resetToken: response.data.resetToken
+            }
+          });
+        }, 1500);
       } else {
-        setError(response.data.message || 'Xác thực OTP không thành công. Vui lòng thử lại.');
+        setError(response.data.message || 'Mã OTP không hợp lệ hoặc đã hết hạn');
       }
-    } catch (error) {
-      console.error('OTP verification error:', error);
+    } catch (err) {
+      console.error('OTP verification error:', err);
       
-      if (error.response) {
-        // Check for expired flag in the response
-        if (error.response.data.expired) {
-          setIsExpired(true);
+      if (err.response) {
+        // Check for expired OTP
+        if (err.response.data.expired) {
+          setCanResend(true);
           setTimeLeft(0);
         }
+        setError(err.response.data.message || 'Mã OTP không hợp lệ hoặc đã hết hạn');
+      } else if (err.request) {
+        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+      } else {
+        setError('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Resend OTP
+  const resendOtp = async () => {
+    if (!canResend && timeLeft > 0) return;
+    
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const response = await api.post('/auth/forgot-password', {
+        email: email
+      });
+      
+      if (response.data.success) {
+        // Clear OTP inputs
+        setOtp(['', '', '', '', '', '']);
         
-        setError(error.response.data.message || 'Xác thực OTP không thành công. Vui lòng thử lại.');
-      } else if (error.request) {
+        // Reset timer
+        setTimeLeft(120);
+        setCanResend(false);
+        
+        // Focus first input
+        inputRefs.current[0].focus();
+        
+        setSuccess('Mã OTP mới đã được gửi đến email của bạn');
+      } else {
+        setError(response.data.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
+      }
+    } catch (err) {
+      console.error('Resend OTP error:', err);
+      
+      if (err.response) {
+        setError(err.response.data.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
+      } else if (err.request) {
         setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
       } else {
         setError('Đã xảy ra lỗi. Vui lòng thử lại sau.');
@@ -155,103 +196,72 @@ const OtpVerification = () => {
   }
   
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-header">
-            <h1 className="auth-title">Xác Thực OTP</h1>
-            <p className="auth-subtitle">
-              Nhập mã OTP 4 chữ số đã được gửi đến email {email}
-            </p>
-          </div>
-          
-          {error && <div className="alert alert-danger">{error}</div>}
-          
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <div className="otp-container">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={inputRefs[index]}
-                  type="text"
-                  maxLength={1}
-                  className="otp-input"
-                  value={digit}
-                  onChange={(e) => handleInputChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  disabled={loading || isExpired}
-                  autoFocus={index === 0}
-                />
-              ))}
-            </div>
-            
-            <div className="timer-container">
-              {timeLeft > 0 ? (
-                <p className="timer">
-                  Mã OTP sẽ hết hạn sau: <span>{formatTime(timeLeft)}</span>
-                </p>
-              ) : (
-                <p className="timer expired">Mã OTP đã hết hạn</p>
-              )}
-            </div>
-            
-            {isExpired ? (
-              <div className="expired-actions">
-                <p className="expired-message">Mã OTP của bạn đã hết hạn.</p>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-block"
-                  onClick={handleResendOtp}
-                  disabled={resending}
-                >
-                  {resending ? 'Đang gửi lại...' : 'Gửi lại mã OTP mới'}
-                </button>
-              </div>
-            ) : (
-              <button
-                type="submit"
-                className="btn btn-primary btn-block"
-                disabled={loading || otp.some(digit => !digit)}
-              >
-                {loading ? 'Đang xử lý...' : 'Xác Nhận'}
-              </button>
-            )}
-            
-            {!isExpired && (
-              <div className="resend-container">
-                <button
-                  type="button"
-                  className="btn btn-link"
-                  onClick={handleResendOtp}
-                  disabled={resending || timeLeft > 0}
-                >
-                  {resending ? 'Đang gửi lại...' : 'Gửi lại mã OTP'}
-                </button>
-              </div>
-            )}
-          </form>
-          
-          <div className="auth-footer">
-            <p>
-              <Link to="/forgot-password" className="auth-link">Quay lại</Link>
-            </p>
-          </div>
+    <div className="verification-container">
+      <div className="verification-card">
+        <div className="verification-icon">
+          <i className="fas fa-lock"></i>
+        </div>
+        <h1>Xác thực OTP</h1>
+        
+        {error && <div className="alert alert-danger">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
+        
+        <p>
+          Vui lòng nhập mã OTP 6 chữ số đã được gửi đến email <strong>{email}</strong>
+        </p>
+        
+        <div className="otp-inputs" onPaste={handlePaste}>
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              type="text"
+              className="otp-input"
+              value={digit}
+              onChange={(e) => handleOtpChange(e, index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              ref={(ref) => (inputRefs.current[index] = ref)}
+              maxLength={1}
+              autoFocus={index === 0}
+            />
+          ))}
         </div>
         
-        <div className="auth-info">
-          <div className="info-content">
-            <h2 className="info-title">Lưu Ý Quan Trọng</h2>
-            <ul className="info-list">
-              <li>Mã OTP chỉ có hiệu lực trong vòng 2 phút</li>
-              <li>Vui lòng kiểm tra hộp thư đến và thư rác nếu không nhận được email</li>
-              <li>Không tiết lộ mã OTP cho người khác</li>
-              <li>Mỗi mã OTP chỉ có thể sử dụng một lần</li>
-            </ul>
-            <div className="auth-support">
-              <h3>Cần hỗ trợ?</h3>
-              <p>Gọi cho chúng tôi tại: <a href="tel:02838221234" className="support-phone">(028) 3822 1234</a></p>
-            </div>
-          </div>
+        <div className="verification-timer">
+          {!canResend ? (
+            <p>Mã OTP sẽ hết hạn sau: {formatTimeLeft()}</p>
+          ) : (
+            <p>Mã OTP đã hết hạn</p>
+          )}
+        </div>
+        
+        <div className="verification-actions">
+          <button
+            className="btn-secondary"
+            onClick={() => navigate('/forgot-password')}
+            disabled={loading}
+          >
+            Quay lại
+          </button>
+          <button
+            className="btn-primary"
+            onClick={verifyOtp}
+            disabled={loading || otp.join('').length !== 6}
+          >
+            {loading ? 'Đang xác thực...' : 'Xác thực'}
+          </button>
+        </div>
+        
+        <div className="verification-help">
+          <p>
+            Không nhận được mã? 
+            <button
+              className="btn-link"
+              onClick={resendOtp}
+              disabled={loading || (!canResend && timeLeft > 0)}
+            >
+              {loading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
+            </button>
+          </p>
         </div>
       </div>
     </div>

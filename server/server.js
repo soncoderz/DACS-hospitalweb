@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 const authRoutes = require('./routes/auth');
-const adminRoutes = require('./routes/admin');
+const adminRoutes = require('./routes/adminRoutes');
 
 // Load environment variables
 console.log('Loading environment variables from .env file');
@@ -60,6 +60,17 @@ app.use(express.json());
 app.use('/uploads', express.static(uploadDir));
 console.log('Serving static files from:', uploadDir);
 
+// Default route for uploads folder access
+app.get('/uploads/:filename', (req, res) => {
+  const filePath = path.join(uploadDir, req.params.filename);
+  console.log('Requested file:', filePath);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('File not found');
+  }
+});
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Connected'))
@@ -71,6 +82,8 @@ mongoose.connect(process.env.MONGO_URI)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/roles', require('./routes/roleRoutes'));
+app.use('/api/permissions', require('./routes/permissionRoutes'));
 
 // Default route
 app.get('/', (req, res) => {
@@ -78,7 +91,7 @@ app.get('/', (req, res) => {
 });
 
 // Port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

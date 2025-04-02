@@ -104,6 +104,15 @@ const Register = () => {
     if (validateForm()) {
       setLoading(true);
       try {
+        console.log('Submitting registration form:', {
+          fullName: formData.fullName,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          dateOfBirth: formData.dateOfBirth,
+          gender: formData.gender,
+          address: formData.address
+        });
+        
         const response = await api.post('/auth/register', {
           fullName: formData.fullName,
           email: formData.email,
@@ -113,6 +122,8 @@ const Register = () => {
           gender: formData.gender,
           address: formData.address
         });
+        
+        console.log('Registration response:', response.data);
         
         if (response.data.success) {
           // Thay vì tự động đăng nhập, chuyển hướng đến trang xác thực
@@ -127,6 +138,7 @@ const Register = () => {
         console.error('Registration error:', error);
         
         if (error.response) {
+          console.log('Error response data:', error.response.data);
           const { data } = error.response;
           
           if (data.field) {

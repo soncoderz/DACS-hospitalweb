@@ -20,6 +20,28 @@ const Profile = () => {
     avatarUrl: ''
   });
 
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [passwordSuccess, setPasswordSuccess] = useState(null);
+
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false
+  });
+
+  const togglePasswordVisibility = (field) => {
+    setPasswordVisibility(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
   useEffect(() => {
     if (user) {
       console.log("Current user in Profile:", user); // Debug
@@ -121,9 +143,97 @@ const Profile = () => {
     setSuccess(null);
   };
 
+  const handlePasswordInputChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [name]: value }));
+    // Clear specific error when user starts typing
+    if (passwordErrors[name]) {
+      setPasswordErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    alert('Chức năng đổi mật khẩu sẽ được cập nhật sau');
+    setLoading(true);
+    setPasswordErrors({});
+    setPasswordSuccess(null);
+    
+    // Validate password inputs
+    const errors = {};
+    
+    if (!passwordData.currentPassword) {
+      errors.currentPassword = 'Vui lòng nhập mật khẩu hiện tại';
+    }
+    
+    if (!passwordData.newPassword) {
+      errors.newPassword = 'Vui lòng nhập mật khẩu mới';
+    } else if (passwordData.newPassword.length < 6) {
+      errors.newPassword = 'Mật khẩu mới phải có ít nhất 6 ký tự';
+    }
+    
+    if (!passwordData.confirmPassword) {
+      errors.confirmPassword = 'Vui lòng xác nhận mật khẩu mới';
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = 'Mật khẩu xác nhận không khớp';
+    }
+    
+    // Check if new password is the same as current password
+    if (passwordData.currentPassword && 
+        passwordData.newPassword && 
+        passwordData.currentPassword === passwordData.newPassword) {
+      errors.newPassword = 'Mật khẩu mới không được trùng với mật khẩu hiện tại';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setPasswordErrors(errors);
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const response = await api.put('/auth/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      
+      if (response.data.success) {
+        setPasswordSuccess('Đổi mật khẩu thành công');
+        // Reset password form
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        // Reset password visibility
+        setPasswordVisibility({
+          currentPassword: false,
+          newPassword: false,
+          confirmPassword: false
+        });
+      } else {
+        throw new Error(response.data.message || 'Đổi mật khẩu không thành công');
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      
+      if (error.response && error.response.data) {
+        if (error.response.data.field) {
+          setPasswordErrors({
+            [error.response.data.field]: error.response.data.message
+          });
+        } else {
+          setPasswordErrors({
+            general: error.response.data.message || 'Đổi mật khẩu không thành công'
+          });
+        }
+      } else {
+        setPasswordErrors({
+          general: 'Đổi mật khẩu không thành công. Vui lòng thử lại sau.'
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAvatarUpload = async (e) => {
@@ -140,6 +250,7 @@ const Profile = () => {
     try {
       setLoading(true);
       setError(null);
+      setSuccess(null);
       
       // Hiển thị preview trước khi upload
       const reader = new FileReader();
@@ -168,24 +279,25 @@ const Profile = () => {
       console.log("Avatar upload response:", response.data); // Debug
       
       if (response.data.success) {
-        // Cập nhật thông tin người dùng trong context
-        console.log("Updating user with new avatar:", response.data.data); // Debug
-        login(response.data.data, true);
+        // Cập nhật thông tin người dùng trong context với dữ liệu mới từ server
+        const updatedUserData = response.data.data;
+        console.log("Updating user with new avatar:", updatedUserData); // Debug
+        
+        login(updatedUserData);
         setSuccess('Cập nhật avatar thành công');
         
         // Cập nhật form data với URL avatar mới từ server
         setFormData(prevData => ({
           ...prevData,
-          avatarUrl: response.data.data.avatarUrl
+          avatarUrl: updatedUserData.avatarUrl
         }));
       } else {
         throw new Error(response.data.message || 'Lỗi không xác định');
       }
-      
-      setLoading(false);
     } catch (error) {
       console.error('Error uploading avatar:', error);
       setError(error.response?.data?.message || 'Không thể tải lên ảnh. Vui lòng thử lại sau.');
+    } finally {
       setLoading(false);
     }
   };
@@ -265,10 +377,16 @@ const Profile = () => {
           <div className="profile-sidebar">
             <div className="profile-avatar-container">
               <img 
-                src={formData.avatarUrl || "/avatars/default-avatar.png"}
+                src={formData.avatarUrl 
+                  ? `${import.meta.env.VITE_API_URL.replace('/api', '')}${formData.avatarUrl}` 
+                  : "/avatars/default-avatar.png"}
                 alt={formData.fullName || "User Avatar"}
                 className="profile-avatar"
                 id="avatar-preview"
+                onError={(e) => {
+                  console.log('Avatar failed to load in profile');
+                  e.target.src = "/avatars/default-avatar.png";
+                }}
               />
               
               {isEditing && (
@@ -595,43 +713,82 @@ const Profile = () => {
 
                 <div className="security-section">
                   <h3>Đổi mật khẩu</h3>
+                  {passwordSuccess && <div className="alert alert-success">{passwordSuccess}</div>}
+                  {passwordErrors.general && <div className="alert alert-danger">{passwordErrors.general}</div>}
+                  
                   <form className="password-form" onSubmit={handlePasswordChange}>
                     <div className="form-group">
                       <label htmlFor="currentPassword">Mật khẩu hiện tại</label>
-                      <input
-                        type="password"
-                        id="currentPassword"
-                        name="currentPassword"
-                        className="form-control"
-                        required
-                      />
+                      <div className="password-input-container">
+                        <input
+                          type={passwordVisibility.currentPassword ? "text" : "password"}
+                          id="currentPassword"
+                          name="currentPassword"
+                          value={passwordData.currentPassword}
+                          onChange={handlePasswordInputChange}
+                          className="form-control"
+                          required
+                        />
+                        <button 
+                          type="button" 
+                          className="password-toggle-btn"
+                          onClick={() => togglePasswordVisibility('currentPassword')}
+                        >
+                          <i className={`fas fa-${passwordVisibility.currentPassword ? 'eye-slash' : 'eye'}`}></i>
+                        </button>
+                      </div>
+                      {passwordErrors.currentPassword && <div className="text-danger">{passwordErrors.currentPassword}</div>}
                     </div>
 
                     <div className="form-group">
                       <label htmlFor="newPassword">Mật khẩu mới</label>
-                      <input
-                        type="password"
-                        id="newPassword"
-                        name="newPassword"
-                        className="form-control"
-                        required
-                      />
-                      <small className="form-text text-muted">Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ, số và ký tự đặc biệt</small>
+                      <div className="password-input-container">
+                        <input
+                          type={passwordVisibility.newPassword ? "text" : "password"}
+                          id="newPassword"
+                          name="newPassword"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordInputChange}
+                          className="form-control"
+                          required
+                        />
+                        <button 
+                          type="button" 
+                          className="password-toggle-btn"
+                          onClick={() => togglePasswordVisibility('newPassword')}
+                        >
+                          <i className={`fas fa-${passwordVisibility.newPassword ? 'eye-slash' : 'eye'}`}></i>
+                        </button>
+                      </div>
+                      {passwordErrors.newPassword && <div className="text-danger">{passwordErrors.newPassword}</div>}
+                      <small className="form-text text-muted">Mật khẩu phải có ít nhất 6 ký tự</small>
                     </div>
 
                     <div className="form-group">
                       <label htmlFor="confirmPassword">Xác nhận mật khẩu mới</label>
-                      <input
-                        type="password"
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        className="form-control"
-                        required
-                      />
+                      <div className="password-input-container">
+                        <input
+                          type={passwordVisibility.confirmPassword ? "text" : "password"}
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordInputChange}
+                          className="form-control"
+                          required
+                        />
+                        <button 
+                          type="button" 
+                          className="password-toggle-btn"
+                          onClick={() => togglePasswordVisibility('confirmPassword')}
+                        >
+                          <i className={`fas fa-${passwordVisibility.confirmPassword ? 'eye-slash' : 'eye'}`}></i>
+                        </button>
+                      </div>
+                      {passwordErrors.confirmPassword && <div className="text-danger">{passwordErrors.confirmPassword}</div>}
                     </div>
 
-                    <button type="submit" className="btn btn-primary">
-                      Đổi mật khẩu
+                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                      {loading ? 'Đang xử lý...' : 'Đổi mật khẩu'}
                     </button>
                   </form>
                 </div>
