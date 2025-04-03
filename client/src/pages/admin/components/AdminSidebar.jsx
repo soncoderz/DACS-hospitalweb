@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { logoutAdmin } from '../../../utils/adminAuth';
 
 const AdminSidebar = ({ activeTab, setActiveTab }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [avatarError, setAvatarError] = useState(false);
@@ -17,14 +18,13 @@ const AdminSidebar = ({ activeTab, setActiveTab }) => {
     };
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      if (isMounted.current) {
-        navigate('/login');
-      }
-    } catch (error) {
-      console.error('Failed to log out', error);
+  const handleLogout = () => {
+    // Sử dụng hàm logoutAdmin từ adminAuth
+    logoutAdmin();
+    
+    // Chuyển hướng về trang đăng nhập admin
+    if (isMounted.current) {
+      navigate('/admin/login');
     }
   };
 

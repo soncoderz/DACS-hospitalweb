@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
+import { loginAdmin, isAdminLoggedIn } from '../../utils/adminAuth';
+import '../../styles/admin/AdminLogin.css';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -10,6 +12,13 @@ const AdminLogin = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Kiểm tra nếu admin đã đăng nhập, chuyển hướng đến dashboard
+  useEffect(() => {
+    if (isAdminLoggedIn()) {
+      navigate('/admin/dashboard');
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,9 +37,8 @@ const AdminLogin = () => {
       const response = await api.post('/admin/login', formData);
       
       if (response.data.success) {
-        // Save admin token
-        localStorage.setItem('adminToken', response.data.data.token);
-        localStorage.setItem('adminData', JSON.stringify(response.data.data));
+        // Sử dụng utility để lưu thông tin admin
+        loginAdmin(response.data.data);
         
         // Redirect to admin dashboard
         navigate('/admin/dashboard');

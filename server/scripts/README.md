@@ -1,121 +1,167 @@
-# Role Management Scripts
+# Scripts Hệ thống
 
-This directory contains scripts for managing user roles and permissions in the hospital management system.
+Thư mục này chứa các script hệ thống hỗ trợ quản trị và phát triển.
 
-## Available Scripts
+## 1. Quản lý Admin
 
-### 1. Initialize Roles (`initRoles.js`)
+### 1.1. Tạo tài khoản Admin tương tác
 
-This script initializes the `roleType` field for all users in the database to ensure proper role-based routing.
+Script `createAdmin.js` cho phép tạo tài khoản admin thông qua các tương tác dòng lệnh.
 
-**Usage**:
+**Cách sử dụng:**
+
 ```bash
-npm run init-roles
+node server/scripts/createAdmin.js
 ```
 
-**What it does**:
-- Assigns default `roleType` of "user" to any account that doesn't have a roleType set
-- Updates email addresses defined as administrators to have the `roleType` of "admin"
-- Updates email addresses defined as doctors to have the `roleType` of "doctor"
+Script sẽ yêu cầu nhập các thông tin:
+- Email
+- Số điện thoại
+- Mật khẩu (ít nhất 6 ký tự)
+- Họ tên
+- Vai trò (admin hoặc super_admin)
 
-**Configuration**:
-Before running the script, edit the `adminEmails` and `doctorEmails` arrays in the script to include the email addresses of your administrators and doctors.
+### 1.2. Tạo tài khoản Admin mặc định
 
-### 2. Initialize Roles and Permissions (`initRolesAndPermissions.js`)
+Script `createDefaultAdmin.js` tạo một tài khoản admin mặc định với các thông tin đã cấu hình sẵn.
 
-This script sets up the complete role and permission system in the database. It creates the necessary Role and Permission documents and links them to users.
+**Cách sử dụng:**
 
-**Usage**:
 ```bash
-npm run init-roles-permissions
+node server/scripts/createDefaultAdmin.js
 ```
 
-**What it does**:
-- Creates default permissions for different actions in the system
-- Creates default roles (admin, doctor, user) with appropriate permissions
-- Links users to their corresponding role documents based on their roleType
-- Updates user records to include references to their role documents
+**Thông tin tài khoản mặc định:**
+- Email: admin@example.com
+- Mật khẩu: Admin@123
+- Vai trò: super_admin
 
-**When to use**:
-Run this script after setting up the database or when you need to reset/rebuild the permission system.
+**Lưu ý:** Tài khoản này chỉ nên được sử dụng trong môi trường phát triển hoặc cho lần khởi tạo đầu tiên.
+Hãy đổi mật khẩu ngay sau khi đăng nhập thành công.
 
-### 3. Create Admin and Doctor Users (`createUsers.js`)
+## 2. Quản lý Bác Sĩ
 
-This script creates default admin and doctor accounts for the system.
+### 2.1. Tạo tài khoản Bác Sĩ tương tác
 
-**Usage**:
+Script `createDoctor.js` cho phép tạo tài khoản bác sĩ thông qua các tương tác dòng lệnh.
+
+**Cách sử dụng:**
+
 ```bash
-npm run create-users
+node server/scripts/createDoctor.js
 ```
 
-**What it does**:
-- Creates an admin account (if it doesn't already exist)
-- Creates a doctor account (if it doesn't already exist)
-- Sets up these accounts with appropriate roles and permissions
-- The accounts are created as verified accounts so they can be used immediately
+Script sẽ yêu cầu nhập các thông tin:
+- Email
+- Số điện thoại
+- Mật khẩu
+- Họ tên đầy đủ
+- Ngày sinh
+- Giới tính
+- Địa chỉ
+- Chuyên khoa (chọn từ danh sách)
+- Bệnh viện (chọn từ danh sách)
+- Số năm kinh nghiệm
+- Phí tư vấn
+- Tiểu sử bác sĩ
 
-**Default Accounts**:
-- Admin: admin@benhvien.com / admin123
-- Doctor: doctor@benhvien.com / doctor123
+**Lưu ý:** Script này yêu cầu đã có ít nhất một chuyên khoa và một bệnh viện trong hệ thống.
 
-### 4. Complete System Setup (`setupSystem.js`)
+### 2.2. Tạo tài khoản Bác Sĩ mặc định
 
-This script runs all initialization scripts in sequence for a complete system setup.
+Script `createDefaultDoctor.js` tạo một tài khoản bác sĩ mặc định với các thông tin đã cấu hình sẵn.
 
-**Usage**:
+**Cách sử dụng:**
+
 ```bash
-npm run setup
+node server/scripts/createDefaultDoctor.js
 ```
 
-**What it does**:
-1. Initializes roles and permissions
-2. Creates default admin and doctor accounts
+**Thông tin tài khoản mặc định:**
+- Email: doctor@example.com
+- Mật khẩu: Doctor@123
+- Họ tên: Bác Sĩ Mẫu
+- Chuyên khoa: Đa khoa (được tạo tự động nếu chưa có)
+- Bệnh viện: Bệnh viện Mẫu (được tạo tự động nếu chưa có)
 
-**When to use**:
-Use this script when setting up the application for the first time or when you need to reset the system to its default state.
+**Lưu ý:** Script này sẽ tự động tạo chuyên khoa, vai trò và bệnh viện nếu chưa có trong hệ thống, phù hợp cho việc khởi tạo hệ thống từ đầu.
 
-## Role-Based Access
+## 3. Quản lý Chuyên Khoa
 
-The application uses a role-based access control system with three main roles:
+### 3.1. Tạo chuyên khoa tương tác
 
-1. **Admin** - Full access to all features
-2. **Doctor** - Access to doctor dashboard, appointments, and patient management
-3. **User** - Access to booking appointments and managing their health records
+Script `createSpecialty.js` cho phép tạo chuyên khoa mới thông qua các tương tác dòng lệnh.
 
-## Role Hierarchy
+**Cách sử dụng:**
 
-- Admins have access to all routes
-- Doctors have access to doctor routes and user routes
-- Regular users only have access to user routes
+```bash
+node server/scripts/createSpecialty.js
+```
 
-## Permission System
+Script sẽ yêu cầu nhập các thông tin:
+- Tên chuyên khoa
+- Mô tả
+- Icon (URL hoặc tên icon, có thể để trống)
 
-The application uses a granular permission system:
+Script sẽ hiển thị danh sách các chuyên khoa hiện có trước khi tạo mới để tránh trùng lặp.
 
-1. **Role-based permissions**: Each role has predefined permissions stored in the database
-2. **Fallback permissions**: If role lookup fails, permissions are determined by roleType
-3. **Default permissions**:
-   - Admins have all permissions
-   - Doctors can view patients, update medical records, schedule appointments
-   - Users can view their own profile, book appointments, view their own records
+### 3.2. Tạo các chuyên khoa mặc định
 
-## Authentication Flow
+Script `createDefaultSpecialties.js` tạo sẵn 10 chuyên khoa phổ biến.
 
-1. When a user logs in, the `authController.js` will return user data including their `roleType`
-2. The frontend `roleUtils.js` uses this roleType to:
-   - Determine which dashboard to redirect to after login
-   - Check permissions for accessing specific routes
-   - Show/hide UI elements based on role
+**Cách sử dụng:**
 
-## How to Add New Roles
+```bash
+node server/scripts/createDefaultSpecialties.js
+```
 
-If you need to add new roles:
+**Danh sách chuyên khoa mặc định:**
+- Đa khoa
+- Tim mạch
+- Nhi khoa
+- Da liễu
+- Thần kinh
+- Tiêu hóa
+- Chấn thương chỉnh hình
+- Tai Mũi Họng
+- Mắt
+- Sản phụ khoa
 
-1. Update the `roleType` enum in the User model
-2. Update the `hasPermission` function in `roleUtils.js`
-3. Update the `getHomeRouteForRole` function in `roleUtils.js`
-4. Create appropriate route protection components for the new role
-5. Update the `hasRole` middleware to handle the new role
-6. Add the new role and permissions to the initialization script
+**Lưu ý:** Script sẽ bỏ qua các chuyên khoa đã tồn tại trong hệ thống và chỉ tạo những chuyên khoa mới.
 
-Remember to run the initialization scripts after updating the roles to ensure all users have the correct roleType and permissions. 
+## 4. Quản lý Vai Trò
+
+### 4.1. Tạo các vai trò mặc định
+
+Script `createDefaultRoles.js` tạo sẵn 3 vai trò cơ bản cho hệ thống.
+
+**Cách sử dụng:**
+
+```bash
+node server/scripts/createDefaultRoles.js
+```
+
+**Danh sách vai trò mặc định:**
+- Quản trị viên (admin)
+- Bác sĩ (doctor)
+- Người dùng (user)
+
+**Lưu ý:** Việc tạo các vai trò này là bắt buộc trước khi tạo tài khoản bác sĩ hoặc người dùng.
+
+## 5. Quản lý Bệnh viện
+
+### 5.1. Tạo các bệnh viện mẫu
+
+Script `createDefaultHospitals.js` tạo sẵn 2 bệnh viện mẫu cho hệ thống.
+
+**Cách sử dụng:**
+
+```bash
+node server/scripts/createDefaultHospitals.js
+```
+
+**Danh sách bệnh viện mẫu:**
+- Bệnh viện Đa khoa Trung ương
+- Bệnh viện Quốc tế
+
+**Lưu ý:** Việc tạo các bệnh viện này là bắt buộc trước khi tạo tài khoản bác sĩ, vì mỗi bác sĩ phải liên kết với ít nhất một bệnh viện. 

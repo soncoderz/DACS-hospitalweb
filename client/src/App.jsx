@@ -35,53 +35,65 @@ import RoleManagement from './pages/admin/RoleManagement';
 import PermissionManagement from './pages/admin/PermissionManagement';
 import UserManagement from './pages/admin/UserManagement';
 import NotFound from './pages/NotFound';
+import AdminLogin from './pages/admin/AdminLogin';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="app">
-          <Navbar />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-email/:token" element={<VerifyEmail />} />
-            <Route path="/otp-verification" element={<OtpVerification />} />
-            <Route path="/need-verification" element={<NeedVerification />} />
-            
-            {/* User Protected Routes */}
-            <Route element={<UserRoute />}>
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/appointments" element={<Appointments />} />
-            </Route>
-            
-            {/* Doctor Protected Routes */}
-            <Route element={<DoctorRoute />}>
-              <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-              <Route path="/doctor/appointments" element={<DoctorAppointments />} />
-              <Route path="/doctor/patients" element={<DoctorPatients />} />
-              <Route path="/doctor/profile" element={<DoctorProfile />} />
-            </Route>
-            
-            {/* Admin Protected Routes */}
-            <Route element={<AdminRoute />}>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<UserManagement />} />
-              <Route path="/admin/roles" element={<RoleManagement />} />
-              <Route path="/admin/permissions" element={<PermissionManagement />} />
-            </Route>
-            
-            {/* Catch All */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Footer />
-        </div>
+        <AppContent />
       </Router>
     </AuthProvider>
+  );
+}
+
+function AppContent() {
+  const location = useLocation();
+  const isAdminLoginPage = location.pathname === '/admin/login';
+  
+  return (
+    <div className="app">
+      {!isAdminLoginPage && <Navbar />}
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email/:token" element={<VerifyEmail />} />
+        <Route path="/otp-verification" element={<OtpVerification />} />
+        <Route path="/need-verification" element={<NeedVerification />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        
+        {/* User Protected Routes */}
+        <Route element={<UserRoute />}>
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/appointments" element={<Appointments />} />
+        </Route>
+        
+        {/* Doctor Protected Routes */}
+        <Route element={<DoctorRoute />}>
+          <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+          <Route path="/doctor/appointments" element={<DoctorAppointments />} />
+          <Route path="/doctor/patients" element={<DoctorPatients />} />
+          <Route path="/doctor/profile" element={<DoctorProfile />} />
+        </Route>
+        
+        {/* Admin Protected Routes */}
+        <Route element={<AdminRoute />}>
+          
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<UserManagement />} />
+          <Route path="/admin/roles" element={<RoleManagement />} />
+          <Route path="/admin/permissions" element={<PermissionManagement />} />
+        </Route>
+        
+        {/* Catch All */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      {!isAdminLoginPage && <Footer />}
+    </div>
   );
 }
 
