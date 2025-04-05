@@ -1,0 +1,448 @@
+/* Password input container styles */
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  width: 100%;
+  padding-right: 40px; /* Space for the toggle button */
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  color: #64748b;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.password-toggle-btn:hover {
+  color: #2563eb;
+}
+
+.password-toggle-btn:focus {
+  outline: none;
+}
+
+.password-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* OTP input with toggle visibility */
+.otp-group {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+.otp-toggle {
+  position: absolute;
+  right: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.auth-container {
+  display: flex;
+  min-height: calc(100vh - 64px);
+  position: relative;
+  background: #fff;
+  overflow: hidden;
+}
+
+.form-container {
+  width: 50%;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.6s ease-in-out;
+}
+
+.form-wrapper {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 200%;
+  display: flex;
+  transition: transform 0.6s ease-in-out;
+}
+
+.form-wrapper > * {
+  width: 50%;
+  padding: 2rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 64px);
+}
+
+.auth-info {
+  width: 50%;
+  background: #0066cc;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.6s ease-in-out;
+}
+
+.info-wrapper {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 200%;
+  display: flex;
+  transition: transform 0.6s ease-in-out;
+}
+
+.login-info,
+.register-info {
+  width: 50%;
+  padding: 2rem 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 7.5rem;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.auth-info h2 {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+  color: white;
+}
+
+.auth-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.auth-info li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.auth-info li svg {
+  margin-right: 1rem;
+  font-size: 1.4rem;
+}
+
+.auth-support {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  margin-top: 3rem;
+  padding: 2rem 3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: #0066cc;
+}
+
+.auth-support h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.auth-support p {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Animation states for register mode */
+.auth-container.register-mode {
+  flex-direction: row;
+}
+
+.auth-container.register-mode .form-wrapper {
+  transform: translateX(-50%);
+}
+
+.auth-container.register-mode .info-wrapper {
+  transform: translateX(-50%);
+}
+
+.auth-container.register-mode .login-info {
+  opacity: 0;
+}
+
+.auth-container.register-mode .register-info {
+  opacity: 1;
+}
+
+.login-info {
+  opacity: 1;
+}
+
+.register-info {
+  opacity: 0;
+}
+
+/* Responsive design */
+@media (max-width: 992px) {
+  .auth-container {
+    flex-direction: column;
+  }
+
+  .auth-container.register-mode {
+    flex-direction: column;
+  }
+
+  .form-container {
+    width: 100%;
+  }
+
+  .form-wrapper {
+    position: relative;
+    width: 100%;
+    display: block;
+  }
+
+  .form-wrapper > * {
+    width: 100%;
+    padding: 1.5rem;
+    display: none;
+  }
+
+  /* Show only the active form */
+  .auth-container:not(.register-mode) .form-wrapper > *:first-child,
+  .auth-container.register-mode .form-wrapper > *:last-child {
+    display: block;
+  }
+
+  .auth-info {
+    width: 100%;
+  }
+
+  .info-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .login-info,
+  .register-info {
+    width: 100%;
+    padding: 1.5rem;
+    display: none;
+  }
+
+  /* Show only the active info section */
+  .auth-container:not(.register-mode) .login-info,
+  .auth-container.register-mode .register-info {
+    display: block;
+  }
+
+  .auth-support {
+    position: relative;
+    padding: 1.5rem;
+  }
+
+  .auth-container.register-mode .form-wrapper,
+  .auth-container.register-mode .info-wrapper {
+    transform: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .form-section {
+    padding: 1rem;
+  }
+  
+  .auth-info {
+    padding: 1.5rem;
+  }
+
+  .form-wrapper > * {
+    padding: 1rem;
+  }
+}
+
+/* Social Login Styles */
+.social-login {
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.social-login-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.social-login-divider::before,
+.social-login-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.social-login-divider span {
+  padding: 0 1rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.social-login-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.social-login-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  background: white;
+  color: #1e293b;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.social-login-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.social-login-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.google-login {
+  color: #ea4335;
+}
+
+.facebook-login {
+  color: #1877f2;
+}
+
+.form-control,
+.ant-input,
+.ant-input-password {
+  width: 100%;
+  height: 45px !important;
+  padding: 12px !important;
+  font-size: 1rem !important;
+  line-height: 1.5;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.ant-input-password {
+  padding: 0 !important;
+  background-color: transparent !important;
+}
+
+.ant-input-password .ant-input {
+  height: 43px !important;
+  padding: 12px !important;
+  font-size: 1rem !important;
+  border: none !important;
+}
+
+.ant-input-password-icon.anticon {
+  color: #64748b;
+  font-size: 16px !important;
+  transition: all 0.3s;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ant-input-password-icon.anticon:hover {
+  color: #2563eb;
+}
+
+.ant-input:hover,
+.ant-input-password:hover {
+  border-color: #2563eb;
+}
+
+.ant-input:focus,
+.ant-input-password:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
+.ant-input.ant-input-status-error,
+.ant-input-password.ant-input-status-error {
+  border-color: #dc2626 !important;
+}
+
+.ant-form-item-has-error .ant-input,
+.ant-form-item-has-error .ant-input-password {
+  border-color: #dc2626 !important;
+}
+
+.ant-form-item-has-error .ant-input:hover,
+.ant-form-item-has-error .ant-input-password:hover {
+  border-color: #dc2626 !important;
+}
+
+.ant-form-item-has-error .ant-input:focus,
+.ant-form-item-has-error .ant-input-password:focus-within {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1) !important;
+}
+
+/* Fix checkbox styles */
+.ant-checkbox-wrapper {
+  font-size: 1rem;
+  color: #1e293b;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ant-checkbox {
+  top: 0;
+}
+
+.ant-checkbox-inner {
+  width: 18px;
+  height: 18px;
+  border-color: #d1d5db;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.ant-checkbox-wrapper:hover .ant-checkbox-inner,
+.ant-checkbox:hover .ant-checkbox-inner {
+  border-color: #2563eb;
+}
+
+.ant-form-item {
+  margin-bottom: 0;
+} 
