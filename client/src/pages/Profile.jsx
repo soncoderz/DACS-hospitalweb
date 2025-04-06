@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { useNavigate } from 'react-router-dom';
+import { toastSuccess, toastError, toastInfo } from '../utils/toast';
 
 const Profile = () => {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('info');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -112,8 +112,6 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       // Gọi API cập nhật thông tin
@@ -123,7 +121,7 @@ const Profile = () => {
         // Cập nhật thông tin người dùng trong context
         login(response.data.data, true);
         
-        setSuccess('Cập nhật thông tin thành công');
+        toastSuccess('Cập nhật thông tin thành công');
         setIsEditing(false);
       } else {
         throw new Error(response.data.message || 'Lỗi không xác định');
@@ -135,19 +133,19 @@ const Profile = () => {
       if (error.response && error.response.data) {
         if (error.response.data.field) {
           // Lỗi cụ thể cho một trường
-          setError(`${error.response.data.field}: ${error.response.data.message}`);
+          toastError(`${error.response.data.field}: ${error.response.data.message}`);
         } else if (error.response.data.errors) {
           // Nhiều lỗi validation
           const errorMessages = Object.entries(error.response.data.errors)
             .map(([field, message]) => `${field}: ${message}`)
             .join(', ');
-          setError(errorMessages);
+          toastError(errorMessages);
         } else {
           // Lỗi chung
-          setError(error.response.data.message || 'Không thể cập nhật thông tin. Vui lòng thử lại sau.');
+          toastError(error.response.data.message || 'Không thể cập nhật thông tin. Vui lòng thử lại sau.');
         }
       } else {
-        setError('Không thể cập nhật thông tin. Vui lòng thử lại sau.');
+        toastError('Không thể cập nhật thông tin. Vui lòng thử lại sau.');
       }
     } finally {
       setLoading(false);
@@ -173,8 +171,7 @@ const Profile = () => {
       });
     }
     setIsEditing(false);
-    setError(null);
-    setSuccess(null);
+    toastInfo('Đã hủy thay đổi');
   };
 
   const handlePasswordInputChange = (e) => {
@@ -190,7 +187,6 @@ const Profile = () => {
     e.preventDefault();
     setLoading(true);
     setPasswordErrors({});
-    setPasswordSuccess(null);
     
     // Validate password inputs
     const errors = {};
@@ -231,7 +227,7 @@ const Profile = () => {
       });
       
       if (response.data.success) {
-        setPasswordSuccess('Đổi mật khẩu thành công');
+        toastSuccess('Đổi mật khẩu thành công');
         // Reset password form
         setPasswordData({
           currentPassword: '',
@@ -244,6 +240,13 @@ const Profile = () => {
           newPassword: false,
           confirmPassword: false
         });
+        
+        // Display success message and log out after 2 seconds
+        setTimeout(() => {
+          // Log user out and redirect to login page
+          logout();
+          navigate('/login');
+        }, 2000);
       } else {
         throw new Error(response.data.message || 'Đổi mật khẩu không thành công');
       }
@@ -255,15 +258,18 @@ const Profile = () => {
           setPasswordErrors({
             [error.response.data.field]: error.response.data.message
           });
+          toastError(error.response.data.message);
         } else {
           setPasswordErrors({
             general: error.response.data.message || 'Đổi mật khẩu không thành công'
           });
+          toastError(error.response.data.message || 'Đổi mật khẩu không thành công');
         }
       } else {
         setPasswordErrors({
           general: 'Đổi mật khẩu không thành công. Vui lòng thử lại sau.'
         });
+        toastError('Đổi mật khẩu không thành công. Vui lòng thử lại sau.');
       }
     } finally {
       setLoading(false);
@@ -277,14 +283,12 @@ const Profile = () => {
     // Giới hạn kích thước file (5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      setError('Kích thước ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 5MB.');
+      toastError('Kích thước ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 5MB.');
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
-      setSuccess(null);
       
       // Hiển thị preview trước khi upload
       const reader = new FileReader();
@@ -318,7 +322,7 @@ const Profile = () => {
         console.log("Updating user with new avatar:", updatedUserData); // Debug
         
         login(updatedUserData);
-        setSuccess('Cập nhật avatar thành công');
+        toastSuccess('Cập nhật avatar thành công');
         
         // Cập nhật form data với avatar data mới từ server
         setFormData(prevData => ({
@@ -331,7 +335,7 @@ const Profile = () => {
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      setError(error.response?.data?.message || 'Không thể tải lên ảnh. Vui lòng thử lại sau.');
+      toastError(error.response?.data?.message || 'Không thể tải lên ảnh. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -516,9 +520,6 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-
-                {error && <div className="alert alert-danger">{error}</div>}
-                {success && <div className="alert alert-success">{success}</div>}
 
                 {isEditing ? (
                   <form className="profile-form">
@@ -757,8 +758,7 @@ const Profile = () => {
 
                 <div className="security-section">
                   <h3>Đổi mật khẩu</h3>
-                  {passwordSuccess && <div className="alert alert-success">{passwordSuccess}</div>}
-                  {passwordErrors.general && <div className="alert alert-danger">{passwordErrors.general}</div>}
+                  {passwordErrors.general && <div className="text-danger mb-3">{passwordErrors.general}</div>}
                   
                   <form className="password-form" onSubmit={handlePasswordChange}>
                     <div className="form-group">

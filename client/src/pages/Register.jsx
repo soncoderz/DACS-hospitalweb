@@ -5,6 +5,7 @@ import api from '../utils/api';
 import { Form, Button, Input, Select, DatePicker, Checkbox } from 'antd';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import { toastError, toastSuccess } from '../utils/toast';
 
 dayjs.extend(customParseFormat);
 
@@ -12,11 +13,9 @@ const Register = ({ onLoginClick }) => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState(null);
   const [form] = Form.useForm();
 
   const onFinish = async (values) => {
-    setApiError(null);
     setLoading(true);
     
     try {
@@ -41,11 +40,12 @@ const Register = ({ onLoginClick }) => {
       const response = await api.post('/auth/register', formData);
       
       if (response.data.success) {
+        toastSuccess('Đăng ký thành công! Vui lòng xác thực email của bạn.');
         navigate('/need-verification', { 
           state: { email: values.email }
         });
       } else {
-        setApiError(response.data.message || 'Đăng ký không thành công');
+        toastError(response.data.message || 'Đăng ký không thành công');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -58,6 +58,7 @@ const Register = ({ onLoginClick }) => {
             name: data.field,
             errors: [data.message]
           }]);
+          toastError(data.message);
         } else if (data.errors) {
           Object.keys(data.errors).forEach(field => {
             form.setFields([{
@@ -65,13 +66,14 @@ const Register = ({ onLoginClick }) => {
               errors: [data.errors[field]]
             }]);
           });
+          toastError('Vui lòng kiểm tra lại thông tin đăng ký');
         } else {
-          setApiError(data.message || 'Đăng ký không thành công');
+          toastError(data.message || 'Đăng ký không thành công');
         }
       } else if (error.request) {
-        setApiError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+        toastError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
       } else {
-        setApiError('Đăng ký không thành công. Vui lòng thử lại sau.');
+        toastError('Đăng ký không thành công. Vui lòng thử lại sau.');
       }
     } finally {
       setLoading(false);
@@ -90,12 +92,6 @@ const Register = ({ onLoginClick }) => {
         <p className="form-description">Tạo tài khoản để đặt lịch khám và quản lý hồ sơ sức khỏe</p>
       </div>
 
-      {apiError && (
-        <div className="alert alert-danger" role="alert">
-          {apiError}
-        </div>
-      )}
-      
       <Form
         form={form}
         onFinish={onFinish}

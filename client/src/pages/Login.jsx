@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { navigateByRole } from '../utils/roleUtils';
 import { Form, Button, Input, Checkbox } from 'antd';
+import { toastError, toastSuccess } from '../utils/toast';
 
 const Login = ({ onRegisterClick }) => {
   const navigate = useNavigate();
@@ -11,11 +12,9 @@ const Login = ({ onRegisterClick }) => {
   const from = location.state?.from?.pathname || '/';
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState(null);
   const [form] = Form.useForm();
 
   const onFinish = async (values) => {
-    setApiError(null);
     setLoading(true);
     
     try {
@@ -27,9 +26,10 @@ const Login = ({ onRegisterClick }) => {
       
       if (response.data.success) {
         login(response.data.data, values.rememberMe);
+        toastSuccess('Đăng nhập thành công');
         navigateByRole(response.data.data, navigate, from);
       } else {
-        setApiError(response.data.message || 'Đăng nhập không thành công');
+        toastError(response.data.message || 'Đăng nhập không thành công');
       }
       
     } catch (error) {
@@ -45,11 +45,11 @@ const Login = ({ onRegisterClick }) => {
           return;
         }
         
-        setApiError(data.message || 'Đăng nhập không thành công');
+        toastError(data.message || 'Đăng nhập không thành công');
       } else if (error.request) {
-        setApiError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+        toastError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
       } else {
-        setApiError('Đăng nhập không thành công. Vui lòng thử lại sau.');
+        toastError('Đăng nhập không thành công. Vui lòng thử lại sau.');
       }
     } finally {
       setLoading(false);
@@ -62,8 +62,6 @@ const Login = ({ onRegisterClick }) => {
         <h2>Đăng Nhập</h2>
         <p className="form-description">Đăng nhập để đặt lịch khám và xem hồ sơ sức khỏe</p>
       </div>
-      
-      {apiError && <div className="alert alert-danger">{apiError}</div>}
 
       <Form
         form={form}
