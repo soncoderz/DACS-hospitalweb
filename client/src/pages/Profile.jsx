@@ -10,6 +10,12 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('info');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userState, setUserState] = useState({
+    hasAvatarData: false,
+    hasAvatarUrl: false,
+    avatarError: false
+  });
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -84,6 +90,13 @@ const Profile = () => {
         address: user.address || '',
         avatarUrl: user.avatarUrl || '',
         avatarData: user.avatarData || ''
+      });
+      
+      // Set avatar state
+      setUserState({
+        hasAvatarData: !!user.avatarData,
+        hasAvatarUrl: !!user.avatarUrl,
+        avatarError: false
       });
       
       console.log("FormData after setting:", {
@@ -287,6 +300,13 @@ const Profile = () => {
       return;
     }
 
+    // Kiểm tra loại file
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+      toastError('Định dạng file không hỗ trợ. Vui lòng chọn ảnh JPEG, PNG, GIF, WebP hoặc SVG.');
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -305,7 +325,11 @@ const Profile = () => {
       const formData = new FormData();
       formData.append('avatar', file);
       
-      console.log("Uploading avatar..."); // Debug
+      console.log("Đang tải ảnh lên máy chủ...", {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: `${(file.size / 1024).toFixed(2)} KB`
+      });
       
       // Gọi API upload avatar
       const response = await api.post('/auth/avatar', formData, {
@@ -314,12 +338,13 @@ const Profile = () => {
         },
       });
       
-      console.log("Avatar upload response:", response.data); // Debug
-      
       if (response.data.success) {
         // Cập nhật thông tin người dùng trong context với dữ liệu mới từ server
         const updatedUserData = response.data.data;
-        console.log("Updating user with new avatar:", updatedUserData); // Debug
+        console.log("Cập nhật avatar thành công:", { 
+          avatarDataExists: !!updatedUserData.avatarData,
+          avatarUrlExists: !!updatedUserData.avatarUrl
+        });
         
         login(updatedUserData);
         toastSuccess('Cập nhật avatar thành công');
@@ -330,15 +355,64 @@ const Profile = () => {
           avatarData: updatedUserData.avatarData,
           avatarUrl: updatedUserData.avatarUrl
         }));
+        
+        // Cập nhật state hiển thị ảnh
+        setUserState(prevState => ({
+          ...prevState,
+          hasAvatarData: !!updatedUserData.avatarData,
+          hasAvatarUrl: !!updatedUserData.avatarUrl
+        }));
       } else {
         throw new Error(response.data.message || 'Lỗi không xác định');
       }
     } catch (error) {
-      console.error('Error uploading avatar:', error);
-      toastError(error.response?.data?.message || 'Không thể tải lên ảnh. Vui lòng thử lại sau.');
+      console.error('Lỗi khi tải ảnh lên:', error);
+      
+      // Reset preview về ảnh cũ nếu có lỗi
+      const previewContainer = document.getElementById('avatar-preview');
+      if (previewContainer) {
+        previewContainer.src = formData.avatarData || 
+          (formData.avatarUrl ? `${import.meta.env.VITE_API_URL.replace('/api', '')}${formData.avatarUrl}` : 
+          "/avatars/default-avatar.png");
+      }
+      
+      toastError(
+        error.response?.data?.message || 
+        error.message || 
+        'Không thể tải lên ảnh. Vui lòng thử lại sau.'
+      );
     } finally {
       setLoading(false);
+      // Xóa giá trị input file để cho phép người dùng tải lại cùng một file nếu cần
+      e.target.value = null;
     }
+  };
+
+  // Handle avatar loading errors
+  const handleAvatarError = (e) => {
+    console.log('Avatar failed to load in profile');
+    setUserState(prev => ({
+      ...prev,
+      avatarError: true
+    }));
+    e.target.src = "/avatars/default-avatar.png";
+  };
+
+  // Avatar display function
+  const displayAvatar = () => {
+    if (userState.avatarError) {
+      return "/avatars/default-avatar.png";
+    }
+    
+    if (formData.avatarData) {
+      return formData.avatarData;
+    }
+    
+    if (formData.avatarUrl) {
+      return `${import.meta.env.VITE_API_URL.replace('/api', '')}${formData.avatarUrl}`;
+    }
+    
+    return "/avatars/default-avatar.png";
   };
 
   const getGenderLabel = (gender) => {
@@ -416,16 +490,11 @@ const Profile = () => {
           <div className="profile-sidebar">
             <div className="profile-avatar-container">
               <img 
-                src={formData.avatarData || formData.avatarUrl 
-                  ? formData.avatarData || `${import.meta.env.VITE_API_URL.replace('/api', '')}${formData.avatarUrl}` 
-                  : "/avatars/default-avatar.png"}
+                src={displayAvatar()}
                 alt={formData.fullName || "User Avatar"}
                 className="profile-avatar"
                 id="avatar-preview"
-                onError={(e) => {
-                  console.log('Avatar failed to load in profile');
-                  e.target.src = "/avatars/default-avatar.png";
-                }}
+                onError={handleAvatarError}
               />
               
               {isEditing && (

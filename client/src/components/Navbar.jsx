@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getHomeRouteForRole } from '../utils/roleUtils';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -69,16 +68,33 @@ const Navbar = () => {
     }
   };
 
-  // Get role-specific dashboard link
-  const getDashboardLink = () => {
-    if (!user) return '/';
-    return getHomeRouteForRole(user);
+  // Display avatar in user menu
+  const displayAvatar = () => {
+    if (!user) return null;
+    
+    if (!avatarError && (user.avatarData || user.avatarUrl)) {
+      // If avatarData is present (base64), use it directly
+      // If avatarUrl is present, construct the full URL
+      const avatarSrc = user.avatarData || 
+        `${import.meta.env.VITE_API_URL.replace('/api', '')}${user.avatarUrl}`;
+      
+      return (
+        <img 
+          src={avatarSrc}
+          alt={user.fullName || 'User'} 
+          className="user-avatar"
+          onError={handleAvatarError}
+        />
+      );
+    } else {
+      // Fallback to initials if no avatar or if avatar loading failed
+      return (
+        <div className="user-avatar-fallback">
+          {getUserInitials()}
+        </div>
+      );
+    }
   };
-
-  // Check if user has admin role
-  const isAdmin = user?.roleType === 'admin';
-  // Check if user has doctor role
-  const isDoctor = user?.roleType === 'doctor';
 
   return (
     <nav className="navbar">
@@ -102,23 +118,6 @@ const Navbar = () => {
               <Link to="/" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Trang chủ</Link>
             </li>
             
-            {/* Show different links based on user role */}
-            {isAdmin && (
-              <li className="nav-item">
-                <Link to="/admin/dashboard" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
-                  Quản trị
-                </Link>
-              </li>
-            )}
-            
-            {isDoctor && (
-              <li className="nav-item">
-                <Link to="/doctor/dashboard" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>
-                  Bảng điều khiển
-                </Link>
-              </li>
-            )}
-            
             <li className="nav-item">
               <Link to="/doctors" className="nav-link" onClick={() => setIsMobileMenuOpen(false)}>Bác sĩ</Link>
             </li>
@@ -140,18 +139,7 @@ const Navbar = () => {
                     onClick={toggleUserMenu}
                     aria-expanded={isUserMenuOpen}
                   >
-                    {user && (user.avatarData || user.avatarUrl) && !avatarError ? (
-                      <img 
-                        src={user.avatarData || `${import.meta.env.VITE_API_URL.replace('/api', '')}${user.avatarUrl}`} 
-                        alt={user.fullName || 'User'} 
-                        className="user-avatar"
-                        onError={handleAvatarError}
-                      />
-                    ) : (
-                      <div className="user-avatar-fallback">
-                        {getUserInitials()}
-                      </div>
-                    )}
+                    {displayAvatar()}
                   </button>
                   
                   {isUserMenuOpen && (
@@ -159,7 +147,7 @@ const Navbar = () => {
                       <div className="user-dropdown-header">
                         <p className="user-name">{user.fullName}</p>
                         <p className="user-email">{user.email}</p>
-                        <p className="user-role">{user.roleType === 'admin' ? 'Quản trị viên' : user.roleType === 'doctor' ? 'Bác sĩ' : 'Người dùng'}</p>
+                        <p className="user-role">Người dùng</p>
                       </div>
                       <div className="user-dropdown-menu">
                         <Link to="/profile" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>
@@ -167,31 +155,11 @@ const Navbar = () => {
                           Thông tin cá nhân
                         </Link>
                         
-                        {/* Menu items based on role */}
-                        {isAdmin && (
-                          <Link to="/admin/dashboard" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>
-                            <i className="fas fa-user-cog icon-admin"></i>
-                            Quản trị hệ thống
-                          </Link>
-                        )}
-                        
-                        {isDoctor && (
-                          <Link to="/doctor/appointments" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>
-                            <i className="fas fa-calendar-check icon-appointments"></i>
-                            Lịch hẹn bác sĩ
-                          </Link>
-                        )}
-                        
-                        {/* For regular users or all roles */}
                         <Link to="/appointments" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>
                           <i className="fas fa-calendar-alt icon-calendar"></i>
                           Lịch hẹn của tôi
                         </Link>
                         
-                        <Link to="/settings" className="dropdown-item" onClick={() => setIsUserMenuOpen(false)}>
-                          <i className="fas fa-cog icon-settings"></i>
-                          Cài đặt
-                        </Link>
                         <button onClick={handleLogout} className="dropdown-item logout-button">
                           <i className="fas fa-sign-out-alt icon-logout"></i>
                           Đăng xuất

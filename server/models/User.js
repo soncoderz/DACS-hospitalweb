@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const userSchema = new mongoose.Schema({
   fullName: {
@@ -26,7 +27,10 @@ const userSchema = new mongoose.Schema({
   },
   passwordHash: {
     type: String,
-    required: [true, 'Mật khẩu là bắt buộc'],
+    required: function() {
+      // Password is only required if the user is not using social auth
+      return !this.googleId && !this.facebookId;
+    },
     minlength: [6, 'Mật khẩu phải có ít nhất 6 ký tự']
   },
   dateOfBirth: {
@@ -49,14 +53,9 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Địa chỉ không được vượt quá 200 ký tự']
   },
-  role: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Role',
-    required: true
-  },
   roleType: {
     type: String,
-    enum: ['admin', 'doctor', 'user'],
+    enum: ['user'],
     default: 'user'
   },
   registrationDate: {
@@ -103,6 +102,22 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: true
     }
+  },
+  // Social authentication fields
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  facebookId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'google', 'facebook'],
+    default: 'local'
   }
 }, {
   timestamps: true
@@ -155,18 +170,24 @@ userSchema.methods.generateVerificationToken = function() {
 // Phương thức tạo mã OTP 6 chữ số
 userSchema.methods.generateOTP = function() {
   // Tạo OTP ngẫu nhiên 6 chữ số
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpNumber = Math.floor(100000 + Math.random() * 900000).toString();
   
-  // Lưu OTP và thời gian hết hạn (2 phút)
-  this.otpCode = otp;
+  // Tạo JWT token chứa OTP
+  const otpToken = jwt.sign(
+    { otp: otpNumber, userId: this._id.toString() },
+    process.env.JWT_SECRET || 'fallback-secret-key',
+    { expiresIn: '2m' } // 2 phút
+  );
+  
+  // Lưu JWT token và thời gian hết hạn
+  this.otpCode = otpToken;
   this.otpExpires = Date.now() + 2 * 60 * 1000; // 2 phút
   
-  return otp;
+  return otpNumber; // Vẫn trả về OTP số để gửi qua email
 };
 
 // Indexes for efficient querying (excluding email as it's already indexed by unique: true)
 userSchema.index({ phoneNumber: 1 });
-userSchema.index({ role: 1 });
 userSchema.index({ verificationToken: 1 });
 
 const User = mongoose.model('User', userSchema);

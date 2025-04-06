@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { navigateByRole } from '../utils/roleUtils';
 import { Form, Button, Input, Checkbox } from 'antd';
-import { toastError, toastSuccess } from '../utils/toast';
+import { toastError, toastSuccess, toastGoogleSuccess, toastFacebookSuccess } from '../utils/toast';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import FacebookLogin from 'react-facebook-login-lite';
 
 const Login = ({ onRegisterClick }) => {
   const navigate = useNavigate();
@@ -14,6 +16,35 @@ const Login = ({ onRegisterClick }) => {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
 
+  useEffect(() => {
+    // Load Facebook SDK
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId: '3561947047432184',
+        cookie: true,
+        xfbml: true,
+        version: 'v19.0'
+      });
+      
+      FB.AppEvents.logPageView();
+      
+      // Check Facebook login status
+      FB.getLoginStatus(function(response) {
+        console.log('Facebook login status:', response);
+      });
+    };
+
+    // Load Facebook SDK
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "https://connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+  }, []);
+
+  // Regular login handler
   const onFinish = async (values) => {
     setLoading(true);
     
@@ -25,8 +56,7 @@ const Login = ({ onRegisterClick }) => {
       });
       
       if (response.data.success) {
-        login(response.data.data, values.rememberMe);
-        toastSuccess('Đăng nhập thành công');
+        login(response.data.data, values.rememberMe, true);
         navigateByRole(response.data.data, navigate, from);
       } else {
         toastError(response.data.message || 'Đăng nhập không thành công');
@@ -54,6 +84,81 @@ const Login = ({ onRegisterClick }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Google login success handler
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    try {
+      setLoading(true);
+      const response = await api.post('/auth/google-token', {
+        token: credentialResponse.credential
+      });
+      
+      if (response.data.success) {
+        login(response.data.data, true, false);
+        
+        toastGoogleSuccess(`Đăng nhập Google thành công! Xin chào, ${response.data.data.fullName}`);
+        
+        navigateByRole(response.data.data, navigate, from);
+      } else {
+        toastError(response.data.message || 'Đăng nhập Google không thành công');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      toastError('Đăng nhập với Google không thành công');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Google login error handler
+  const handleGoogleLoginError = () => {
+    toastError('Đăng nhập với Google không thành công');
+  };
+
+  // Facebook login với phương pháp redirect (không dùng FB.login)
+  const handleFacebookLogin = () => {
+    // Sử dụng redirect URL thay vì FB.login
+    const redirectUri = `${window.location.origin}/facebook-callback`;
+    const fbLoginUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=3561947047432184&redirect_uri=${encodeURIComponent(redirectUri)}&scope=email,public_profile`;
+    
+    // Lưu state hiện tại để quay lại sau khi đăng nhập
+    sessionStorage.setItem('auth_redirect', from);
+    
+    // Chuyển hướng đến Facebook
+    window.location.href = fbLoginUrl;
+  };
+
+  // Xử lý khi đăng nhập Facebook thành công
+  const handleFacebookLoginSuccess = async (response) => {
+    try {
+      setLoading(true);
+      // Make API call to backend with access token
+      const apiResponse = await api.post('/auth/facebook-token', {
+        accessToken: response.authResponse.accessToken,
+        userID: response.authResponse.userID
+      });
+      
+      if (apiResponse.data.success) {
+        login(apiResponse.data.data, true, false);
+        
+        toastFacebookSuccess(`Đăng nhập Facebook thành công! Xin chào, ${apiResponse.data.data.fullName}`);
+        
+        navigateByRole(apiResponse.data.data, navigate, from);
+      } else {
+        toastError(apiResponse.data.message || 'Đăng nhập Facebook không thành công');
+      }
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      toastError('Đăng nhập với Facebook không thành công');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle direct social login
+  const handleSocialLogin = (provider) => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/${provider}`;
   };
 
   return (
@@ -128,11 +233,19 @@ const Login = ({ onRegisterClick }) => {
           <span>Hoặc đăng nhập với</span>
         </div>
         <div className="social-login-buttons">
-          <button type="button" className="social-login-button google-login">
+          <button 
+            type="button" 
+            className="social-login-button google-login"
+            onClick={() => handleSocialLogin('google')}
+          >
             <i className="fab fa-google"></i>
             Google
           </button>
-          <button type="button" className="social-login-button facebook-login">
+          <button 
+            type="button" 
+            className="social-login-button facebook-login"
+            onClick={handleFacebookLogin}
+          >
             <i className="fab fa-facebook"></i>
             Facebook
           </button>

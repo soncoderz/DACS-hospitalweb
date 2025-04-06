@@ -55,6 +55,7 @@
   transform: translateY(-50%);
 }
 
+/* Auth container */
 .auth-container {
   display: flex;
   min-height: calc(100vh - 64px);
@@ -63,6 +64,7 @@
   overflow: hidden;
 }
 
+/* Form container */
 .form-container {
   width: 50%;
   position: relative;
@@ -79,13 +81,61 @@
   transition: transform 0.6s ease-in-out;
 }
 
-.form-wrapper > * {
+/* Form section */
+.form-section {
   width: 50%;
   padding: 2rem;
   overflow-y: auto;
   max-height: calc(100vh - 64px);
 }
 
+.form-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.form-header h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.form-description {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Form styles */
+.auth-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.auth-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.auth-form .form-control {
+  width: 100%;
+  border-radius: 6px;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.forgot-password {
+  color: var(--primary-color);
+  font-size: 0.9rem;
+}
+
+/* Auth info */
 .auth-info {
   width: 50%;
   background: #0066cc;
@@ -324,16 +374,16 @@
   border-color: #cbd5e1;
 }
 
-.social-login-button svg {
+.social-login-button i {
   width: 1.25rem;
   height: 1.25rem;
 }
 
-.google-login {
+.google-login i {
   color: #ea4335;
 }
 
-.facebook-login {
+.facebook-login i {
   color: #1877f2;
 }
 

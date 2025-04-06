@@ -1,43 +1,46 @@
 import axios from 'axios';
 
-// Create an axios instance with the base URL from environment variables
+const apiBaseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Create a custom axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: apiBaseURL,
+  withCredentials: true, // Important for cookies with social authentication
   headers: {
     'Content-Type': 'application/json',
-  },
+  }
 });
 
-// Add a request interceptor to include authorization token
+// Add a request interceptor to attach auth token when available
 api.interceptors.request.use(
   (config) => {
-    // Lấy token từ thông tin người dùng đã lưu
-    const userInfo = JSON.parse(localStorage.getItem('userInfo')) || 
-                     JSON.parse(sessionStorage.getItem('userInfo'));
+    // Get token from storage if it exists
+    const userInfo = 
+      JSON.parse(localStorage.getItem('userInfo')) || 
+      JSON.parse(sessionStorage.getItem('userInfo'));
     
-    // Nếu có thông tin người dùng và token
     if (userInfo && userInfo.token) {
       config.headers.Authorization = `Bearer ${userInfo.token}`;
-      // Debug thông tin request
-      console.log(`API Request to ${config.url} with auth token`);
-    } else {
-      console.log(`API Request to ${config.url} without auth token`);
     }
+    
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add a response interceptor to log responses
+// Add a response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => {
-    console.log(`API Response from ${response.config.url} status: ${response.status}`);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error(`API Error:`, error.response || error.message);
+    // Add global error handling here
+    console.error('API Error:', error.response || error.message);
+
+    // Handle 401 Unauthorized errors (token expired)
+    if (error.response && error.response.status === 401) {
+      // You can add logic here to refresh token or redirect to login
+      console.log('Unauthorized request - token may be expired');
+    }
+
     return Promise.reject(error);
   }
 );

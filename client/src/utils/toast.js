@@ -12,6 +12,38 @@ export const toastSuccess = (message) => {
   });
 };
 
+// Google login toast notification
+export const toastGoogleSuccess = (message) => {
+  toast.success(message, {
+    position: "top-right",
+    autoClose: 5000,
+    hideProgressBar: false,
+    closeOnClick: false,
+    pauseOnHover: true,
+    draggable: false,
+    icon: "🔵", // Blue circle for Google
+    className: "Toastify__toast--google",
+    progressClassName: "Toastify__progress-bar--google",
+    style: {
+      fontWeight: 'bold',
+      fontSize: '16px'
+    }
+  });
+};
+
+// Facebook login toast notification
+export const toastFacebookSuccess = (message) => {
+  toast.success(message, {
+    position: "top-right",
+    autoClose: 3000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    icon: "📘" // Blue book for Facebook
+  });
+};
+
 // Error toast notification
 export const toastError = (message) => {
   toast.error(message, {
