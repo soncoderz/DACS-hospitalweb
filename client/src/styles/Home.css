@@ -1,0 +1,524 @@
+/* Doctors Section Styles */
+.doctors-section .card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.doctors-section .card:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.doctors-section .btn-primary {
+  transition: all 0.3s ease;
+}
+
+.doctors-section .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Carousel Styles */
+.carousel-inner {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.carousel-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 1rem 0;
+  display: none;
+  transition: transform 0.6s ease;
+}
+
+.carousel-item.active {
+  position: relative;
+  display: block;
+  transform: translateX(0);
+  z-index: 10;
+}
+
+.carousel-item.active.from-right {
+  animation: slideInFromRight 0.6s ease;
+}
+
+.carousel-item.active.from-left {
+  animation: slideInFromLeft 0.6s ease;
+}
+
+/* Doctor Carousel Container */
+.doctor-carousel-container {
+  position: relative;
+  min-height: 400px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+/* New Doctor Card Horizontal */
+.doctor-card-horizontal {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.doctor-card-horizontal .row {
+  margin: 0;
+  height: 100%;
+  display: flex;
+}
+
+.doctor-card-horizontal .col-md-5,
+.doctor-card-horizontal .col-md-7 {
+  padding: 0;
+}
+
+.doctor-image-container {
+  width: 100%;
+  height: 100%;
+  min-height: 350px;
+  overflow: hidden;
+  background-color: #e1f5fe;
+}
+
+.doctor-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.doctor-card-horizontal:hover .doctor-image {
+  transform: scale(1.05);
+}
+
+.doctor-info {
+  padding: 2rem;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.doctor-rating {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background-color: #0d6efd;
+  color: white;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-size: 1rem;
+  z-index: 10;
+}
+
+.doctor-rating i {
+  color: #ffeb3b;
+  margin-right: 5px;
+}
+
+.doctor-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 10px;
+  margin-top: 10px;
+  padding-right: 70px;
+}
+
+.doctor-specialty {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.doctor-description {
+  color: #6c757d;
+  font-size: 1rem;
+  margin-bottom: 20px;
+  line-height: 1.6;
+  flex-grow: 1;
+}
+
+.doctor-btn {
+  width: 100%;
+  display: inline-block;
+  text-align: center;
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  margin-top: auto;
+}
+
+.doctor-btn:hover {
+  background-color: #0b5ed7;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  color: white;
+  text-decoration: none;
+}
+
+.doctor-btn i {
+  margin-right: 10px;
+}
+
+/* Side Control Buttons positioning */
+.carousel-control-prev.side-control,
+.carousel-control-next.side-control {
+  opacity: 1;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+}
+
+.carousel-control-prev.side-control:hover,
+.carousel-control-next.side-control:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.carousel-control-prev.side-control {
+  left: calc(50% - 420px);
+}
+
+.carousel-control-next.side-control {
+  right: calc(50% - 420px);
+}
+
+@media (max-width: 992px) {
+  .doctor-card-horizontal {
+    max-width: 95%;
+  }
+  
+  .doctor-image-container {
+    min-height: 250px;
+  }
+  
+  .doctor-info {
+    padding: 1.5rem;
+  }
+  
+  .doctor-name {
+    font-size: 1.5rem;
+  }
+  
+  .carousel-control-prev.side-control {
+    left: 5px;
+  }
+
+  .carousel-control-next.side-control {
+    right: 5px;
+  }
+}
+
+/* Carousel button styles */
+.carousel-button-icon {
+  width: 45px;
+  height: 45px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.carousel-button-icon:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-button-icon i {
+  font-size: 1.2rem;
+}
+
+/* For smaller screens */
+@media (max-width: 768px) {
+  .doctor-card-horizontal .row {
+    flex-direction: column;
+  }
+  
+  .doctor-image-container {
+    min-height: 300px;
+  }
+  
+  .doctor-info {
+    padding: 1.5rem;
+  }
+  
+  .doctor-name {
+    font-size: 1.5rem;
+  }
+  
+  .carousel-control-prev.side-control {
+    left: 5px;
+  }
+
+  .carousel-control-next.side-control {
+    right: 5px;
+  }
+}
+
+/* Custom Colors */
+.bg-primary-subtle {
+  background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Background pattern */
+.doctors-section {
+  background-color: #f8f9fa;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e9ecef' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  padding: 3rem 0;
+  margin: 1rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Section Title with underline */
+.section-title {
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  width: 50px;
+  height: 3px;
+  background-color: #0d6efd;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Ensure proper height for responsive design */
+@media (max-width: 576px) {
+  .doctor-carousel-container {
+    min-height: 600px;
+  }
+}
+
+/* Carousel indicators */
+.carousel-indicators {
+  display: none;
+}
+
+/* Clean up obsolete button style */
+.carousel-control-button {
+  display: none;
+}
+
+/* Ensure proper height for responsive design */
+@media (max-width: 576px) {
+  .doctor-carousel-container {
+    min-height: 750px;
+  }
+  
+  .doctor-info {
+    padding: 1.2rem;
+  }
+  
+  .doctor-name {
+    font-size: 1.3rem;
+    margin-top: 30px;
+  }
+  
+  .doctor-description {
+    font-size: 0.9rem;
+  }
+}
+
+/* Doctor Carousel Controls */
+.doctor-navigation-controls {
+  position: absolute;
+  width: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+}
+
+.doctor-prev,
+.doctor-next {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: rgba(13, 110, 253, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  color: #fff;
+  top: 0;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+}
+
+.doctor-prev:hover,
+.doctor-next:hover {
+  background: rgba(13, 110, 253, 1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.doctor-prev {
+  left: 15px;
+}
+
+.doctor-next {
+  right: 15px;
+}
+
+.carousel-prev-icon,
+.carousel-next-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-prev-icon i,
+.carousel-next-icon i {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  .doctor-prev {
+    left: 50px;
+  }
+  
+  .doctor-next {
+    right: 50px;
+  }
+}
+
+@media (min-width: 992px) {
+  .doctor-prev {
+    left: 100px;
+  }
+  
+  .doctor-next {
+    right: 100px;
+  }
+}
+
+/* Circle Navigation Controls */
+.circle-navigation-buttons {
+  position: absolute;
+  width: 100%;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+  z-index: 50;
+  max-width: 900px;
+  margin: 0 auto;
+  right: 0;
+}
+
+.circle-prev,
+.circle-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: absolute;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.circle-prev {
+  left: -5px;
+}
+
+.circle-next {
+  right: -5px;
+}
+
+.circle-prev i,
+.circle-next i {
+  color: #333;
+  font-size: 16px;
+}
+
+.circle-prev span,
+.circle-next span {
+  display: none;
+}
+
+.circle-prev:hover,
+.circle-next:hover {
+  background: #f8f9fa;
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 992px) {
+  .circle-navigation-buttons {
+    max-width: 100%;
+    padding: 0 5px;
+  }
+  
+  .circle-prev {
+    left: 10px;
+  }
+  
+  .circle-next {
+    right: 10px;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+} 

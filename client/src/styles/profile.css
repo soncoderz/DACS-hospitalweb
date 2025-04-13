@@ -1,0 +1,692 @@
+/* Profile Page Styles */
+.profile-page {
+  background-color: #f8fafc;
+  min-height: calc(100vh - 4rem);
+  padding: 1rem 0;
+}
+
+.profile-container {
+  display: flex;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.profile-content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
+
+.profile-avatar {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  border: 3px solid #3b82f6;
+}
+
+.profile-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.profile-email {
+  font-size: 1rem;
+  color: #666;
+  margin: 0.5rem 0;
+}
+
+.profile-role {
+  font-size: 1rem;
+  color: #3b82f6;
+  margin: 0;
+}
+
+.profile-tabs {
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-tab-item {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.profile-tab-item.active {
+  color: #3b82f6;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.profile-tab-content {
+  padding: 1rem;
+}
+
+.profile-info-tab {
+  padding: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.form-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 0.3rem;
+}
+
+.form-control {
+  font-size: 1.1rem;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background-color: transparent;
+  width: 100%;
+  outline: none;
+}
+
+select.form-control {
+  height: 40px;
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  padding: 0;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.btn-secondary {
+  background-color: #e5e7eb;
+  color: #374151;
+  border: none;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+}
+
+.btn-sm {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.medical-record-card, 
+.prescription-card {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.medical-record-header,
+.prescription-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.medical-record-title,
+.prescription-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.medical-record-date,
+.prescription-date {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.medical-record-details,
+.prescription-details {
+  font-size: 1rem;
+  color: #374151;
+}
+
+.medical-record-info p,
+.prescription-info p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.medical-record-info strong,
+.prescription-info strong {
+  display: inline-block;
+  min-width: 120px;
+  color: #4b5563;
+}
+
+.medicine-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.medicine-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 1rem;
+}
+
+.medicine-name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.preference-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.preference-label {
+  font-size: 1rem;
+  color: #374151;
+}
+
+.preference-toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.preference-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.preference-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 20px;
+}
+
+.preference-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .preference-slider {
+  background-color: #3b82f6;
+}
+
+input:checked + .preference-slider:before {
+  transform: translateX(16px);
+}
+
+/* Personal Information Section Styles */
+.personal-info-section {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.personal-info-item {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.personal-info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  width: 180px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #4b5563;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+/* Alert Styles */
+.alert {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.alert-success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.alert-danger {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 0;
+  }
+  
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem;
+  }
+  
+  .profile-avatar {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .personal-info-item {
+    flex-direction: column;
+    padding: 0.75rem;
+  }
+  
+  .info-label {
+    width: 100%;
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+  }
+  
+  .info-value {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .profile-tab-item {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .form-group {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .btn {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Profile sidebar styles - updating for better visibility */
+.profile-sidebar {
+  width: 300px;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  border: 3px solid #3b82f6;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #3b82f6;
+  color: white;
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+/* Fixing the avatar in the blue circle */
+.avatar-wrapper img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.avatar-view, .avatar-upload {
+  margin: 0 0.5rem;
+}
+
+.avatar-view-label, .avatar-upload-label {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4b5563;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.avatar-view-label:hover, .avatar-upload-label:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.avatar-input {
+  display: none;
+}
+
+.profile-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  text-align: center;
+  color: #1f2937;
+}
+
+.profile-tabs {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  width: 100%;
+}
+
+.profile-tab {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1.1rem;
+  color: #4b5563;
+}
+
+.profile-tab i {
+  margin-right: 0.8rem;
+  min-width: 24px;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.profile-tab:hover {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.profile-tab.active {
+  background-color: #3b82f6;
+  color: white;
+}
+
+/* Modal styles */
+.avatar-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.avatar-modal-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.avatar-modal-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.avatar-modal-close {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  background-color: #fff;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  font-size: 1.1rem;
+  color: #374151;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+  .profile-container {
+    flex-direction: column;
+  }
+  
+  .profile-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem;
+  }
+  
+  .avatar-wrapper {
+    width: 140px;
+    height: 140px;
+  }
+  
+  .profile-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .profile-tab {
+    flex: 0 0 auto;
+    margin: 0.25rem;
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .profile-tab i {
+    margin-right: 0.5rem;
+  }
+}
+
+/* Edit Form Styles - making it more compact and scrollable */
+.profile-edit-form {
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 10px;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.profile-edit-form form {
+  padding: 1rem;
+}
+
+.profile-edit-form .form-group {
+  margin-bottom: 0.75rem;
+}
+
+/* Custom scrollbar for the edit form */
+.profile-edit-form::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profile-edit-form::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 8px;
+}
+
+.profile-edit-form::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 8px;
+}
+
+.profile-edit-form::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Make form element heights more consistent */
+.profile-edit-form .form-control {
+  height: 40px;
+}
+
+.profile-edit-form textarea.form-control {
+  height: auto;
+  min-height: 60px;
+}
+
+/* Styles for dropdown */
+.auth-buttons .user-menu {
+  height: 40px;
+}
+
+.auth-buttons .user-avatar-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  padding: 0;
+}
+
+.auth-buttons .user-avatar {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  object-position: center;
+} 

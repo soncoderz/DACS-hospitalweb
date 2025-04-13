@@ -1,0 +1,70 @@
+/* Add styles for social icons in footer */
+.social-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 1.5rem;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f8fafc;
+  color: #3b82f6;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.social-link:hover {
+  background-color: #3b82f6;
+  color: white;
+  transform: translateY(-3px);
+}
+
+.social-link i {
+  font-size: 18px;
+}
+
+/* Facebook icon */
+.social-link[aria-label="Facebook"] {
+  color: #1877f2;
+}
+
+.social-link[aria-label="Facebook"]:hover {
+  background-color: #1877f2;
+  color: white;
+}
+
+/* Instagram icon */
+.social-link[aria-label="Instagram"] {
+  color: #e1306c;
+}
+
+.social-link[aria-label="Instagram"]:hover {
+  background-color: #e1306c;
+  color: white;
+}
+
+/* Google icon */
+.social-link[aria-label="Google"] {
+  color: #ea4335;
+}
+
+.social-link[aria-label="Google"]:hover {
+  background-color: #ea4335;
+  color: white;
+}
+
+/* LinkedIn icon */
+.social-link[aria-label="LinkedIn"] {
+  color: #0077b5;
+}
+
+.social-link[aria-label="LinkedIn"]:hover {
+  background-color: #0077b5;
+  color: white;
+} 
