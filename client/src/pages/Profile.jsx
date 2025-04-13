@@ -3,6 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import { toastSuccess, toastError, toastInfo } from '../utils/toast';
+import { Button } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import { Spin } from 'antd';
+import { getAvatarUrl, handleAvatarError } from '../utils/avatarUtils';
 
 const Profile = () => {
   const { user, login, logout } = useAuth();
@@ -11,7 +15,6 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userState, setUserState] = useState({
-    hasAvatarData: false,
     hasAvatarUrl: false,
     avatarError: false
   });
@@ -63,7 +66,6 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       console.log("Current user in Profile:", user); // Debug
-      console.log("User has avatarData:", !!user.avatarData);
       console.log("User has avatarUrl:", !!user.avatarUrl);
       
       // Format date of birth to YYYY-MM-DD for input[type="date"]
@@ -78,8 +80,7 @@ const Profile = () => {
         dateOfBirth: formattedDateOfBirth,
         gender: user.gender || '',
         address: user.address || '',
-        avatarUrl: user.avatarUrl || '',
-        avatarData: user.avatarData || ''
+        avatarUrl: user.avatarUrl || ''
       });
       setOriginalData({
         fullName: user.fullName || '',
@@ -88,13 +89,11 @@ const Profile = () => {
         dateOfBirth: formattedDateOfBirth,
         gender: user.gender || '',
         address: user.address || '',
-        avatarUrl: user.avatarUrl || '',
-        avatarData: user.avatarData || ''
+        avatarUrl: user.avatarUrl || ''
       });
       
       // Set avatar state
       setUserState({
-        hasAvatarData: !!user.avatarData,
         hasAvatarUrl: !!user.avatarUrl,
         avatarError: false
       });
@@ -109,8 +108,7 @@ const Profile = () => {
   useEffect(() => {
     console.log("Current FormData:", {
       ...formData,
-      hasAvatarUrl: !!formData.avatarUrl,
-      hasAvatarData: !!formData.avatarData
+      hasAvatarUrl: !!formData.avatarUrl
     });
   }, [formData]);
 
@@ -128,7 +126,7 @@ const Profile = () => {
 
     try {
       // Gọi API cập nhật thông tin
-      const response = await api.put('/auth/profile', formData);
+      const response = await api.put('/auth/update-profile', formData);
       
       if (response.data.success) {
         // Cập nhật thông tin người dùng trong context
@@ -179,8 +177,7 @@ const Profile = () => {
         dateOfBirth: formattedDateOfBirth,
         gender: user.gender || '',
         address: user.address || '',
-        avatarUrl: user.avatarUrl || '',
-        avatarData: user.avatarData || ''
+        avatarUrl: user.avatarUrl || ''
       });
     }
     setIsEditing(false);
@@ -342,25 +339,23 @@ const Profile = () => {
         // Cập nhật thông tin người dùng trong context với dữ liệu mới từ server
         const updatedUserData = response.data.data;
         console.log("Cập nhật avatar thành công:", { 
-          avatarDataExists: !!updatedUserData.avatarData,
-          avatarUrlExists: !!updatedUserData.avatarUrl
+          avatarUrl: updatedUserData.avatarUrl
         });
         
         login(updatedUserData);
         toastSuccess('Cập nhật avatar thành công');
         
-        // Cập nhật form data với avatar data mới từ server
+        // Cập nhật form data với avatar URL mới từ server
         setFormData(prevData => ({
           ...prevData,
-          avatarData: updatedUserData.avatarData,
           avatarUrl: updatedUserData.avatarUrl
         }));
         
         // Cập nhật state hiển thị ảnh
         setUserState(prevState => ({
           ...prevState,
-          hasAvatarData: !!updatedUserData.avatarData,
-          hasAvatarUrl: !!updatedUserData.avatarUrl
+          hasAvatarUrl: !!updatedUserData.avatarUrl,
+          avatarError: false
         }));
       } else {
         throw new Error(response.data.message || 'Lỗi không xác định');
@@ -371,9 +366,7 @@ const Profile = () => {
       // Reset preview về ảnh cũ nếu có lỗi
       const previewContainer = document.getElementById('avatar-preview');
       if (previewContainer) {
-        previewContainer.src = formData.avatarData || 
-          (formData.avatarUrl ? `${import.meta.env.VITE_API_URL.replace('/api', '')}${formData.avatarUrl}` : 
-          "/avatars/default-avatar.png");
+        previewContainer.src = getAvatarUrl(formData.avatarUrl);
       }
       
       toastError(
@@ -388,31 +381,159 @@ const Profile = () => {
     }
   };
 
-  // Handle avatar loading errors
-  const handleAvatarError = (e) => {
-    console.log('Avatar failed to load in profile');
-    setUserState(prev => ({
-      ...prev,
-      avatarError: true
-    }));
-    e.target.src = "/avatars/default-avatar.png";
-  };
+  // Thêm style đặc biệt cho trang profile
+  useEffect(() => {
+    // Thêm CSS inline cho avatar
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .profile-avatar {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      
+      .avatar-container {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin-bottom: 15px;
+        cursor: pointer;
+      }
+      
+      .avatar-wrapper {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        background-color: #f8f8f8;
+      }
+      
+      #avatar-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      
+      .avatar-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+      }
+      
+      .avatar-container:hover .avatar-overlay {
+        opacity: 1;
+      }
+      
+      .overlay-icon {
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+      
+      .overlay-text {
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
+      .avatar-loading {
+        width: 120px;
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: #f8f8f8;
+        border: 2px solid #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      .profile-name {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 4px;
+        text-align: center;
+      }
+      
+      .profile-email {
+        color: #666;
+        margin-bottom: 8px;
+        text-align: center;
+        font-size: 14px;
+      }
+      
+      .profile-role {
+        background-color: #e6f7ff;
+        color: #1890ff;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: inline-block;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
-  // Avatar display function
-  const displayAvatar = () => {
-    if (userState.avatarError) {
-      return "/avatars/default-avatar.png";
+  // Cập nhật hàm renderAvatar để đơn giản hóa cấu trúc
+  const renderAvatar = () => {
+    if (loading) {
+      return (
+        <div className="avatar-loading">
+          <Spin size="large" />
+        </div>
+      );
     }
-    
-    if (formData.avatarData) {
-      return formData.avatarData;
-    }
-    
-    if (formData.avatarUrl) {
-      return `${import.meta.env.VITE_API_URL.replace('/api', '')}${formData.avatarUrl}`;
-    }
-    
-    return "/avatars/default-avatar.png";
+
+    // Xác định nguồn ảnh avatar từ tiện ích
+    const avatarSrc = getAvatarUrl(formData.avatarUrl);
+
+    return (
+      <div className="profile-avatar">
+        <div 
+          className="avatar-container"
+          onClick={() => document.getElementById('avatar-input').click()}
+        >
+          <div className="avatar-wrapper">
+            <img 
+              id="avatar-preview" 
+              src={avatarSrc}
+              alt={formData.fullName || "Avatar"} 
+              onError={(e) => handleAvatarError(e)}
+            />
+          </div>
+          <div className="avatar-overlay">
+            <UploadOutlined className="overlay-icon" />
+            <span className="overlay-text">Thay đổi ảnh</span>
+          </div>
+        </div>
+        <input 
+          type="file" 
+          id="avatar-input" 
+          accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" 
+          onChange={handleAvatarUpload}
+          style={{ display: 'none' }}
+          disabled={loading}
+        />
+      </div>
+    );
   };
 
   const getGenderLabel = (gender) => {
@@ -489,29 +610,7 @@ const Profile = () => {
         <div className="profile-container">
           <div className="profile-sidebar">
             <div className="profile-avatar-container">
-              <img 
-                src={displayAvatar()}
-                alt={formData.fullName || "User Avatar"}
-                className="profile-avatar"
-                id="avatar-preview"
-                onError={handleAvatarError}
-              />
-              
-              {isEditing && (
-                <div className="avatar-upload">
-                  <label htmlFor="avatar-input" className="avatar-upload-label">
-                    <i className="fas fa-camera"></i>
-                    <span>Thay đổi ảnh</span>
-                  </label>
-                  <input
-                    type="file"
-                    id="avatar-input"
-                    className="avatar-input"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                  />
-                </div>
-              )}
+              {renderAvatar()}
             </div>
             
             <div className="profile-name">

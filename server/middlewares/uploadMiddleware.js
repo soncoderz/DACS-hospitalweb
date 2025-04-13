@@ -8,13 +8,31 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Memory storage for base64 conversion
+// Đảm bảo thư mục uploads/avatars tồn tại
+const avatarDir = path.join(__dirname, '../uploads/avatars');
+if (!fs.existsSync(avatarDir)) {
+  fs.mkdirSync(avatarDir, { recursive: true });
+}
+
+// Memory storage for base64 conversion (giữ lại cho các tính năng khác nếu cần)
 const memoryStorage = multer.memoryStorage();
 
 // Cấu hình lưu trữ
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Cấu hình lưu trữ avatar
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, avatarDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -47,6 +65,15 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
+// Cấu hình upload avatar
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // Giới hạn 5MB
+  },
+  fileFilter: fileFilter
+});
+
 // Cấu hình upload to memory for base64
 const uploadToMemory = multer({
   storage: memoryStorage,
@@ -56,4 +83,4 @@ const uploadToMemory = multer({
   fileFilter: fileFilter
 });
 
-module.exports = { upload, uploadToMemory }; 
+module.exports = { upload, uploadToMemory, uploadAvatar }; 

@@ -17,6 +17,8 @@ const VerifyEmail = () => {
       const searchParams = new URLSearchParams(location.search);
       const token = searchParams.get('token');
       
+      console.log('Token from URL:', token);
+      
       if (!token) {
         setStatus('error');
         setMessage('Token xác thực không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.');
@@ -24,7 +26,9 @@ const VerifyEmail = () => {
       }
       
       try {
+        console.log('Sending verification request...');
         const response = await api.post('/auth/verify-email', { token });
+        console.log('Verification response:', response.data);
         
         if (response.data.success) {
           setStatus('success');
@@ -32,6 +36,7 @@ const VerifyEmail = () => {
           
           // Update user data if available
           if (response.data.user) {
+            console.log('Updating user data:', response.data.user);
             updateUserData(response.data.user);
           }
           
@@ -43,15 +48,18 @@ const VerifyEmail = () => {
           setStatus('error');
           setMessage(response.data.message || 'Không thể xác thực email. Vui lòng thử lại.');
         }
-      } catch (err) {
-        console.error('Email verification error:', err);
+      } catch (error) {
+        console.error('Email verification error:', error);
         
         setStatus('error');
-        if (err.response) {
-          setMessage(err.response.data.message || 'Không thể xác thực email. Vui lòng thử lại.');
-        } else if (err.request) {
+        if (error.response) {
+          console.log('Error response:', error.response.data);
+          setMessage(error.response.data.message || 'Không thể xác thực email. Vui lòng thử lại.');
+        } else if (error.request) {
+          console.log('Error request:', error.request);
           setMessage('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
         } else {
+          console.log('Error:', error.message);
           setMessage('Đã xảy ra lỗi. Vui lòng thử lại sau.');
         }
       }

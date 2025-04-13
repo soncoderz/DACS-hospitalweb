@@ -15,13 +15,24 @@ const generateToken = async (userId) => {
       throw new Error('User not found');
     }
     
+    console.log('Generating token for user:', {
+      userId,
+      roleType: user.roleType
+    });
+    
     // JWT_SECRET được đảm bảo tồn tại vì đã kiểm tra trong server.js
-    return jwt.sign({ 
+    const token = jwt.sign({ 
       id: userId, 
-      role: 'user', // Hard-code role as 'user'
+      role: user.roleType, // Sử dụng roleType từ database thay vì 'user'
     }, process.env.JWT_SECRET, {
       expiresIn: '30d'
     });
+    
+    // Test decode token để xác nhận thông tin
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Verified token contains:', decoded);
+    
+    return token;
   } catch (error) {
     console.error('Error generating token:', error);
     // Return a basic token in case of error
@@ -344,19 +355,20 @@ exports.uploadAvatar = async (req, res) => {
     // Log the file information for debugging
     console.log('Avatar upload request received:', {
       filename: req.file.originalname,
-      mimetype: req.file.mimetype,
+      savedAs: req.file.filename,
+      path: req.file.path,
       size: `${(req.file.size / 1024).toFixed(2)} KB`
     });
     
-    // Convert file buffer to base64
-    const avatarData = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    // Tạo đường dẫn tương đối để lưu vào DB
+    const relativePath = `/uploads/avatars/${req.file.filename}`;
     
-    // Cập nhật dữ liệu ảnh đại diện trong DB
+    // Cập nhật đường dẫn ảnh đại diện trong DB
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { 
-        avatarData,
-        avatarUrl: null  // Clear old file-based URL
+        avatarUrl: relativePath,
+        avatarData: null  // Xóa dữ liệu base64 cũ nếu có
       },
       { new: true }
     ).select('-passwordHash');
@@ -381,7 +393,6 @@ exports.uploadAvatar = async (req, res) => {
         dateOfBirth: user.dateOfBirth,
         gender: user.gender,
         address: user.address,
-        avatarData: user.avatarData,
         avatarUrl: user.avatarUrl,
         roleType: user.roleType
       },
@@ -665,26 +676,34 @@ exports.verifyEmail = async (req, res) => {
       });
     }
     
-    // Hash token
+    console.log('Verifying token:', token);
+    
+    // Hash token để so sánh với token đã lưu trong database
     const hashedToken = crypto
       .createHash('sha256')
       .update(token)
       .digest('hex');
       
+    console.log('Hashed token:', hashedToken);
+    
     // Tìm user với token xác thực
     const user = await User.findOne({
       verificationToken: hashedToken
     });
     
     if (!user) {
+      console.log('User not found with token');
       return res.status(400).json({
         success: false,
         message: 'Token xác thực không hợp lệ'
       });
     }
     
+    console.log('Found user:', user.email);
+    
     // Kiểm tra thời hạn của token
     if (user.verificationTokenExpires && user.verificationTokenExpires < Date.now()) {
+      console.log('Token expired');
       return res.status(400).json({
         success: false,
         message: 'Token xác thực đã hết hạn. Vui lòng yêu cầu gửi lại email xác thực',
@@ -698,11 +717,13 @@ exports.verifyEmail = async (req, res) => {
     user.verificationTokenExpires = undefined;
     
     await user.save();
+    console.log('User verified successfully');
     
     // Generate token cho user đã xác thực
     const authToken = await generateToken(user._id);
     
-    res.status(200).json({
+    console.log('Sending success response');
+    return res.status(200).json({
       success: true,
       message: 'Xác thực email thành công',
       token: authToken,
@@ -717,7 +738,7 @@ exports.verifyEmail = async (req, res) => {
     
   } catch (error) {
     console.error('Email verification error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Lỗi xác thực email',
       error: error.message
@@ -1170,6 +1191,41 @@ exports.setSocialPassword = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi đặt mật khẩu',
+      error: error.message
+    });
+  }
+};
+
+// Refresh token function
+exports.refreshToken = async (req, res) => {
+  try {
+    // Sử dụng ID người dùng từ request (đã được middleware protect xác thực)
+    const userId = req.user._id;
+    
+    // Tạo token mới
+    const token = await generateToken(userId);
+    
+    // Trả về token mới
+    return res.status(200).json({
+      success: true,
+      data: {
+        token,
+        user: {
+          _id: req.user._id,
+          fullName: req.user.fullName,
+          email: req.user.email,
+          phoneNumber: req.user.phoneNumber,
+          roleType: req.user.roleType,
+          avatarUrl: req.user.avatarUrl
+        }
+      },
+      message: 'Token đã được làm mới thành công'
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi làm mới token',
       error: error.message
     });
   }

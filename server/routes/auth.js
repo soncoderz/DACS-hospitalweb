@@ -1,31 +1,52 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, getCurrentUser, updateProfile, uploadAvatar, forgotPassword, verifyOtp, resetPassword, verifyEmail, resendVerification, changePassword, socialLoginSuccess, socialLoginFailure, googleTokenVerification, facebookTokenVerification, setSocialPassword } = require('../controllers/authController');
+const { register, login, getCurrentUser, updateProfile, uploadAvatar, forgotPassword, verifyOtp, resetPassword, verifyEmail, resendVerification, changePassword, socialLoginSuccess, socialLoginFailure, googleTokenVerification, facebookTokenVerification, setSocialPassword, refreshToken } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
-const { upload, uploadToMemory } = require('../middlewares/uploadMiddleware');
+const { upload, uploadToMemory, uploadAvatar: uploadAvatarMiddleware } = require('../middlewares/uploadMiddleware');
+const { validateUserRegistration, validateUserUpdate, validatePasswordChange, validateEmail } = require('../middlewares/validationMiddleware');
 const passport = require('../config/passport');
 const axios = require('axios');
 
 // Register user
-router.post('/register', register);
+router.post('/register', validateUserRegistration, register);
 
 // Login user
 router.post('/login', login);
 
-// Get current user profile
+// Get current user
 router.get('/me', protect, getCurrentUser);
 
-// Update user profile
-router.put('/profile', protect, updateProfile);
+// Refresh token
+router.get('/refresh-token', protect, refreshToken);
+
+// Test token route
+router.get('/test-token', protect, (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: 'Token hợp lệ',
+    data: {
+      user: {
+        id: req.user._id,
+        email: req.user.email,
+        roleType: req.user.roleType,
+        role: req.user.role,
+      },
+      token: req.headers.authorization ? req.headers.authorization.split(' ')[1] : null
+    }
+  });
+});
+
+// Update profile
+router.put('/profile', protect, validateUserUpdate, updateProfile);
 
 // Upload avatar
-router.post('/avatar', protect, uploadToMemory.single('avatar'), uploadAvatar);
+router.post('/avatar', protect, uploadAvatarMiddleware.single('avatar'), uploadAvatar);
 
 // Change password
-router.put('/change-password', protect, changePassword);
+router.put('/change-password', protect, validatePasswordChange, changePassword);
 
 // Forgot password - request OTP
-router.post('/forgot-password', forgotPassword);
+router.post('/forgot-password', validateEmail, forgotPassword);
 
 // Verify OTP
 router.post('/verify-otp', verifyOtp);
@@ -37,7 +58,7 @@ router.post('/reset-password', resetPassword);
 router.post('/verify-email', verifyEmail);
 
 // Resend verification email
-router.post('/resend-verification', resendVerification);
+router.post('/resend-verification', validateEmail, resendVerification);
 
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', { 

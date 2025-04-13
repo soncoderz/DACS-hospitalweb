@@ -6,56 +6,35 @@ const jwt = require('jsonwebtoken');
 const userSchema = new mongoose.Schema({
   fullName: {
     type: String,
-    required: [true, 'Họ và tên là bắt buộc'],
-    trim: true,
-    minlength: [2, 'Họ và tên phải có ít nhất 2 ký tự'],
-    maxlength: [100, 'Họ và tên không được vượt quá 100 ký tự']
+    trim: true
   },
   email: {
     type: String,
-    required: [true, 'Email là bắt buộc'],
     unique: true,
     trim: true,
-    lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Email không hợp lệ']
+    lowercase: true
   },
   phoneNumber: {
     type: String,
-    required: [true, 'Số điện thoại là bắt buộc'],
-    trim: true,
-    match: [/^[0-9]{10,11}$/, 'Số điện thoại không hợp lệ']
+    trim: true
   },
   passwordHash: {
-    type: String,
-    required: function() {
-      // Password is only required if the user is not using social auth
-      return !this.googleId && !this.facebookId;
-    },
-    minlength: [6, 'Mật khẩu phải có ít nhất 6 ký tự']
+    type: String
   },
   dateOfBirth: {
-    type: Date,
-    required: [true, 'Ngày sinh là bắt buộc'],
-    validate: {
-      validator: function(v) {
-        return v <= new Date();
-      },
-      message: 'Ngày sinh không hợp lệ'
-    }
+    type: Date
   },
   gender: {
     type: String,
-    enum: ['male', 'female', 'other'],
-    required: [true, 'Giới tính là bắt buộc']
+    enum: ['male', 'female', 'other']
   },
   address: {
     type: String,
-    trim: true,
-    maxlength: [200, 'Địa chỉ không được vượt quá 200 ký tự']
+    trim: true
   },
   roleType: {
     type: String,
-    enum: ['user'],
+    enum: ['user', 'doctor', 'admin'],
     default: 'user'
   },
   registrationDate: {
@@ -78,7 +57,7 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   avatarData: {
-    type: String,  // Store base64 encoded image data
+    type: String,
     trim: true
   },
   favorites: [{
@@ -156,14 +135,25 @@ userSchema.methods.generatePasswordResetToken = function() {
 
 // Phương thức tạo token xác thực email
 userSchema.methods.generateVerificationToken = function() {
-  // Vô hiệu hóa token cũ bằng cách tạo token mới
+  // Tạo token ngẫu nhiên
   const verificationToken = crypto.randomBytes(32).toString('hex');
-  this.verificationToken = crypto
+  console.log('Generated verification token:', verificationToken);
+  
+  // Hash token trước khi lưu vào database
+  const hashedToken = crypto
     .createHash('sha256')
     .update(verificationToken)
     .digest('hex');
-  // Đặt thời gian hết hạn là 5 phút thay vì 24 giờ
+    
+  console.log('Hashed verification token:', hashedToken);
+  
+  this.verificationToken = hashedToken;
+  
+  // Đặt thời gian hết hạn là 5 phút
   this.verificationTokenExpires = Date.now() + 5 * 60 * 1000; // 5 phút
+  console.log('Token expiration:', new Date(this.verificationTokenExpires));
+  
+  // Trả về token gốc (chưa hash) để gửi qua email
   return verificationToken;
 };
 
@@ -186,7 +176,7 @@ userSchema.methods.generateOTP = function() {
   return otpNumber; // Vẫn trả về OTP số để gửi qua email
 };
 
-// Indexes for efficient querying (excluding email as it's already indexed by unique: true)
+// Indexes for efficient querying (email đã có index unique từ schema)
 userSchema.index({ phoneNumber: 1 });
 userSchema.index({ verificationToken: 1 });
 

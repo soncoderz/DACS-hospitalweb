@@ -191,8 +191,167 @@ const sendVerificationEmail = async (email, verificationToken, fullName) => {
   }
 };
 
+/**
+ * Gửi email xác nhận đặt lịch khám
+ * @param {string} email - Email của bệnh nhân
+ * @param {string} patientName - Tên bệnh nhân
+ * @param {Object} appointmentInfo - Thông tin lịch hẹn
+ * @returns {Promise<boolean>} - Trạng thái gửi email
+ */
+const sendAppointmentConfirmationEmail = async (email, patientName, appointmentInfo) => {
+  if (!transporter) {
+    console.error('Email transporter chưa được khởi tạo');
+    throw new Error('Email transporter chưa được khởi tạo');
+  }
+
+  try {
+    const { bookingCode, doctorName, hospitalName, appointmentDate, startTime, endTime } = appointmentInfo;
+    
+    const mailOptions = {
+      from: `"Hệ thống Bệnh viện" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Xác nhận đặt lịch khám thành công',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #0066cc;">Xác nhận đặt lịch khám</h2>
+          </div>
+          
+          <p>Xin chào ${patientName},</p>
+          
+          <p>Cảm ơn bạn đã đặt lịch khám tại Hệ thống Bệnh viện của chúng tôi. Dưới đây là thông tin chi tiết về lịch hẹn của bạn:</p>
+          
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Mã đặt lịch:</strong> ${bookingCode}</p>
+            <p><strong>Bác sĩ:</strong> ${doctorName}</p>
+            <p><strong>Bệnh viện:</strong> ${hospitalName}</p>
+            <p><strong>Ngày khám:</strong> ${appointmentDate}</p>
+            <p><strong>Giờ khám:</strong> ${startTime} - ${endTime}</p>
+          </div>
+          
+          <p><strong>Lưu ý quan trọng:</strong></p>
+          <ul>
+            <li>Vui lòng đến trước 15 phút để hoàn tất thủ tục đăng ký</li>
+            <li>Mang theo CMND/CCCD và thẻ BHYT (nếu có)</li>
+            <li>Mang theo các kết quả xét nghiệm, hồ sơ bệnh án trước đây (nếu có)</li>
+            <li>Nếu bạn cần hủy hoặc đổi lịch, vui lòng thông báo trước ít nhất 24 giờ</li>
+          </ul>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/appointments" style="display: inline-block; padding: 12px 24px; background-color: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+              Quản lý lịch hẹn
+            </a>
+          </div>
+          
+          <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi qua số điện thoại (028) 3822 1234.</p>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <p style="font-size: 12px; color: #666;">
+              Đây là email tự động, vui lòng không trả lời. Nếu bạn cần hỗ trợ, vui lòng liên hệ với chúng tôi qua support@benhvien.com hoặc gọi (028) 3822 1234.
+            </p>
+          </div>
+        </div>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email xác nhận đặt lịch gửi thành công: %s', info.messageId);
+    
+    // Khi sử dụng Ethereal, hiển thị URL để xem email đã gửi
+    if (info.messageId && transporter.options.host && transporter.options.host.includes('ethereal')) {
+      console.log('URL xem email: %s', nodemailer.getTestMessageUrl(info));
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Lỗi gửi email xác nhận đặt lịch:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gửi email nhắc nhở lịch khám
+ * @param {string} email - Email của bệnh nhân
+ * @param {string} patientName - Tên bệnh nhân
+ * @param {Object} appointmentInfo - Thông tin lịch hẹn
+ * @returns {Promise<boolean>} - Trạng thái gửi email
+ */
+const sendAppointmentReminderEmail = async (email, patientName, appointmentInfo) => {
+  if (!transporter) {
+    console.error('Email transporter chưa được khởi tạo');
+    throw new Error('Email transporter chưa được khởi tạo');
+  }
+
+  try {
+    const { bookingCode, doctorName, hospitalName, appointmentDate, startTime, endTime, hospitalAddress } = appointmentInfo;
+    
+    const mailOptions = {
+      from: `"Hệ thống Bệnh viện" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Nhắc nhở lịch khám sắp tới',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #0066cc;">Nhắc nhở lịch khám</h2>
+          </div>
+          
+          <p>Xin chào ${patientName},</p>
+          
+          <p>Chúng tôi xin nhắc bạn về lịch khám sắp tới tại Hệ thống Bệnh viện của chúng tôi:</p>
+          
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Mã đặt lịch:</strong> ${bookingCode}</p>
+            <p><strong>Bác sĩ:</strong> ${doctorName}</p>
+            <p><strong>Bệnh viện:</strong> ${hospitalName}</p>
+            <p><strong>Ngày khám:</strong> ${appointmentDate}</p>
+            <p><strong>Giờ khám:</strong> ${startTime} - ${endTime}</p>
+            ${hospitalAddress ? `<p><strong>Địa chỉ:</strong> ${hospitalAddress}</p>` : ''}
+          </div>
+          
+          <p><strong>Lưu ý quan trọng:</strong></p>
+          <ul>
+            <li>Vui lòng đến trước 15 phút để hoàn tất thủ tục đăng ký</li>
+            <li>Mang theo CMND/CCCD và thẻ BHYT (nếu có)</li>
+            <li>Mang theo các kết quả xét nghiệm, hồ sơ bệnh án trước đây (nếu có)</li>
+            <li>Nếu bạn cần hủy hoặc đổi lịch, vui lòng thông báo trước ít nhất 24 giờ</li>
+          </ul>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/appointments" style="display: inline-block; padding: 12px 24px; background-color: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+              Quản lý lịch hẹn
+            </a>
+          </div>
+          
+          <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi qua số điện thoại (028) 3822 1234.</p>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <p style="font-size: 12px; color: #666;">
+              Đây là email tự động, vui lòng không trả lời. Nếu bạn cần hỗ trợ, vui lòng liên hệ với chúng tôi qua support@benhvien.com hoặc gọi (028) 3822 1234.
+            </p>
+          </div>
+        </div>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email nhắc nhở lịch khám gửi thành công: %s', info.messageId);
+    
+    // Khi sử dụng Ethereal, hiển thị URL để xem email đã gửi
+    if (info.messageId && transporter.options.host && transporter.options.host.includes('ethereal')) {
+      console.log('URL xem email: %s', nodemailer.getTestMessageUrl(info));
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Lỗi gửi email nhắc nhở lịch khám:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   sendOtpEmail,
   sendVerificationEmail,
+  sendAppointmentConfirmationEmail,
+  sendAppointmentReminderEmail,
   initializeEmailTransport
 }; 
