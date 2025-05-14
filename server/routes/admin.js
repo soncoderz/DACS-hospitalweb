@@ -19,7 +19,7 @@ const statisticsController = require('../controllers/statisticsController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { upload, uploadToMemory } = require('../middlewares/uploadMiddleware');
 
-
+const medicationController = require('../controllers/medicationController');
 
 
 
@@ -114,5 +114,10 @@ router.get('/statistics/doctors', statisticsController.getDoctorStatistics);
 router.get('/statistics/appointments', statisticsController.getAppointmentStatistics);
 router.get('/dashboard/stats', statisticsController.getDashboardStatistics);
 router.get('/dashboard/charts', statisticsController.getDashboardCharts);
+
+
+router.post('/medications',  medicationController.createMedication);
+router.put('/medications/:id',  medicationController.updateMedication);
+router.delete('/medications/:id',  medicationController.deleteMedication);
 
 module.exports = router; 

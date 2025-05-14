@@ -68,6 +68,7 @@ import AdminCoupons from './pages/admin/Coupons';
 import AdminPayments from './pages/admin/Payments';
 import AdminReviews from './pages/admin/Reviews';
 import AdminDoctorSchedules from './pages/admin/DoctorSchedules';
+import AdminMedications from './pages/admin/Medications';
 
 
 function AppContent() {
@@ -97,6 +98,7 @@ function AppContent() {
           <Route path="payments" element={<AdminPayments />} />
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="doctor-schedules" element={<AdminDoctorSchedules />} />
+          <Route path="medications" element={<AdminMedications />} />
         </Route>
 
         {/* Doctor Routes - No Navbar/Footer */}

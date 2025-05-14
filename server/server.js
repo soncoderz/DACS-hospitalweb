@@ -33,6 +33,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const doctorAuthRoutes = require('./routes/doctorAuth');
 const medicalRecordRoutes = require('./routes/medicalRecordRoutes');
+const medicationRoutes = require('./routes/medicationRoutes');
 
 // Load environment variables
 console.log('Loading environment variables from .env file');
@@ -167,6 +168,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/doctor-auth', doctorAuthRoutes);
 app.use('/api', medicalRecordRoutes);
+app.use('/api/medications', medicationRoutes);
 
 // Xử lý callback ở đường dẫn gốc (root URL)
 app.get('/', (req, res) => {

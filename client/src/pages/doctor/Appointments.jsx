@@ -5,7 +5,8 @@ import {
   FaCheckCircle, FaTimesCircle, FaClipboardCheck, FaEye,
   FaClock, FaCheck, FaTimes, FaExchangeAlt,
   FaCalendarCheck, FaBan, FaUserClock, FaAngleRight,
-  FaAngleLeft, FaRegCalendarCheck, FaListAlt, FaPlus
+  FaAngleLeft, FaRegCalendarCheck, FaListAlt, FaPlus,
+  FaExclamationTriangle, FaInfoCircle
 } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 
@@ -40,9 +41,14 @@ const Appointments = () => {
   const [completionData, setCompletionData] = useState({
     diagnosis: '',
     treatment: '',
-    prescription: [],
-    notes: ''
+    prescription: []
   });
+  const [medications, setMedications] = useState([]);
+  const [medicationCategories, setMedicationCategories] = useState([]);
+  const [loadingMedications, setLoadingMedications] = useState(false);
+  const [medicationSearch, setMedicationSearch] = useState('');
+  const [filteredMedications, setFilteredMedications] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     fetchAppointments();
@@ -54,6 +60,19 @@ const Appointments = () => {
       applySearchFilter();
     }
   }, [appointments, searchTerm]);
+  
+  useEffect(() => {
+    if (showCompletionModal) {
+      fetchMedications();
+      fetchMedicationCategories();
+    }
+  }, [showCompletionModal]);
+  
+  useEffect(() => {
+    if (medications.length > 0) {
+      filterMedications();
+    }
+  }, [medicationSearch, selectedCategory, medications]);
 
   const fetchStatusCounts = async () => {
     try {
@@ -194,8 +213,7 @@ const Appointments = () => {
           setCompletionData({
             diagnosis: '',
             treatment: '',
-            prescription: [],
-            notes: ''
+            prescription: []
           });
           setShowCompletionModal(true);
           setIsUpdating(false);
@@ -327,8 +345,48 @@ const Appointments = () => {
   const handleCompleteAppointment = async () => {
     if (!selectedAppointment) return;
     
+    // Validate that all prescriptions have quantities
+    const invalidMeds = completionData.prescription.filter(med => 
+      !med.quantity || med.quantity <= 0 || !med.medicationId
+    );
+    
+    if (invalidMeds.length > 0) {
+      toast.error('Vui lòng nhập số lượng hợp lệ cho tất cả các thuốc');
+      return;
+    }
+    
     setIsUpdating(true);
     try {
+      // First reduce medication stock
+      if (completionData.prescription.length > 0) {
+        const stockReductionData = {
+          medications: completionData.prescription.map(med => ({
+            medicationId: med.medicationId,
+            quantity: parseInt(med.quantity)
+          }))
+        };
+        
+        const stockResponse = await api.post('/medications/reduce-stock', stockReductionData);
+        
+        if (!stockResponse.data.success) {
+          toast.error('Không thể cập nhật kho thuốc: ' + stockResponse.data.message);
+          setIsUpdating(false);
+          return;
+        }
+        
+        // Check if any medications failed to update
+        const failedMeds = stockResponse.data.data.filter(result => !result.success);
+        
+        if (failedMeds.length > 0) {
+          toast.error(
+            `Không thể cập nhật kho cho ${failedMeds.length} loại thuốc. Vui lòng kiểm tra số lượng tồn.`
+          );
+          setIsUpdating(false);
+          return;
+        }
+      }
+      
+      // Then complete the appointment
       const response = await api.put(`/appointments/${selectedAppointment._id}/complete`, completionData);
       
       if (response.data.success) {
@@ -361,7 +419,16 @@ const Appointments = () => {
       ...prev,
       prescription: [
         ...prev.prescription,
-        { medicine: '', dosage: '', frequency: '', duration: '' }
+        { 
+          medicine: '', 
+          dosage: '', 
+          frequency: '', 
+          duration: '', 
+          usage: '', 
+          notes: '',
+          quantity: 1,
+          medicationId: null
+        }
       ]
     }));
   };
@@ -385,6 +452,87 @@ const Appointments = () => {
       ...prev,
       prescription: prev.prescription.filter((_, i) => i !== index)
     }));
+  };
+
+  const fetchMedications = async () => {
+    setLoadingMedications(true);
+    try {
+      const response = await api.get('/medications/medications', {
+        params: {
+          limit: 100 // Get a large batch for local filtering
+        }
+      });
+      
+      if (response.data.success) {
+        setMedications(response.data.data.docs || []);
+        setFilteredMedications(response.data.data.docs || []);
+      } else {
+        console.error('Failed to load medications:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching medications:', error);
+    } finally {
+      setLoadingMedications(false);
+    }
+  };
+  
+  const fetchMedicationCategories = async () => {
+    try {
+      const response = await api.get('/medications/categories');
+      if (response.data.success) {
+        setMedicationCategories(response.data.data || []);
+      } else {
+        console.error('Failed to load medication categories:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching medication categories:', error);
+    }
+  };
+  
+  const filterMedications = () => {
+    if (!medications.length) return;
+    
+    let filtered = [...medications];
+    
+    // Apply category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(med => med.category === selectedCategory);
+    }
+    
+    // Apply search filter
+    if (medicationSearch.trim()) {
+      const search = medicationSearch.toLowerCase().trim();
+      filtered = filtered.filter(med => 
+        med.name.toLowerCase().includes(search) || 
+        (med.description && med.description.toLowerCase().includes(search))
+      );
+    }
+    
+    setFilteredMedications(filtered);
+  };
+  
+  const handleMedicationSelect = (medication) => {
+    setCompletionData(prev => {
+      // Create a new medication item with defaults from the selected medication
+      const newMedication = {
+        medicine: medication.name,
+        dosage: medication.defaultDosage || '',
+        frequency: '',
+        duration: medication.defaultDuration || '',
+        usage: medication.defaultUsage || '',
+        notes: '',
+        quantity: 1,
+        medicationId: medication._id,
+        stockQuantity: medication.stockQuantity,
+        unitTypeDisplay: medication.unitTypeDisplay
+      };
+      
+      // Add to prescription array
+      return {
+        ...prev,
+        prescription: [...prev.prescription, newMedication]
+      };
+    });
   };
 
   const renderAppointmentsTable = () => {
@@ -717,12 +865,79 @@ const Appointments = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <label className="block text-sm font-medium text-gray-700">Đơn thuốc</label>
-                <button 
-                  onClick={addMedication}
-                  className="px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-sm flex items-center"
-                >
-                  <FaPlus className="mr-1" /> Thêm thuốc
-                </button>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={addMedication}
+                    className="px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-sm flex items-center"
+                  >
+                    <FaPlus className="mr-1" /> Thêm thủ công
+                  </button>
+                </div>
+              </div>
+              
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+                <h4 className="font-medium text-gray-700">Chọn thuốc từ kho thuốc</h4>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaSearch className="text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={medicationSearch}
+                      onChange={(e) => setMedicationSearch(e.target.value)}
+                      placeholder="Tìm kiếm thuốc..."
+                      className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                    />
+                  </div>
+                  
+                  <div className="sm:w-48">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                    >
+                      <option value="all">Tất cả danh mục</option>
+                      {medicationCategories.map(category => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+                  {loadingMedications ? (
+                    <div className="text-center py-4">
+                      <div className="spinner-border inline-block w-6 h-6 border-2 border-t-primary rounded-full animate-spin"></div>
+                      <p className="text-gray-500 text-sm mt-1">Đang tải danh sách thuốc...</p>
+                    </div>
+                  ) : filteredMedications.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-gray-500 text-sm">Không tìm thấy thuốc nào</p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-gray-200">
+                      {filteredMedications.slice(0, 5).map(medication => (
+                        <li 
+                          key={medication._id} 
+                          className="p-3 hover:bg-gray-50 cursor-pointer transition-colors flex justify-between items-center"
+                          onClick={() => handleMedicationSelect(medication)}
+                        >
+                          <div>
+                            <div className="font-medium text-gray-800">{medication.name}</div>
+                            <div className="text-sm text-gray-500">{medication.description}</div>
+                          </div>
+                          <button className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                            Thêm
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               
               {completionData.prescription.length === 0 ? (
@@ -780,6 +995,64 @@ const Appointments = () => {
                             className="w-full p-2 border border-gray-300 rounded"
                             placeholder="Vd: 7 ngày"
                           />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Cách dùng</label>
+                          <input
+                            type="text"
+                            value={med.usage}
+                            onChange={(e) => updateMedication(index, 'usage', e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded"
+                            placeholder="Vd: Uống sau ăn"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Ghi chú</label>
+                          <input
+                            type="text"
+                            value={med.notes}
+                            onChange={(e) => updateMedication(index, 'notes', e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded"
+                            placeholder="Ghi chú thêm"
+                          />
+                        </div>
+                        <div>
+                          <label className="flex items-center text-xs text-gray-500 mb-1">
+                            Số lượng
+                            {med.medicationId && med.stockQuantity !== undefined && (
+                              <span className={`ml-1 text-xs ${med.stockQuantity < 10 ? 'text-red-500' : 'text-blue-500'}`}>
+                                (Tồn: {med.stockQuantity} {med.unitTypeDisplay || 'đơn vị'})
+                              </span>
+                            )}
+                          </label>
+                          <div className="flex">
+                            <input
+                              type="number"
+                              value={med.quantity}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                if (value < 1) return;
+                                
+                                updateMedication(index, 'quantity', value);
+                              }}
+                              min="1"
+                              className={`w-full p-2 border rounded ${
+                                med.medicationId && med.stockQuantity !== undefined && med.quantity > med.stockQuantity
+                                  ? 'border-red-300 bg-red-50'
+                                  : 'border-gray-300'
+                              }`}
+                            />
+                            {med.unitTypeDisplay && (
+                              <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 border border-l-0 border-gray-300 rounded-r">
+                                {med.unitTypeDisplay}
+                              </span>
+                            )}
+                          </div>
+                          {med.medicationId && med.stockQuantity !== undefined && med.quantity > med.stockQuantity && (
+                            <p className="text-red-500 text-xs mt-1 flex items-center">
+                              <FaExclamationTriangle className="mr-1" /> Vượt quá số lượng tồn kho
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FaFileMedical, FaFileMedicalAlt, FaEdit, FaSave, FaTimes, FaNotesMedical, FaPills, FaUserMd, FaArrowLeft, FaCalendarCheck, FaHospital, FaStethoscope, FaRegClipboard, FaClock, FaEye, FaPhone, FaEnvelope, FaMapMarkerAlt, FaPlus } from 'react-icons/fa';
+import { FaFileMedical, FaFileMedicalAlt, FaEdit, FaSave, FaTimes, FaNotesMedical, FaPills, FaUserMd, FaArrowLeft, FaCalendarCheck, FaHospital, FaStethoscope, FaRegClipboard, FaClock, FaEye, FaPhone, FaEnvelope, FaMapMarkerAlt, FaPlus, FaSearch, FaExclamationTriangle } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 
 import api from '../../utils/api';
@@ -28,13 +28,21 @@ const MedicalRecords = () => {
     appointmentId: ''
   });
 
+  // Medication management
+  const [medications, setMedications] = useState([]);
+  const [medicationCategories, setMedicationCategories] = useState([]);
+  const [loadingMedications, setLoadingMedications] = useState(false);
+  const [medicationSearch, setMedicationSearch] = useState('');
+  const [filteredMedications, setFilteredMedications] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
   // Extract appointmentId from URL if present
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const appointmentId = queryParams.get('appointmentId');
     if (appointmentId) {
       setFormData(prev => ({ ...prev, appointmentId }));
-      setShowForm(true);
+      // We'll keep the form hidden even with an appointmentId
     }
   }, [location]);
 
@@ -48,6 +56,21 @@ const MedicalRecords = () => {
       fetchMedicalRecords();
     }
   }, [patientId]);
+
+  // Load medications when showing the form
+  useEffect(() => {
+    if (showForm) {
+      fetchMedications();
+      fetchMedicationCategories();
+    }
+  }, [showForm]);
+  
+  // Filter medications when search term or category changes
+  useEffect(() => {
+    if (medications.length > 0) {
+      filterMedications();
+    }
+  }, [medicationSearch, selectedCategory, medications]);
 
   const fetchPatientData = async () => {
     try {
@@ -112,12 +135,27 @@ const MedicalRecords = () => {
   };
 
   const populateFormData = (record) => {
+    // Map prescription items to include stock info if medicationId exists
+    const prescriptionItems = record.prescription && record.prescription.length > 0 
+      ? record.prescription.map(item => ({
+          ...item,
+          quantity: item.quantity || 1,
+          medicationId: item.medicationId || null
+        }))
+      : [{ 
+          medicine: '', 
+          dosage: '', 
+          usage: '', 
+          duration: '', 
+          notes: '',
+          quantity: 1,
+          medicationId: null
+        }];
+    
     setFormData({
       diagnosis: record.diagnosis || '',
       treatment: record.treatment || '',
-      prescription: record.prescription && record.prescription.length > 0 
-        ? record.prescription 
-        : [{ medicine: '', dosage: '', usage: '', duration: '', notes: '' }],
+      prescription: prescriptionItems,
       notes: record.notes || '',
       appointmentId: record.appointmentId?._id || ''
     });
@@ -166,7 +204,15 @@ const MedicalRecords = () => {
       ...formData,
       prescription: [
         ...formData.prescription,
-        { medicine: '', dosage: '', usage: '', duration: '', notes: '' }
+        { 
+          medicine: '', 
+          dosage: '', 
+          usage: '', 
+          duration: '', 
+          notes: '',
+          quantity: 1,
+          medicationId: null
+        }
       ]
     });
   };
@@ -188,8 +234,24 @@ const MedicalRecords = () => {
       return;
     }
     
+    // We only allow editing existing records
+    if (!isEditing || !currentRecord) {
+      toast.warning('Chỉ có thể cập nhật hồ sơ hiện có');
+      return;
+    }
+    
     // Filter out empty prescription items
     const filteredPrescription = formData.prescription.filter(item => item.medicine.trim() !== '');
+    
+    // Check if any medications exceed stock
+    const invalidMeds = filteredPrescription.filter(med => 
+      med.medicationId && med.stockQuantity !== undefined && med.quantity > med.stockQuantity
+    );
+    
+    if (invalidMeds.length > 0) {
+      toast.error('Một số thuốc có số lượng vượt quá tồn kho. Vui lòng kiểm tra lại.');
+      return;
+    }
     
     const recordData = {
       ...formData,
@@ -199,13 +261,43 @@ const MedicalRecords = () => {
     
     try {
       toast.info('Đang lưu hồ sơ y tế...', { autoClose: 2000 });
-      let response;
       
-      if (isEditing && currentRecord) {
-        response = await api.put(`/doctors/medical-records/${currentRecord._id}`, recordData);
-      } else {
-        response = await api.post('/doctors/medical-records', recordData);
+      // Reduce medication stock if there are medications with IDs
+      const medsWithIds = filteredPrescription.filter(med => med.medicationId);
+      if (medsWithIds.length > 0) {
+        const stockReductionData = {
+          medications: medsWithIds.map(med => ({
+            medicationId: med.medicationId,
+            quantity: parseInt(med.quantity)
+          }))
+        };
+        
+        try {
+          const stockResponse = await api.post('/medications/reduce-stock', stockReductionData);
+          
+          if (!stockResponse.data.success) {
+            toast.error('Không thể cập nhật kho thuốc: ' + stockResponse.data.message);
+            return;
+          }
+          
+          // Check if any medications failed to update
+          const failedMeds = stockResponse.data.data.filter(result => !result.success);
+          
+          if (failedMeds.length > 0) {
+            toast.error(
+              `Không thể cập nhật kho cho ${failedMeds.length} loại thuốc. Vui lòng kiểm tra số lượng tồn.`
+            );
+            return;
+          }
+        } catch (error) {
+          console.error('Error reducing medication stock:', error);
+          toast.error('Lỗi khi cập nhật kho thuốc');
+          return;
+        }
       }
+      
+      // Update medical record
+      const response = await api.put(`/doctors/medical-records/${currentRecord._id}`, recordData);
       
       console.log("Save medical record response:", response.data);
       
@@ -232,7 +324,7 @@ const MedicalRecords = () => {
         setShowForm(false);
         
         // Show success message
-        toast.success(isEditing ? 'Hồ sơ y tế đã được cập nhật thành công' : 'Hồ sơ y tế đã được tạo thành công');
+        toast.success('Hồ sơ y tế đã được cập nhật thành công');
       } else {
         console.error('Failed to save medical record:', response.data.message);
         toast.error(response.data.message || 'Không thể lưu hồ sơ y tế');
@@ -280,6 +372,86 @@ const MedicalRecords = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchMedications = async () => {
+    setLoadingMedications(true);
+    try {
+      const response = await api.get('/medications/medications', {
+        params: {
+          limit: 100 // Get a large batch for local filtering
+        }
+      });
+      
+      if (response.data.success) {
+        setMedications(response.data.data.docs || []);
+        setFilteredMedications(response.data.data.docs || []);
+      } else {
+        console.error('Failed to load medications:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching medications:', error);
+    } finally {
+      setLoadingMedications(false);
+    }
+  };
+  
+  const fetchMedicationCategories = async () => {
+    try {
+      const response = await api.get('/medications/categories');
+      if (response.data.success) {
+        setMedicationCategories(response.data.data || []);
+      } else {
+        console.error('Failed to load medication categories:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching medication categories:', error);
+    }
+  };
+  
+  const filterMedications = () => {
+    if (!medications.length) return;
+    
+    let filtered = [...medications];
+    
+    // Apply category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(med => med.category === selectedCategory);
+    }
+    
+    // Apply search filter
+    if (medicationSearch.trim()) {
+      const search = medicationSearch.toLowerCase().trim();
+      filtered = filtered.filter(med => 
+        med.name.toLowerCase().includes(search) || 
+        (med.description && med.description.toLowerCase().includes(search))
+      );
+    }
+    
+    setFilteredMedications(filtered);
+  };
+
+  const handleMedicationSelect = (medication) => {
+    setFormData(prev => {
+      // Create a new medication item with defaults from the selected medication
+      const newMedication = {
+        medicine: medication.name,
+        dosage: medication.defaultDosage || '',
+        usage: medication.defaultUsage || '',
+        duration: medication.defaultDuration || '',
+        notes: '',
+        quantity: 1,
+        medicationId: medication._id,
+        stockQuantity: medication.stockQuantity,
+        unitTypeDisplay: medication.unitTypeDisplay
+      };
+      
+      // Add to prescription array
+      return {
+        ...prev,
+        prescription: [...prev.prescription, newMedication]
+      };
+    });
   };
 
   // Khi không có ID bệnh nhân, chuyển hướng về trang danh sách bệnh nhân
@@ -349,15 +521,6 @@ const MedicalRecords = () => {
               </button>
               <h1 className="text-xl sm:text-2xl font-bold">Hồ sơ y tế</h1>
             </div>
-            <button 
-              onClick={() => {
-                resetForm();
-                setShowForm(true);
-              }}
-              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-all duration-200 hover:shadow-lg text-sm sm:text-base"
-            >
-              <FaFileMedical /> <span className="hidden sm:inline">Tạo hồ sơ mới</span>
-            </button>
           </div>
         </div>
       </div>
@@ -445,24 +608,6 @@ const MedicalRecords = () => {
                 </div>
               </div>
             </div>
-            
-            <div className="flex flex-row md:flex-col gap-3 mt-4 md:mt-0 w-full md:w-auto justify-center">
-              <button 
-                className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all text-sm sm:text-base"
-                onClick={() => {
-                  resetForm();
-                  setShowForm(true);
-                }}
-              >
-                <FaFileMedical /> <span className="hidden sm:inline">Tạo hồ sơ mới</span>
-              </button>
-              <button 
-                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all text-sm sm:text-base"
-                onClick={() => navigate(`/doctor/appointments/create?patientId=${patientId}`)}
-              >
-                <FaCalendarCheck /> <span className="hidden sm:inline">Tạo lịch hẹn</span>
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -486,15 +631,6 @@ const MedicalRecords = () => {
                 <FaFileMedicalAlt className="text-2xl text-indigo-500" />
               </div>
               <p className="text-gray-600 mb-4">Không có hồ sơ y tế</p>
-              <button 
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all"
-                onClick={() => {
-                  resetForm();
-                  setShowForm(true);
-                }}
-              >
-                <FaFileMedical /> Tạo hồ sơ đầu tiên
-              </button>
             </div>
           ) : (
             <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
@@ -532,23 +668,14 @@ const MedicalRecords = () => {
                 <FaFileMedicalAlt className="text-3xl text-gray-400" />
               </div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">Chưa chọn hồ sơ</h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">Vui lòng chọn một hồ sơ y tế từ danh sách bên trái hoặc tạo hồ sơ mới</p>
-              <button 
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all"
-                onClick={() => {
-                  resetForm();
-                  setShowForm(true);
-                }}
-              >
-                <FaFileMedical /> Tạo hồ sơ mới
-              </button>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">Vui lòng chọn một hồ sơ y tế từ danh sách bên trái</p>
             </div>
           ) : showForm ? (
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 text-white flex justify-between items-center">
                 <h3 className="text-lg font-semibold flex items-center">
-                  {isEditing ? <FaEdit className="mr-2" /> : <FaFileMedical className="mr-2" />}
-                  {isEditing ? 'Cập nhật hồ sơ y tế' : 'Tạo hồ sơ y tế mới'}
+                  <FaEdit className="mr-2" />
+                  Cập nhật hồ sơ y tế
                 </h3>
                 <button 
                   className="text-white hover:bg-white/20 p-1.5 rounded-full transition-colors"
@@ -599,6 +726,72 @@ const MedicalRecords = () => {
                   </label>
                   
                   <div className="space-y-4">
+                    {/* Medication search section */}
+                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+                      <h4 className="font-medium text-gray-700">Chọn thuốc từ kho thuốc</h4>
+                      
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex-1 relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <FaSearch className="text-gray-400" />
+                          </div>
+                          <input
+                            type="text"
+                            value={medicationSearch}
+                            onChange={(e) => setMedicationSearch(e.target.value)}
+                            placeholder="Tìm kiếm thuốc..."
+                            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                          />
+                        </div>
+                        
+                        <div className="sm:w-48">
+                          <select
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                          >
+                            <option value="all">Tất cả danh mục</option>
+                            {medicationCategories.map(category => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+                        {loadingMedications ? (
+                          <div className="text-center py-4">
+                            <div className="spinner-border inline-block w-6 h-6 border-2 border-t-primary rounded-full animate-spin"></div>
+                            <p className="text-gray-500 text-sm mt-1">Đang tải danh sách thuốc...</p>
+                          </div>
+                        ) : filteredMedications.length === 0 ? (
+                          <div className="text-center py-4">
+                            <p className="text-gray-500 text-sm">Không tìm thấy thuốc nào</p>
+                          </div>
+                        ) : (
+                          <ul className="divide-y divide-gray-200">
+                            {filteredMedications.slice(0, 5).map(medication => (
+                              <li 
+                                key={medication._id} 
+                                className="p-3 hover:bg-gray-50 cursor-pointer transition-colors flex justify-between items-center"
+                                onClick={() => handleMedicationSelect(medication)}
+                              >
+                                <div>
+                                  <div className="font-medium text-gray-800">{medication.name}</div>
+                                  <div className="text-sm text-gray-500">{medication.description}</div>
+                                </div>
+                                <button className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                  Thêm
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                    
                     {formData.prescription.map((item, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -650,15 +843,57 @@ const MedicalRecords = () => {
                           </div>
                         </div>
                         
-                        <div className="space-y-2">
-                          <label className="block text-xs font-medium text-gray-700">Ghi chú:</label>
-                          <input
-                            type="text"
-                            value={item.notes}
-                            onChange={(e) => handlePrescriptionChange(index, 'notes', e.target.value)}
-                            placeholder="Ghi chú thêm"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="space-y-2">
+                            <label className="block text-xs font-medium text-gray-700">Ghi chú:</label>
+                            <input
+                              type="text"
+                              value={item.notes}
+                              onChange={(e) => handlePrescriptionChange(index, 'notes', e.target.value)}
+                              placeholder="Ghi chú thêm"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            />
+                          </div>
+                          
+                          {item.medicationId && (
+                            <div className="space-y-2">
+                              <label className="flex items-center text-xs font-medium text-gray-700">
+                                Số lượng
+                                {item.stockQuantity !== undefined && (
+                                  <span className={`ml-1 text-xs ${item.stockQuantity < 10 ? 'text-red-500' : 'text-blue-500'}`}>
+                                    (Tồn: {item.stockQuantity} {item.unitTypeDisplay || 'đơn vị'})
+                                  </span>
+                                )}
+                              </label>
+                              <div className="flex">
+                                <input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const value = parseInt(e.target.value);
+                                    if (value < 1) return;
+                                    handlePrescriptionChange(index, 'quantity', value);
+                                  }}
+                                  min="1"
+                                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${
+                                    item.stockQuantity !== undefined && item.quantity > item.stockQuantity
+                                      ? 'border-red-300 bg-red-50'
+                                      : 'border-gray-300'
+                                  }`}
+                                />
+                                {item.unitTypeDisplay && (
+                                  <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 border border-l-0 border-gray-300 rounded-r-md">
+                                    {item.unitTypeDisplay}
+                                  </span>
+                                )}
+                              </div>
+                              {item.stockQuantity !== undefined && item.quantity > item.stockQuantity && (
+                                <p className="text-red-500 text-xs mt-1 flex items-center">
+                                  <FaExclamationTriangle className="mr-1" /> Vượt quá số lượng tồn kho
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                         
                         <button
@@ -677,7 +912,7 @@ const MedicalRecords = () => {
                       className="w-full py-2 px-4 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors flex items-center justify-center"
                       onClick={addPrescriptionItem}
                     >
-                      <FaPlus className="mr-2" /> Thêm thuốc
+                      <FaPlus className="mr-2" /> Thêm thuốc thủ công
                     </button>
                   </div>
                 </div>

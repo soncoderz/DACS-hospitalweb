@@ -972,7 +972,7 @@ exports.uploadDoctorAvatar = async (req, res) => {
         });
       }
       
-      doctor = await Doctor.findOne({ user: mongoose.Types.ObjectId(req.user.id) });
+      doctor = await Doctor.findOne({ user: new mongoose.Types.ObjectId(req.user.id) });
       console.log('doctor:', doctor);
       if (!doctor) {
         return res.status(400).json({ success: false, message: 'Không tìm thấy bác sĩ' });
@@ -1196,7 +1196,7 @@ exports.updateDoctorProfile = async (req, res) => {
     const userId = req.user.id;
 
     // Tìm doctor record dựa vào user id
-    const doctor = await Doctor.findOne({ user: mongoose.Types.ObjectId(req.user.id) });
+    const doctor = await Doctor.findOne({ user: new mongoose.Types.ObjectId(req.user.id) });
     if (!doctor) {
       return res.status(404).json({
         success: false,

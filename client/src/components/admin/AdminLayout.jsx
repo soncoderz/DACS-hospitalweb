@@ -6,7 +6,7 @@ import {
   FaFileAlt, FaCalendarAlt, FaPercentage, FaCreditCard,
   FaStar, FaProcedures, FaDoorOpen, FaChartBar, FaSignOutAlt,
   FaClock, FaBell, FaCog, FaSearch, FaBars, FaTimes,
-  FaUserShield, FaLock, FaExclamationTriangle
+  FaUserShield, FaLock, FaExclamationTriangle, FaMedkit
 } from 'react-icons/fa';
 
 const AdminLayout = ({ children }) => {
@@ -29,6 +29,7 @@ const AdminLayout = ({ children }) => {
     '/admin/coupons',
     '/admin/payments',
     '/admin/reviews',
+    '/admin/medications',
   ];
 
   const doctorRoutes = [
@@ -115,6 +116,7 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/specialties', label: 'Chuyên khoa', icon: <FaFileAlt /> },
     { path: '/admin/services', label: 'Dịch vụ', icon: <FaProcedures /> },
     { path: '/admin/rooms', label: 'Phòng', icon: <FaDoorOpen /> },
+    { path: '/admin/medications', label: 'Quản lý thuốc', icon: <FaMedkit /> },
     { path: '/admin/appointments', label: 'Lịch hẹn', icon: <FaCalendarAlt /> },
     { path: '/admin/coupons', label: 'Mã giảm giá', icon: <FaPercentage /> },
     { path: '/admin/payments', label: 'Thanh toán', icon: <FaCreditCard /> },
@@ -125,9 +127,9 @@ const AdminLayout = ({ children }) => {
   const groupedNavItems = {
     main: [navItems[0]], // Dashboard
     users: navItems.length > 2 ? [navItems[1], navItems[2]] : [], // Users, Doctors
-    scheduling: navItems.length > 8 ? [navItems[3], navItems[8]] : [], // Doctor schedules, Appointments
-    facilities: navItems.length > 7 ? [navItems[4], navItems[5], navItems[6], navItems[7]] : [], // Hospitals, Specialties, Services, Rooms
-    business: navItems.length > 11 ? [navItems[9], navItems[10], navItems[11]] : [] // Coupons, Payments, Reviews
+    scheduling: navItems.length > 9 ? [navItems[3], navItems[9]] : [], // Doctor schedules, Appointments
+    facilities: navItems.length > 8 ? [navItems[4], navItems[5], navItems[6], navItems[7], navItems[8]] : [], // Hospitals, Specialties, Services, Rooms, Medications
+    business: navItems.length > 12 ? [navItems[10], navItems[11], navItems[12]] : [] // Coupons, Payments, Reviews
   };
 
   // Get the current page name for header
