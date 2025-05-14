@@ -10,41 +10,65 @@ const serviceSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  specialtyId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Specialty',
-    required: [true, 'Chuyên khoa là bắt buộc']
-  },
-  hospitalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Hospital',
-    required: [true, 'Bệnh viện là bắt buộc']
+  shortDescription: {
+    type: String,
+    trim: true
   },
   price: {
     type: Number,
     required: [true, 'Giá dịch vụ là bắt buộc'],
     min: 0
   },
+  specialtyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Specialty',
+    required: [true, 'Chuyên khoa là bắt buộc']
+  },
   duration: {
     type: Number,
-    required: [true, 'Thời gian thực hiện là bắt buộc'],
-    min: 1,
-    max: 480 // Tối đa 8 tiếng
+    default: 30, // Thời gian mặc định: 30 phút
+    min: 10
   },
+  type: {
+    type: String,
+    enum: ['examination', 'diagnostic', 'treatment', 'procedure', 'surgery', 'consultation'],
+    default: 'examination'
+  },
+  preparationGuide: {
+    type: String,
+    trim: true
+  },
+  aftercareInstructions: {
+    type: String,
+    trim: true
+  },
+  requiredTests: [{
+    type: String,
+    trim: true
+  }],
   isActive: {
     type: Boolean,
     default: true
+  },
+  image: {
+    url: String,
+    secureUrl: String,
+    publicId: String,
+    cloudName: String
+  },
+  imageUrl: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true
 });
 
-// Index để tìm kiếm theo tên dịch vụ và chuyên khoa
-serviceSchema.index({ name: 'text', description: 'text' });
+// Index for faster queries
+serviceSchema.index({ name: 1 });
+serviceSchema.index({ specialtyId: 1 });
+serviceSchema.index({ price: 1 });
+serviceSchema.index({ isActive: 1 });
+serviceSchema.index({ type: 1 });
 
-// Index để tìm kiếm theo bệnh viện và chuyên khoa
-serviceSchema.index({ hospitalId: 1, specialtyId: 1 });
-
-const Service = mongoose.model('Service', serviceSchema);
-
-module.exports = Service; 
+module.exports = mongoose.model('Service', serviceSchema); 

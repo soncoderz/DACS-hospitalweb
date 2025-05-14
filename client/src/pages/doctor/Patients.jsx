@@ -1,431 +1,331 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { FaSearch, FaUserInjured, FaCalendarPlus, FaFileAlt, FaSort, FaFilter, FaUsers, FaAngleRight, FaAngleLeft } from 'react-icons/fa';
 import api from '../../utils/api';
-import '../../styles/doctor/DoctorPatients.css';
 
-const DoctorPatients = () => {
-  const { user } = useAuth();
+const Patients = () => {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [patientHistory, setPatientHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // State for filtering and pagination
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('fullName');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const patientsPerPage = 10;
-  
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get('/doctor/patients');
-        setPatients(response.data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching patients:', err);
-        setError('Không thể tải danh sách bệnh nhân. Vui lòng thử lại sau.');
-        setLoading(false);
-      }
-    };
-    
     fetchPatients();
-  }, []);
-  
-  // Fetch patient history when a patient is selected
-  useEffect(() => {
-    if (selectedPatient) {
-      const fetchPatientHistory = async () => {
-        try {
-          const response = await api.get(`/doctor/patients/${selectedPatient._id}/history`);
-          setPatientHistory(response.data);
-        } catch (err) {
-          console.error('Error fetching patient history:', err);
-          setError('Không thể tải lịch sử khám bệnh. Vui lòng thử lại sau.');
-        }
-      };
+  }, [currentPage, sortBy, sortOrder]);
+
+  const fetchPatients = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get(`/doctors/patients?page=${currentPage}&limit=${itemsPerPage}&sort=${sortBy}&order=${sortOrder}`);
       
-      fetchPatientHistory();
+      if (response.data.success) {
+        setPatients(response.data.data || []);
+        setTotalPages(response.data.pagination?.totalPages || 1);
+      } else {
+        setError(response.data.message || 'Failed to load patients');
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      setError('Could not load patient data. Please try again later.');
+    } finally {
+      setLoading(false);
     }
-  }, [selectedPatient]);
-  
-  // Filter patients based on search term
-  const filteredPatients = patients.filter(patient => {
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        patient.name.toLowerCase().includes(searchLower) ||
-        patient.email.toLowerCase().includes(searchLower) ||
-        patient.phone.includes(searchTerm)
-      );
+  };
+
+  // Tạo lịch hẹn mới với bệnh nhân
+  const createAppointment = (patientId) => {
+    navigate(`/doctor/appointments/create?patientId=${patientId}`);
+  };
+
+  // Xem hồ sơ y tế của bệnh nhân
+  const viewMedicalRecords = (patientId) => {
+    navigate(`/doctor/medical-records/${patientId}`);
+  };
+
+  // Sắp xếp bệnh nhân
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      // Nếu đang sắp xếp theo cùng field, đổi thứ tự
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Nếu sắp xếp theo field mới, mặc định là asc
+      setSortBy(field);
+      setSortOrder('asc');
     }
-    
-    return true;
-  });
-  
-  // Pagination
-  const indexOfLastPatient = currentPage * patientsPerPage;
-  const indexOfFirstPatient = indexOfLastPatient - patientsPerPage;
-  const currentPatients = filteredPatients.slice(indexOfFirstPatient, indexOfLastPatient);
-  const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
-  
-  // Handle page change
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
   };
-  
-  // Handle search
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
+
+  // Lọc bệnh nhân theo search term
+  const filteredPatients = patients.filter(
+    patient =>
+      patient.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.phoneNumber?.includes(searchTerm)
+  );
+
+  // Format cho ngày sinh
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('vi-VN', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    }).format(date);
   };
-  
-  // Handle patient selection
-  const handleSelectPatient = (patient) => {
-    setSelectedPatient(patient);
-  };
-  
-  // Navigate to appointment detail
-  const handleViewAppointment = (appointmentId) => {
-    navigate(`/doctor/appointments/${appointmentId}`);
-  };
-  
-  // Calculate age from date of birth
+
+  // Tính tuổi từ ngày sinh
   const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 'N/A';
+    
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
     
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
     
     return age;
   };
-  
+
+  // Render biểu tượng sắp xếp
+  const renderSortIcon = (field) => {
+    if (sortBy === field) {
+      return <FaSort className={`sort-icon ${sortOrder === 'asc' ? 'text-green-500' : 'text-red-500'}`} />;
+    }
+    return <FaSort className="text-gray-400" />;
+  };
+
   if (loading) {
-    return <div className="loading">Đang tải...</div>;
-  }
-  
-  return (
-    <div className="doctor-patients-page">
-      <div className="patients-header">
-        <h1>Danh sách bệnh nhân</h1>
-        <p>Quản lý thông tin và lịch sử khám bệnh của bệnh nhân</p>
-      </div>
-      
-      {error && <div className="alert alert-danger">{error}</div>}
-      
-      <div className="search-container">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên, email, số điện thoại..."
-            value={searchTerm}
-            onChange={handleSearch}
-          />
-          <i className="fas fa-search"></i>
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-primary/30 border-l-primary rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600">Đang tải danh sách bệnh nhân...</p>
         </div>
       </div>
-      
-      <div className="patients-container">
-        <div className="patients-list-container">
-          <h2>Danh sách bệnh nhân</h2>
-          
-          {currentPatients.length > 0 ? (
-            <div className="patients-list">
-              {currentPatients.map(patient => (
-                <div
-                  key={patient._id}
-                  className={`patient-item ${selectedPatient && selectedPatient._id === patient._id ? 'active' : ''}`}
-                  onClick={() => handleSelectPatient(patient)}
-                >
-                  <div className="patient-avatar">
-                    {patient.avatar ? (
-                      <img src={patient.avatar} alt={patient.name} />
-                    ) : (
-                      <div className="avatar-placeholder">
-                        {patient.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="patient-info">
-                    <div className="patient-name">{patient.name}</div>
-                    <div className="patient-details">
-                      {patient.dateOfBirth && (
-                        <span className="patient-age">
-                          {calculateAge(patient.dateOfBirth)} tuổi
-                        </span>
-                      )}
-                      <span className="patient-gender">
-                        {getGenderLabel(patient.gender)}
-                      </span>
-                    </div>
-                    <div className="patient-contact">{patient.phone}</div>
-                  </div>
-                  
-                  <div className="patient-visit-count">
-                    <div className="count">{patient.visitCount || 0}</div>
-                    <div className="label">Lần khám</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="no-data">Không tìm thấy bệnh nhân nào</div>
-          )}
-          
-          {filteredPatients.length > patientsPerPage && (
-            <div className="pagination">
-              <button
-                className="prev-btn"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                <i className="fas fa-chevron-left"></i>
-              </button>
-              
-              <div className="page-numbers">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(pageNum => {
-                    // Show current page and 1 page before and after
-                    return (
-                      pageNum === 1 ||
-                      pageNum === totalPages ||
-                      Math.abs(pageNum - currentPage) <= 1
-                    );
-                  })
-                  .map((pageNum, index, array) => (
-                    <React.Fragment key={pageNum}>
-                      {index > 0 && array[index - 1] !== pageNum - 1 && (
-                        <span className="page-dots">...</span>
-                      )}
-                      <button
-                        className={`page-number ${currentPage === pageNum ? 'active' : ''}`}
-                        onClick={() => handlePageChange(pageNum)}
-                      >
-                        {pageNum}
-                      </button>
-                    </React.Fragment>
-                  ))}
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 p-6 rounded-lg text-center shadow-sm">
+        <div className="text-red-600 text-lg mb-2">Lỗi</div>
+        <p className="text-red-700">{error}</p>
+        <button 
+          onClick={fetchPatients}
+          className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
+        >
+          Thử lại
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-primary-dark to-primary p-4 sm:p-6 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center">
+              <FaUsers className="mr-3" /> Quản lý bệnh nhân
+            </h1>
+            
+            <div className="relative max-w-md w-full">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaSearch className="text-white/70" />
               </div>
-              
-              <button
-                className="next-btn"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                <i className="fas fa-chevron-right"></i>
-              </button>
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/20 border border-white/10 placeholder-white/70 text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+              />
             </div>
-          )}
+          </div>
         </div>
         
-        <div className="patient-details-container">
-          <h2>Thông tin chi tiết</h2>
-          
-          {selectedPatient ? (
-            <div className="patient-details">
-              <div className="details-header">
-                <div className="patient-profile">
-                  <div className="patient-avatar-large">
-                    {selectedPatient.avatar ? (
-                      <img src={selectedPatient.avatar} alt={selectedPatient.name} />
-                    ) : (
-                      <div className="avatar-placeholder-large">
-                        {selectedPatient.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="patient-info-large">
-                    <h3>{selectedPatient.name}</h3>
-                    <div className="patient-meta">
-                      {selectedPatient.dateOfBirth && (
-                        <div className="meta-item">
-                          <i className="fas fa-birthday-cake"></i>
-                          <span>
-                            {new Date(selectedPatient.dateOfBirth).toLocaleDateString()} 
-                            ({calculateAge(selectedPatient.dateOfBirth)} tuổi)
-                          </span>
-                        </div>
-                      )}
-                      <div className="meta-item">
-                        <i className="fas fa-venus-mars"></i>
-                        <span>{getGenderLabel(selectedPatient.gender)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="details-section">
-                <h4>Thông tin liên hệ</h4>
-                <div className="details-grid">
-                  <div className="detail-item">
-                    <span className="detail-label">Email</span>
-                    <span className="detail-value">{selectedPatient.email}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Số điện thoại</span>
-                    <span className="detail-value">{selectedPatient.phone}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Địa chỉ</span>
-                    <span className="detail-value">{selectedPatient.address || 'Chưa cập nhật'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {selectedPatient.medicalInfo && (
-                <div className="details-section">
-                  <h4>Thông tin y tế</h4>
-                  <div className="details-grid">
-                    <div className="detail-item">
-                      <span className="detail-label">Nhóm máu</span>
-                      <span className="detail-value">{selectedPatient.medicalInfo.bloodType || 'Chưa cập nhật'}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Chiều cao</span>
-                      <span className="detail-value">
-                        {selectedPatient.medicalInfo.height 
-                          ? `${selectedPatient.medicalInfo.height} cm` 
-                          : 'Chưa cập nhật'}
-                      </span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Cân nặng</span>
-                      <span className="detail-value">
-                        {selectedPatient.medicalInfo.weight 
-                          ? `${selectedPatient.medicalInfo.weight} kg` 
-                          : 'Chưa cập nhật'}
-                      </span>
-                    </div>
-                  </div>
-                  {selectedPatient.medicalInfo.allergies && (
-                    <div className="allergies-section">
-                      <h5>Dị ứng</h5>
-                      <div className="allergies-list">
-                        {selectedPatient.medicalInfo.allergies.length > 0 
-                          ? selectedPatient.medicalInfo.allergies.map((allergy, index) => (
-                              <span key={index} className="allergy-tag">{allergy}</span>
-                            ))
-                          : 'Không có dị ứng'}
-                      </div>
-                    </div>
-                  )}
-                  {selectedPatient.medicalInfo.chronicDiseases && (
-                    <div className="diseases-section">
-                      <h5>Bệnh mãn tính</h5>
-                      <div className="diseases-list">
-                        {selectedPatient.medicalInfo.chronicDiseases.length > 0 
-                          ? selectedPatient.medicalInfo.chronicDiseases.map((disease, index) => (
-                              <span key={index} className="disease-tag">{disease}</span>
-                            ))
-                          : 'Không có bệnh mãn tính'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className="details-section">
-                <h4>Lịch sử khám bệnh</h4>
-                {patientHistory.length > 0 ? (
-                  <div className="history-timeline">
-                    {patientHistory.map(appointment => (
-                      <div key={appointment._id} className="history-item">
-                        <div className="history-date">
-                          <div className="date-badge">
-                            {new Date(appointment.appointmentDate).toLocaleDateString()}
-                          </div>
-                          <div className="time-badge">{appointment.appointmentTime}</div>
-                        </div>
-                        
-                        <div className="history-content">
-                          <div className="history-header">
-                            <h5>{appointment.serviceName}</h5>
-                            <div className="history-status">
-                              <span className={`status-badge status-${appointment.status}`}>
-                                {getStatusLabel(appointment.status)}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="history-body">
-                            {appointment.diagnosis && (
-                              <div className="diagnosis-section">
-                                <strong>Chẩn đoán:</strong> {appointment.diagnosis}
-                              </div>
-                            )}
-                            
-                            {appointment.prescription && (
-                              <div className="prescription-section">
-                                <strong>Đơn thuốc:</strong> {appointment.prescription}
-                              </div>
-                            )}
-                            
-                            {appointment.notes && (
-                              <div className="notes-section">
-                                <strong>Ghi chú:</strong> {appointment.notes}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="history-footer">
-                            <button 
-                              className="btn-view-details"
-                              onClick={() => handleViewAppointment(appointment._id)}
-                            >
-                              <i className="fas fa-eye"></i> Xem chi tiết
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="no-data">Chưa có lịch sử khám bệnh</div>
-                )}
-              </div>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center text-gray-700">
+              <span className="bg-primary/10 p-2 rounded-full mr-2">
+                <FaUserInjured className="text-primary" />
+              </span>
+              <span className="font-medium text-sm sm:text-base">Tổng số: {patients.length} bệnh nhân</span>
             </div>
-          ) : (
-            <div className="no-selection">
-              <p>Chọn một bệnh nhân từ danh sách để xem chi tiết</p>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="text-gray-500 flex-shrink-0">
+                <FaFilter />
+              </span>
+              <select
+                className="bg-white border border-gray-300 text-gray-700 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setSortOrder('asc');
+                }}
+                value={sortBy}
+              >
+                <option value="fullName">Sắp xếp theo tên</option>
+                <option value="dateOfBirth">Sắp xếp theo tuổi</option>
+                <option value="lastVisit">Sắp xếp theo lần khám gần đây</option>
+                <option value="visitCount">Sắp xếp theo số lần khám</option>
+              </select>
+              <button
+                className="bg-white border border-gray-300 text-gray-700 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-gray-50 text-sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              >
+                {sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+              </button>
             </div>
-          )}
+          </div>
         </div>
+      </div>
+
+      {/* Responsive Table */}
+      <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('fullName')}>
+                  <div className="flex items-center">
+                    Họ tên {renderSortIcon('fullName')}
+                  </div>
+                </th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors hidden md:table-cell" onClick={() => handleSort('email')}>
+                  <div className="flex items-center">
+                    Email {renderSortIcon('email')}
+                  </div>
+                </th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                  Số điện thoại
+                </th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Giới tính
+                </th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors hidden md:table-cell" onClick={() => handleSort('dateOfBirth')}>
+                  <div className="flex items-center">
+                    Ngày sinh / Tuổi {renderSortIcon('dateOfBirth')}
+                  </div>
+                </th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors hidden lg:table-cell" onClick={() => handleSort('lastVisit')}>
+                  <div className="flex items-center">
+                    Lần khám gần nhất {renderSortIcon('lastVisit')}
+                  </div>
+                </th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors hidden sm:table-cell" onClick={() => handleSort('visitCount')}>
+                  <div className="flex items-center">
+                    Số lần khám {renderSortIcon('visitCount')}
+                  </div>
+                </th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredPatients.map((patient) => (
+                <tr key={patient._id} className="hover:bg-blue-50 transition-all duration-150">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 transform hover:scale-110 transition-transform duration-300">
+                        <img
+                          src={patient.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(patient.fullName || 'User')}&background=1AC0FF&color=fff`}
+                          alt={patient.fullName}
+                          className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover border border-gray-200 hover:border-blue-400"
+                          onError={(e) => {
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(patient.fullName || 'User')}&background=1AC0FF&color=fff`;
+                          }}
+                        />
+                      </div>
+                      <div className="ml-3 sm:ml-4">
+                        <div className="text-sm font-medium text-gray-900">{patient.fullName}</div>
+                        <div className="text-xs text-gray-500 sm:hidden">{patient.phoneNumber || 'N/A'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                    <div className="text-sm text-gray-600">{patient.email}</div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                    <div className="text-sm text-gray-600">{patient.phoneNumber || 'N/A'}</div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                      ${patient.gender === 'male' ? 'bg-blue-100 text-blue-800' : 
+                        patient.gender === 'female' ? 'bg-pink-100 text-pink-800' : 
+                        'bg-gray-100 text-gray-800'}`}>
+                      {patient.gender === 'male' ? 'Nam' : 
+                       patient.gender === 'female' ? 'Nữ' : 
+                       'Khác'}
+                    </span>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                    <div className="text-sm text-gray-600">
+                      {formatDate(patient.dateOfBirth)}
+                      {patient.dateOfBirth && ` (${calculateAge(patient.dateOfBirth)} tuổi)`}
+                    </div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                    <div className="text-sm text-gray-600">
+                      {patient.lastVisit ? formatDate(patient.lastVisit) : 'N/A'}
+                    </div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                    <div className="text-sm text-gray-600">
+                      {patient.visitCount || 0}
+                    </div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      className="text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 px-2 sm:px-3 py-1.5 rounded-lg mr-2 transition-all duration-200 flex items-center text-xs sm:text-sm"
+                      onClick={() => viewMedicalRecords(patient._id)}
+                    >
+                      <FaFileAlt className="mr-1.5" /> <span className="hidden sm:inline">Hồ sơ</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-xs sm:text-sm text-gray-700 mb-3 sm:mb-0">
+              Trang <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
+            </div>
+            <div className="flex justify-center sm:justify-end space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center px-2.5 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FaAngleLeft className="mr-1.5" /> Trước
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                className="inline-flex items-center px-2.5 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Sau <FaAngleRight className="ml-1.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-// Helper function to convert gender code to display label
-const getGenderLabel = (gender) => {
-  const genderMap = {
-    'male': 'Nam',
-    'female': 'Nữ',
-    'other': 'Khác'
-  };
-  
-  return genderMap[gender] || gender;
-};
-
-// Helper function to convert status code to display label
-const getStatusLabel = (status) => {
-  const statusMap = {
-    'pending': 'Chờ xác nhận',
-    'confirmed': 'Đã xác nhận',
-    'completed': 'Đã hoàn thành',
-    'cancelled': 'Đã hủy'
-  };
-  
-  return statusMap[status] || status;
-};
-
-export default DoctorPatients; 
+export default Patients;

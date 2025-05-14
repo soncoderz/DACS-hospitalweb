@@ -1,69 +1,56 @@
 /**
- * Role-based utility functions for handling navigation and permissions
+ * Helper utility functions for navigation
  */
 
 /**
- * Gets the home page route for a user based on their role
- * @param {Object} user - The user object containing role information
- * @returns {string} The appropriate home route for the user's role
+ * Gets the home page route for a user based on role
+ * @param {Object} user - User data with role
+ * @returns {string} The home route
  */
-export const getHomeRouteForRole = (user) => {
-  if (!user) return '/login';
+export const getHomeRoute = (user) => {
+  if (!user) return '/';
   
-  // Get role from user object
-  const role = user.roleType;
+  // Kiểm tra cả hai trường roleType và role
+  const isAdmin = user.roleType === 'admin' || user.role === 'admin';
+  const isDoctor = user.roleType === 'doctor' || user.role === 'doctor';
   
-  // Return appropriate home route based on role
-  switch (role) {
-    case 'admin':
-      return '/admin/dashboard';
-    case 'doctor':
-      return '/doctor/dashboard';
-    case 'user':
-    default:
-      return '/';
-  }
+  if (isAdmin) return '/admin/dashboard';
+  if (isDoctor) return '/doctor/dashboard';
+  return '/';
 };
 
 /**
- * Checks if a user has permission to access a specific route
- * @param {Object} user - The user object containing role information
- * @param {string} routeRole - The role required for the route
- * @returns {boolean} Whether user has permission to access the route
- */
-export const hasPermission = (user, routeRole) => {
-  if (!user) return false;
-  
-  const userRole = user.roleType;
-  
-  // Admin has access to all routes
-  if (userRole === 'admin') return true;
-  
-  // Doctor can access doctor and user routes
-  if (userRole === 'doctor' && (routeRole === 'doctor' || routeRole === 'user')) {
-    return true;
-  }
-  
-  // Regular user can only access user routes
-  if (userRole === 'user' && routeRole === 'user') {
-    return true;
-  }
-  
-  return false;
-};
-
-/**
- * Navigate to appropriate page after login based on user role
- * @param {Object} user - The user object
+ * Navigate to home page after login based on role
+ * @param {Object} user - User data with role
  * @param {Function} navigate - React Router's navigate function
- * @param {string} defaultPath - Default path to navigate to if unable to determine
  */
-export const navigateByRole = (user, navigate, defaultPath = '/') => {
+export const navigateToHome = (user, navigate) => {
+  const route = getHomeRoute(user);
+  navigate(route);
+};
+
+/**
+ * Navigate based on user role
+ * @param {Object} user - User data
+ * @param {Function} navigate - React Router's navigate function
+ * @param {string} fallbackPath - Fallback path if redirect is needed
+ */
+export const navigateByRole = (user, navigate, fallbackPath = '/') => {
   if (!user) {
-    navigate('/login');
+    navigate(fallbackPath);
     return;
   }
   
-  const homePath = getHomeRouteForRole(user);
-  navigate(homePath);
+  const userRole = user.roleType || user.role;
+  
+  switch (userRole) {
+    case 'doctor':
+      navigate('/doctor/dashboard');
+      break;
+    case 'admin':
+      navigate('/admin/dashboard');
+      break;
+    default:
+      navigate(fallbackPath);
+  }
 }; 

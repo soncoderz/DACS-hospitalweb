@@ -1,75 +1,62 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 const userSchema = new mongoose.Schema({
   fullName: {
     type: String,
-    required: [true, 'Họ và tên là bắt buộc'],
-    trim: true,
-    minlength: [2, 'Họ và tên phải có ít nhất 2 ký tự'],
-    maxlength: [100, 'Họ và tên không được vượt quá 100 ký tự']
+    trim: true
   },
   email: {
     type: String,
-    required: [true, 'Email là bắt buộc'],
-    unique: true,
     trim: true,
     lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Email không hợp lệ']
+    index: { unique: true, sparse: true }
   },
   phoneNumber: {
     type: String,
-    required: [true, 'Số điện thoại là bắt buộc'],
     trim: true,
-    match: [/^[0-9]{10,11}$/, 'Số điện thoại không hợp lệ']
+    sparse: true  // Cho phép giá trị null hoặc không có
   },
   passwordHash: {
-    type: String,
-    required: [true, 'Mật khẩu là bắt buộc'],
-    minlength: [6, 'Mật khẩu phải có ít nhất 6 ký tự']
+    type: String
   },
   dateOfBirth: {
-    type: Date,
-    required: [true, 'Ngày sinh là bắt buộc'],
-    validate: {
-      validator: function(v) {
-        return v <= new Date();
-      },
-      message: 'Ngày sinh không hợp lệ'
-    }
+    type: Date
   },
   gender: {
     type: String,
-    enum: ['male', 'female', 'other'],
-    required: [true, 'Giới tính là bắt buộc']
+    enum: ['male', 'female', 'other']
   },
   address: {
     type: String,
-    trim: true,
-    maxlength: [200, 'Địa chỉ không được vượt quá 200 ký tự']
-  },
-  role: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Role',
-    required: true
+    trim: true
   },
   roleType: {
     type: String,
-    enum: ['admin', 'doctor', 'user'],
+    enum: ['user', 'doctor', 'admin'],
     default: 'user'
   },
-  registrationDate: {
+  registrationDate: { // ngay tao tai khoan
     type: Date,
     default: Date.now
   },
-  isVerified: {
+  isVerified: { // kiem tra xac thuc email
     type: Boolean,
     default: false
   },
-  verificationToken: String,
-  verificationTokenExpires: Date,
-  verificationMethod: {
+  isLocked: { // kiem tra tai khoan bi khoa
+    type: Boolean,
+    default: false
+  },
+  lockReason: { // ly do bi khoa
+    type: String,
+    trim: true
+  },
+  verificationToken: String, // token xac thuc email
+  verificationTokenExpires: Date, // thoi gian het han token xac thuc email
+  verificationMethod: { // phuong thuc xac thuc email
     type: String,
     enum: ['phone', 'email'],
     default: 'email'
@@ -78,14 +65,21 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  avatar: {
+    url: String,
+    publicId: String,
+    secureUrl: String,
+    cloudName: String,
+    resourceType: String
+  },
   favorites: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Doctor'
   }],
-  resetPasswordToken: String,
-  resetPasswordExpires: Date,
-  otpCode: String,
-  otpExpires: Date,
+  resetPasswordToken: String, // token doi mat khau
+  resetPasswordExpires: Date, // thoi gian het han token doi mat khau
+  otpCode: String, // ma OTP
+  otpExpires: Date, // thoi gian het han OTP
   notifications: {
     email: {
       type: Boolean,
@@ -99,6 +93,22 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: true
     }
+  },
+  // Social authentication fields
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  facebookId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'google', 'facebook'],
+    default: 'local'
   }
 }, {
   timestamps: true
@@ -131,38 +141,54 @@ userSchema.methods.generatePasswordResetToken = function() {
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-  this.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 phút
+  this.resetPasswordExpires = Date.now() + 2 * 60 * 1000; // 2 phút
   return resetToken;
 };
 
 // Phương thức tạo token xác thực email
 userSchema.methods.generateVerificationToken = function() {
-  // Vô hiệu hóa token cũ bằng cách tạo token mới
+  // Tạo token ngẫu nhiên
   const verificationToken = crypto.randomBytes(32).toString('hex');
-  this.verificationToken = crypto
+  console.log('Generated verification token:', verificationToken);
+  
+  // Hash token trước khi lưu vào database
+  const hashedToken = crypto
     .createHash('sha256')
     .update(verificationToken)
     .digest('hex');
-  // Đặt thời gian hết hạn là 5 phút thay vì 24 giờ
+    
+  console.log('Hashed verification token:', hashedToken);
+  
+  this.verificationToken = hashedToken;
+  
+  // Đặt thời gian hết hạn là 5 phút
   this.verificationTokenExpires = Date.now() + 5 * 60 * 1000; // 5 phút
+  console.log('Token expiration:', new Date(this.verificationTokenExpires));
+  
+  // Trả về token gốc (chưa hash) để gửi qua email
   return verificationToken;
 };
 
 // Phương thức tạo mã OTP 6 chữ số
 userSchema.methods.generateOTP = function() {
   // Tạo OTP ngẫu nhiên 6 chữ số
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpNumber = Math.floor(100000 + Math.random() * 900000).toString();
   
-  // Lưu OTP và thời gian hết hạn (2 phút)
-  this.otpCode = otp;
+  // Tạo JWT token chứa OTP
+  const otpToken = jwt.sign(
+    { otp: otpNumber, userId: this._id.toString() },
+    process.env.JWT_SECRET || 'fallback-secret-key',
+    { expiresIn: '2m' } // 2 phút
+  );
+  
+  // Lưu JWT token và thời gian hết hạn
+  this.otpCode = otpToken;
   this.otpExpires = Date.now() + 2 * 60 * 1000; // 2 phút
   
-  return otp;
+  return otpNumber; // Vẫn trả về OTP số để gửi qua email
 };
 
-// Indexes for efficient querying (excluding email as it's already indexed by unique: true)
-userSchema.index({ phoneNumber: 1 });
-userSchema.index({ role: 1 });
+// Indexes for efficient querying
 userSchema.index({ verificationToken: 1 });
 
 const User = mongoose.model('User', userSchema);

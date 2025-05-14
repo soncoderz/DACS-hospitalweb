@@ -4,73 +4,68 @@ const appointmentSchema = new mongoose.Schema({
   patientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'ID bệnh nhân là bắt buộc']
-  },
-  patientName: {
-    type: String,
-    required: [true, 'Tên bệnh nhân là bắt buộc'],
-    trim: true
+    required: true
   },
   doctorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Doctor',
-    required: [true, 'ID bác sĩ là bắt buộc']
-  },
-  doctorName: {
-    type: String,
-    required: [true, 'Tên bác sĩ là bắt buộc'],
-    trim: true
+    required: true
   },
   hospitalId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Hospital',
-    required: [true, 'ID bệnh viện là bắt buộc']
-  },
-  hospitalName: {
-    type: String,
-    required: [true, 'Tên bệnh viện là bắt buộc'],
-    trim: true
+    required: true
   },
   specialtyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Specialty',
-    required: [true, 'ID chuyên khoa là bắt buộc']
-  },
-  specialtyName: {
-    type: String,
-    required: [true, 'Tên chuyên khoa là bắt buộc'],
-    trim: true
+    required: true
   },
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Service',
-    required: [true, 'ID dịch vụ là bắt buộc']
+    ref: 'Service'
   },
-  serviceName: {
-    type: String,
-    required: [true, 'Tên dịch vụ là bắt buộc'],
-    trim: true
+  scheduleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Schedule',
+    required: true
+  },
+  roomId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Room'
   },
   appointmentDate: {
     type: Date,
-    required: [true, 'Ngày hẹn là bắt buộc']
+    required: true
   },
-  startTime: {
-    type: String,
-    required: [true, 'Thời gian bắt đầu là bắt buộc'],
-    match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Định dạng thời gian không hợp lệ']
-  },
-  endTime: {
-    type: String,
-    required: [true, 'Thời gian kết thúc là bắt buộc'],
-    match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Định dạng thời gian không hợp lệ']
+  timeSlot: {
+    startTime: {
+      type: String,
+      required: true
+    },
+    endTime: {
+      type: String,
+      required: true
+    }
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'completed', 'cancelled', 'no-show'],
+    enum: ['pending', 'confirmed', 'completed', 'cancelled', 'rescheduled', 'no-show', 'rejected'],
     default: 'pending'
   },
+  bookingCode: {
+    type: String
+  },
+  appointmentType: {
+    type: String,
+    enum: ['first-visit', 'follow-up', 'consultation', 'emergency'],
+    default: 'first-visit'
+  },
   symptoms: {
+    type: String,
+    trim: true
+  },
+  medicalHistory: {
     type: String,
     trim: true
   },
@@ -78,76 +73,196 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  queueNumber: {
-    type: Number,
-    min: 1
+  diagnosis: {
+    type: String,
+    trim: true
+  },
+  prescription: {
+    type: String,
+    trim: true
+  },
+  fee: {
+    consultationFee: {
+      type: Number,
+      default: 0
+    },
+    additionalFees: {
+      type: Number,
+      default: 0
+    },
+    discount: {
+      type: Number,
+      default: 0
+    },
+    totalAmount: {
+      type: Number,
+      default: 0
+    }
+  },
+  couponCode: {
+    type: String,
+    trim: true,
+    uppercase: true
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'refunded', 'failed'],
+    default: 'pending'
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'paypal'],
+    default: 'cash'
+  },
+  paymentId: {
+    type: String,
+    trim: true
   },
   cancellationReason: {
     type: String,
     trim: true
   },
-  cancellationDate: {
-    type: Date
-  },
-  reminderSent: {
-    type: Boolean,
-    default: false
-  },
-  paymentStatus: {
+  cancelledBy: {
     type: String,
-    enum: ['unpaid', 'paid', 'refunded'],
-    default: 'unpaid'
-  },
-  paymentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Payment'
-  },
-  followUpAppointmentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Appointment'
+    enum: ['patient', 'doctor', 'hospital', 'system'],
+    trim: true
   },
   isRescheduled: {
     type: Boolean,
     default: false
   },
-  previousAppointmentId: {
+  rescheduleCount: {
+    type: Number,
+    default: 0
+  },
+  rescheduleHistory: [{
+    oldScheduleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Schedule'
+    },
+    oldTimeSlot: {
+      startTime: String,
+      endTime: String
+    },
+    oldAppointmentDate: Date,
+    newScheduleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Schedule'
+    },
+    newTimeSlot: {
+      startTime: String,
+      endTime: String
+    },
+    newAppointmentDate: Date,
+    rescheduleBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    rescheduleAt: {
+      type: Date,
+      default: Date.now
+    },
+    notes: String
+  }],
+  isCancelled: {
+    type: Boolean,
+    default: false
+  },
+  originalAppointmentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Appointment'
+    ref: 'Appointment',
+    default: null
+  },
+  reminderSent: {
+    type: Boolean,
+    default: false
+  },
+  feedback: {
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    comment: {
+      type: String,
+      trim: true
+    },
+    submittedAt: {
+      type: Date
+    }
+  },
+  medicalRecord: {
+    diagnosis: {
+      type: String,
+      trim: true
+    },
+    treatment: {
+      type: String,
+      trim: true
+    },
+    prescription: [{
+      medicine: { type: String, required: true },
+      dosage: { type: String },
+      usage: { type: String },
+      duration: { type: String },
+      notes: { type: String }
+    }],
+    notes: {
+      type: String,
+      trim: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    }
   }
 }, {
   timestamps: true
 });
 
-// Index để tìm kiếm theo bệnh nhân
-appointmentSchema.index({ patientId: 1, appointmentDate: 1 });
+// Tạo bookingCode duy nhất trước khi lưu
+appointmentSchema.pre('save', async function(next) {
+  try {
+    if (!this.bookingCode) {
+      // Generate a random 8-character alphanumeric code
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let bookingCode;
+      let isUnique = false;
 
-// Index để tìm kiếm theo bác sĩ
-appointmentSchema.index({ doctorId: 1, appointmentDate: 1 });
+      // Keep generating until we find a unique code
+      while (!isUnique) {
+        bookingCode = 'APT-';
+        for (let i = 0; i < 8; i++) {
+          bookingCode += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
 
-// Index để tìm kiếm theo bệnh viện
-appointmentSchema.index({ hospitalId: 1, appointmentDate: 1 });
+        // Check if the code is unique
+        const existingAppointment = await this.constructor.findOne({ bookingCode });
+        if (!existingAppointment) {
+          isUnique = true;
+        }
+      }
 
-// Phương thức kiểm tra xem lịch hẹn có thể được hủy không
-appointmentSchema.methods.canBeCancelled = function() {
-  const now = new Date();
-  const appointmentDateTime = new Date(this.appointmentDate);
-  const [hours, minutes] = this.startTime.split(':');
-  appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0);
-  
-  // Cho phép hủy trước 24 giờ
-  return appointmentDateTime.getTime() - now.getTime() > 24 * 60 * 60 * 1000;
-};
+      this.bookingCode = bookingCode;
+    }
+    next();
+  } catch (error) {
+    console.error('Error generating booking code:', error);
+    next(error);
+  }
+});
 
-// Phương thức kiểm tra xem lịch hẹn có thể được đặt lại không
-appointmentSchema.methods.canBeRescheduled = function() {
-  const now = new Date();
-  const appointmentDateTime = new Date(this.appointmentDate);
-  const [hours, minutes] = this.startTime.split(':');
-  appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0);
-  
-  // Cho phép đặt lại trước 48 giờ
-  return appointmentDateTime.getTime() - now.getTime() > 48 * 60 * 60 * 1000;
-};
+// Tạo index cho truy vấn hiệu quả
+appointmentSchema.index({ patientId: 1 });
+appointmentSchema.index({ doctorId: 1 });
+appointmentSchema.index({ hospitalId: 1 });
+appointmentSchema.index({ appointmentDate: 1 });
+appointmentSchema.index({ status: 1 });
+appointmentSchema.index({ bookingCode: 1 }, { unique: true });
 
 const Appointment = mongoose.model('Appointment', appointmentSchema);
 

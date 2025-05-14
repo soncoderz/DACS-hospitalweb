@@ -1,71 +1,141 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Role = require('../models/Role');
+const Doctor = require('../models/Doctor');
+const mongoose = require('mongoose');
 
-// Protect routes
+/**
+ * Middleware to protect routes - requires valid JWT token
+ * @desc    PUBLIC ROUTE: No protection
+ *          PROTECTED ROUTE: Requires valid JWT token
+ */
 exports.protect = async (req, res, next) => {
   try {
     let token;
 
-    // Check if token exists in headers
+    // Lấy token từ header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
 
+    // Kiểm tra nếu không có token
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Không có token xác thực'
+        message: 'Không có quyền truy cập, vui lòng đăng nhập'
       });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    try {
+      // Xác thực token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Decoded token:', decoded); // Log thông tin decoded token để gỡ lỗi
 
-    // Get user from token
-    const user = await User.findById(decoded.id).select('-passwordHash');
-
-    if (!user) {
+      // Xác định loại tài khoản dựa vào role trong token
+      let user;
+      
+      // Luôn lấy thông tin từ User model trước
+        user = await User.findById(decoded.id).select('-passwordHash');
+      
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Người dùng không tồn tại'
+        });
+      }
+      
+      // Gán thông tin role từ token vào req.user
+      req.user = user;
+      req.user.role = decoded.role;
+      next();
+    } catch (error) {
       return res.status(401).json({
         success: false,
-        message: 'Token không hợp lệ hoặc người dùng không tồn tại'
+        message: 'Token không hợp lệ hoặc đã hết hạn',
+        error: error.message
       });
     }
-
-    // Check if user is verified
-    if (!user.isVerified) {
-      return res.status(401).json({
-        success: false,
-        message: 'Tài khoản chưa được xác thực'
-      });
-    }
-
-    // Set user in request
-    req.user = user;
-    next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token không hợp lệ'
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token đã hết hạn'
-      });
-    }
-    
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Lỗi server',
       error: error.message
     });
   }
+};
+
+/**
+ * Middleware to restrict routes to specific roles
+ * @desc    ROLE-RESTRICTED ROUTE: Requires specific role type
+ * @roles   user - Regular patient user
+ *          doctor - Doctor user
+ *          admin - Administrator user
+ */
+exports.authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Cần đăng nhập trước khi kiểm tra quyền'
+      });
+    }
+
+    // Sử dụng role từ token (được thêm vào req.user ở middleware protect)
+    if (!roles.includes(req.user.role)) {
+      console.log('Quyền yêu cầu:', roles);
+      console.log('Quyền của user:', req.user.role);
+      return res.status(403).json({
+        success: false,
+        message: 'Không có quyền truy cập vào tài nguyên này'
+      });
+    }
+
+    next();
+  };
+};
+
+// Middleware kiểm tra quyền sở hữu tài nguyên
+exports.checkOwnership = (model, paramIdField) => {
+  return async (req, res, next) => {
+    try {
+      const resourceId = req.params[paramIdField];
+      
+      if (!resourceId) {
+        return res.status(400).json({
+          success: false,
+          message: `Thiếu tham số ${paramIdField}`
+        });
+      }
+
+      const resource = await model.findById(resourceId);
+      
+      if (!resource) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy tài nguyên'
+        });
+      }
+
+      // Kiểm tra xem user có phải là chủ sở hữu không
+      if (resource.user && resource.user.toString() !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Không có quyền truy cập vào tài nguyên này'
+        });
+      }
+
+      // Lưu tài nguyên vào request để sử dụng ở các middleware tiếp theo
+      req.resource = resource;
+      next();
+    } catch (error) {
+      console.error('Ownership check error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi server',
+        error: error.message
+      });
+    }
+  };
 };
 
 // Check user role
@@ -79,8 +149,13 @@ exports.hasRole = (roleCode) => {
         });
       }
 
+      // Admin can access all resources
+      if (req.user.role === 'admin') {
+        return next();
+      }
+
       // Check if user has the required role
-      if (roleCode === 'admin' && req.user.roleType !== 'admin') {
+      if (roleCode === 'admin' && req.user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Bạn không có quyền truy cập tài nguyên này'
@@ -88,7 +163,7 @@ exports.hasRole = (roleCode) => {
       }
 
       // For doctor routes, allow both doctors and admins
-      if (roleCode === 'doctor' && req.user.roleType !== 'doctor' && req.user.roleType !== 'admin') {
+      if (roleCode === 'doctor' && req.user.role !== 'doctor' && req.user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Bạn không có quyền truy cập tài nguyên này'
@@ -108,79 +183,9 @@ exports.hasRole = (roleCode) => {
   };
 };
 
-// Check permission
-exports.hasPermission = (permissionCode) => {
-  return async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Bạn cần đăng nhập để truy cập'
-        });
-      }
-
-      // Always give full permission to admin users
-      if (req.user.roleType === 'admin') {
-        return next();
-      }
-
-      // Try to get role permissions if role reference exists
-      if (req.user.role) {
-        try {
-          // Lấy role đầy đủ với danh sách quyền
-          const role = await Role.findById(req.user.role).populate('permissions');
-          
-          if (role) {
-            // Kiểm tra nếu là admin role
-            if (role.code === 'admin') {
-              // Admin có tất cả quyền
-              return next();
-            }
-
-            // Kiểm tra quyền từ danh sách quyền
-            const hasPermission = role.permissions && role.permissions.some(permission => permission.code === permissionCode);
-            
-            if (hasPermission) {
-              return next();
-            }
-          }
-        } catch (roleError) {
-          console.error('Error checking role permissions:', roleError);
-          // Continue to check based on roleType if role lookup fails
-        }
-      }
-
-      // Fallback to roleType-based permissions if role check fails or denies access
-      const roleTypePermissions = {
-        admin: ['*'], // Admin has all permissions
-        doctor: ['view_patients', 'update_medical_records', 'schedule_appointments'],
-        user: ['view_own_profile', 'book_appointments', 'view_own_records']
-      };
-
-      // Check if user has permission based on roleType
-      const userPermissions = roleTypePermissions[req.user.roleType] || [];
-      if (userPermissions.includes('*') || userPermissions.includes(permissionCode)) {
-        return next();
-      }
-
-      return res.status(403).json({
-        success: false,
-        message: 'Bạn không có quyền thực hiện thao tác này'
-      });
-    } catch (error) {
-      console.error('Permission check error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Lỗi server',
-        error: error.message
-      });
-    }
-  };
-};
-
 // Admin middleware
 exports.admin = (req, res, next) => {
-  if (req.user && req.user.roleType === 'admin') {
+  if (req.user && req.user.role === 'admin') {
     next();
   } else {
     res.status(403).json({ 
@@ -190,14 +195,37 @@ exports.admin = (req, res, next) => {
   }
 };
 
-// Doctor middleware
-exports.doctor = (req, res, next) => {
-  if (req.user && (req.user.roleType === 'doctor' || req.user.roleType === 'admin')) {
-    next();
-  } else {
-    res.status(403).json({ 
+/**
+ * Middleware to restrict routes to doctor role
+ * @desc    DOCTOR-ONLY ROUTE: Only accessible by doctors
+ */
+exports.doctor = async (req, res, next) => {
+  try {
+    if (req.user && (req.user.role === 'doctor' || req.user.role === 'admin')) {
+      // For doctor routes, attach doctor data to the request
+      if (req.user.role === 'doctor') {
+        const doctorData = await Doctor.findOne({ user: req.user._id });
+        if (!doctorData) {
+          return res.status(404).json({
+            success: false,
+            message: 'Không tìm thấy thông tin bác sĩ'
+          });
+        }
+        req.doctorData = doctorData;
+      }
+      next();
+    } else {
+      res.status(403).json({ 
+        success: false,
+        message: 'Không được phép truy cập, chỉ dành cho bác sĩ' 
+      });
+    }
+  } catch (error) {
+    console.error('Doctor middleware error:', error);
+    res.status(500).json({
       success: false,
-      message: 'Không được phép truy cập, chỉ dành cho bác sĩ' 
+      message: 'Lỗi server',
+      error: error.message
     });
   }
 }; 

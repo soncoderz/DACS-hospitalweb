@@ -1,28 +1,12 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
-// Đảm bảo thư mục uploads tồn tại
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Cấu hình lưu trữ
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `avatar-${uniqueSuffix}${ext}`);
-  }
-});
+// Memory storage for all uploads (no local file storage)
+const memoryStorage = multer.memoryStorage();
 
 // Kiểm tra loại file
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif/;
+  const allowedTypes = /jpeg|jpg|png|gif|webp|svg|jfif|bmp|tiff|tif|ico|heic|heif|avif|raw|psd|ai|eps/;
   // Kiểm tra mime type
   const mimeOk = allowedTypes.test(file.mimetype);
   // Kiểm tra extension
@@ -32,16 +16,20 @@ const fileFilter = (req, file, cb) => {
     return cb(null, true);
   }
   
-  cb(new Error('Định dạng file không được hỗ trợ. Chỉ chấp nhận ảnh JPEG, JPG, PNG hoặc GIF.'));
+  cb(new Error('Định dạng file không được hỗ trợ. Hệ thống chấp nhận hầu hết các định dạng ảnh phổ biến như JPEG, PNG, GIF, WEBP, SVG, BMP, TIFF và các định dạng chuyên dụng khác.'));
 };
 
-// Cấu hình upload
+// Cấu hình upload với memory storage
 const upload = multer({
-  storage: storage,
+  storage: memoryStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // Giới hạn 5MB
+    fileSize: 10 * 1024 * 1024 // Giới hạn 10MB
   },
   fileFilter: fileFilter
 });
 
-module.exports = upload; 
+// Sử dụng cùng một cấu hình cho tất cả các loại upload
+const uploadAvatar = upload;
+const uploadToMemory = upload;
+
+module.exports = { upload, uploadToMemory, uploadAvatar }; 

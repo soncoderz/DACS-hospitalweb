@@ -1,108 +1,77 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
-  userId: {
+  recipientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'ID người dùng là bắt buộc']
+    index: true
   },
-  userRole: {
+  recipientIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  recipientRole: {
     type: String,
-    enum: ['patient', 'doctor', 'admin'],
-    required: [true, 'Vai trò người dùng là bắt buộc']
-  },
-  type: {
-    type: String,
-    enum: [
-      'appointment_reminder',
-      'appointment_confirmation',
-      'appointment_cancellation',
-      'new_message',
-      'prescription_ready',
-      'medical_record_update',
-      'payment_confirmation',
-      'system_update',
-      'promotion'
-    ],
-    required: [true, 'Loại thông báo là bắt buộc']
+    enum: ['admin', 'user', 'doctor', 'hospital_admin'],
+    index: true
   },
   title: {
     type: String,
-    required: [true, 'Tiêu đề thông báo là bắt buộc'],
+    required: true,
     trim: true
   },
   message: {
     type: String,
-    required: [true, 'Nội dung thông báo là bắt buộc'],
+    required: true,
     trim: true
   },
-  relatedId: {
-    type: mongoose.Schema.Types.ObjectId,
-    refPath: 'relatedModel'
-  },
-  relatedModel: {
+  type: {
     type: String,
-    enum: ['Appointment', 'Conversation', 'MedicalRecord', 'Promotion', 'Payment'],
-    default: null
+    required: true,
+    enum: [
+      'appointment_create', 
+      'appointment_update', 
+      'appointment_cancel', 
+      'appointment_reminder',
+      'payment',
+      'system'
+    ],
+    index: true
+  },
+  data: {
+    type: mongoose.Schema.Types.Mixed
   },
   isRead: {
     type: Boolean,
-    default: false
+    default: false,
+    index: true
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  sentVia: {
-    type: [String],
-    enum: ['app', 'email', 'sms'],
-    default: ['app']
-  },
-  link: {
-    type: String,
-    default: null
+  readAt: {
+    type: Date
   }
 }, {
   timestamps: true
 });
 
-// Index để tìm kiếm theo người dùng
-notificationSchema.index({ userId: 1 });
+// Validate that at least one recipient field is provided
+notificationSchema.pre('validate', function(next) {
+  if (!this.recipientId && (!this.recipientIds || this.recipientIds.length === 0) && !this.recipientRole) {
+    next(new Error('At least one recipient (recipientId, recipientIds, or recipientRole) must be provided'));
+  } else {
+    next();
+  }
+});
 
-// Index để tìm kiếm theo ngày tạo (để hiển thị thông báo gần đây)
-notificationSchema.index({ createdAt: -1 });
-
-// Index để tìm kiếm thông báo chưa đọc
-notificationSchema.index({ userId: 1, isRead: 1 });
-
-// Phương thức đánh dấu thông báo đã đọc
-notificationSchema.methods.markAsRead = function() {
+// Mark notification as read
+notificationSchema.methods.markAsRead = async function() {
   this.isRead = true;
-  return this.save();
+  this.readAt = new Date();
+  return await this.save();
 };
 
-// Phương thức tĩnh để đánh dấu tất cả thông báo đã đọc cho một người dùng
-notificationSchema.statics.markAllAsRead = function(userId) {
-  return this.updateMany(
-    { userId, isRead: false },
-    { $set: { isRead: true } }
-  );
-};
+// Create indexes for better query performance
+notificationSchema.index({ createdAt: -1 });
+notificationSchema.index({ recipientId: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({ recipientRole: 1, isRead: 1, createdAt: -1 });
 
-// Phương thức tĩnh để lấy số lượng thông báo chưa đọc
-notificationSchema.statics.countUnread = function(userId) {
-  return this.countDocuments({ userId, isRead: false });
-};
-
-// Phương thức tĩnh để lấy thông báo theo trang
-notificationSchema.statics.paginate = function(userId, page = 1, limit = 10) {
-  const skip = (page - 1) * limit;
-  return this.find({ userId })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-};
-
-const Notification = mongoose.model('Notification', notificationSchema);
-
-module.exports = Notification; 
+module.exports = mongoose.model('Notification', notificationSchema); 

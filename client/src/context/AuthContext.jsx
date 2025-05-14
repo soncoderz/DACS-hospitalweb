@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
@@ -9,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const isAuthenticated = !!user;
+  const isAdmin = user && user.roleType === 'admin';
 
   useEffect(() => {
     // Check for user in localStorage or sessionStorage
@@ -27,9 +29,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Login handler
-  const login = (userData, rememberMe = false) => {
-    console.log('Login called with userData:', userData); // Debug
-    console.log('User role type:', userData.roleType); // Log role type for debugging
+  const login = (userData, rememberMe = false, showNotification = false) => {
+    console.log('Login userData:', userData); // Kiểm tra dữ liệu người dùng
+    console.log('User role:', userData.role);
+    console.log('User roleType:', userData.roleType);
+    
+    // Debug avatar data
+    console.log('Avatar data present:', !!userData.avatarData); 
+    console.log('Avatar URL present:', !!userData.avatarUrl);
+
+    // Preserve the role from the server
+    const role = userData.role || 'user';
 
     // Nếu là cập nhật profile (không có token mới)
     if (!userData.token) {
@@ -39,14 +49,24 @@ export const AuthProvider = ({ children }) => {
       
       if (currentUser && currentUser.token) {
         // Preserve the token when updating user data
-        userData = { ...userData, token: currentUser.token };
+        userData = { ...userData, token: currentUser.token, role: currentUser.role || role };
         console.log('Preserved token during profile update:', userData.token);
       } else {
         console.warn('No token found when updating user profile');
       }
     }
     
-    console.log('Final userData to store:', userData); // Debug
+    // Đảm bảo giữ lại thông tin avatar khi cập nhật
+    if (userData.avatarData || userData.avatarUrl) {
+      console.log('Preserving avatar data during login');
+    }
+    
+    console.log('Final userData to store:', {
+      ...userData,
+      role: userData.role || role,
+      avatarData: userData.avatarData ? 'Has avatar data' : 'No avatar data',
+      avatarUrl: userData.avatarUrl || 'No avatar URL'
+    });
     
     // Determine which storage to use (prefer the one already in use if any)
     let storageToUse;
@@ -68,6 +88,13 @@ export const AuthProvider = ({ children }) => {
     if (userData && userData.token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
     }
+    
+    // Hiển thị thông báo đăng nhập thành công nếu yêu cầu
+    if (showNotification) {
+      toast.success(`Đăng nhập thành công! Xin chào, ${userData.fullName || 'bạn'}`);
+    }
+    
+    return userData;
   };
 
   // Add updateUserData function
@@ -80,8 +107,12 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     
-    // Merge new data with current user data, preserving the token
-    const updatedUser = { ...currentUser, ...userData };
+    // Merge new data with current user data, preserving the token and role
+    const updatedUser = { 
+      ...currentUser, 
+      ...userData, 
+      role: userData.role || currentUser.role || 'user' 
+    };
     
     // Determine which storage to use
     const storageToUse = localStorage.getItem('userInfo') 
@@ -97,10 +128,21 @@ export const AuthProvider = ({ children }) => {
 
   // Logout handler
   const logout = () => {
+    // Lưu tên người dùng trước khi đăng xuất để hiển thị trong thông báo
+    const userName = user?.fullName || 'bạn';
+    
+    // Xóa thông tin người dùng khỏi localStorage và sessionStorage
     localStorage.removeItem('userInfo');
     sessionStorage.removeItem('userInfo');
+    
+    // Xóa người dùng khỏi state
     setUser(null);
+    
+    // Xóa header xác thực
     delete axios.defaults.headers.common['Authorization'];
+    
+    // Hiển thị thông báo đăng xuất thành công
+    toast.success(`Đăng xuất thành công! Tạm biệt, ${userName}`);
   };
 
   // Get auth header
@@ -113,6 +155,7 @@ export const AuthProvider = ({ children }) => {
       user, 
       loading, 
       isAuthenticated, 
+      isAdmin,
       login, 
       logout, 
       updateUserData, 

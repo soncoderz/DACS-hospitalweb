@@ -14,13 +14,24 @@ const specialtySchema = new mongoose.Schema({
   icon: {
     type: String,
     trim: true
+  },
+  imageUrl: {
+    type: String,
+    trim: true
+  },
+  image: {
+    url: String,
+    secureUrl: String,
+    publicId: String,
+    cloudName: String
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
 });
-
-// Index để tìm kiếm theo tên chuyên khoa
-specialtySchema.index({ name: 'text', description: 'text' });
 
 const Specialty = mongoose.model('Specialty', specialtySchema);
 

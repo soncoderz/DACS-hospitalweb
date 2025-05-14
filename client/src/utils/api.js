@@ -1,27 +1,56 @@
 import axios from 'axios';
 
-// Create an axios instance with the base URL from environment variables
+const apiBaseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Create a custom axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: apiBaseURL,
+  withCredentials: true, // Important for cookies with social authentication
   headers: {
     'Content-Type': 'application/json',
-  },
+  }
 });
 
-// Add a request interceptor to include authorization token
+// Add a request interceptor to attach auth token when available
 api.interceptors.request.use(
   (config) => {
-    // Lấy token từ thông tin người dùng đã lưu
-    const userInfo = JSON.parse(localStorage.getItem('userInfo')) || 
-                     JSON.parse(sessionStorage.getItem('userInfo'));
+    // Skip attaching auth token for public endpoints
+    if (config.headers['Skip-Auth'] === 'true') {
+      delete config.headers.Authorization;
+      delete config.headers['Skip-Auth'];
+      return config;
+    }
     
-    // Nếu có thông tin người dùng và token
+    // Get token from storage if it exists
+    const userInfo = 
+      JSON.parse(localStorage.getItem('userInfo')) || 
+      JSON.parse(sessionStorage.getItem('userInfo'));
+    
     if (userInfo && userInfo.token) {
       config.headers.Authorization = `Bearer ${userInfo.token}`;
     }
+    
+    // Log all requests for debugging during development
+    console.log(`[API Request] ${config.method?.toUpperCase() || 'GET'} ${config.url}`, config);
+    
     return config;
   },
+  (error) => Promise.reject(error)
+);
+
+// Add a response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
   (error) => {
+    // Add global error handling here
+    console.error('API Error:', error.response || error.message);
+
+    // Handle 401 Unauthorized errors (token expired)
+    if (error.response && error.response.status === 401) {
+      // You can add logic here to refresh token or redirect to login
+      console.log('Unauthorized request - token may be expired');
+    }
+
     return Promise.reject(error);
   }
 );

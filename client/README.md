@@ -1,61 +1,71 @@
-# React + Vite Frontend
+# Hospital Web Application - Client
 
-This project was bootstrapped with Vite for a modern, fast development environment.
+This repository contains the frontend code for the Hospital Management System, built with React.
+
+## Features
+
+- User authentication and authorization
+- Appointment booking and management
+- Doctor schedules and availability
+- Medical services and specialties
+- Patient profiles and medical records
+- Admin dashboard for system management
+- Doctor dashboard for patient management
+
+## UI Improvements with Tailwind CSS
+
+The application UI has been redesigned using Tailwind CSS, resulting in:
+
+- Modern, consistent design language across all pages
+- Improved responsive layouts for all device sizes
+- Enhanced user experience with animations and transitions
+- Better performance through optimized CSS
+- Easier maintenance with utility-first approach
+
+See [tailwind-migration.md](./tailwind-migration.md) for detailed information about the CSS migration process.
+
+## Technology Stack
+
+- React
+- React Router
+- Axios
+- React Query
+- React Hook Form
+- Tailwind CSS
+- Vite
+
+## Installation
+
+1. Clone the repository
+2. Install dependencies
+   ```bash
+   npm install
+   ```
+3. Create a `.env` file with the following variables:
+   ```
+   VITE_API_URL=http://localhost:5000
+   ```
+4. Start the development server
+   ```bash
+   npm run dev
+   ```
+
+## Build
+
+To build the application for production, run:
+
+```bash
+npm run build
+```
+
+The build output will be in the `dist` directory.
 
 ## Available Scripts
 
-In the project directory, you can run:
+- `npm run dev` - Start the development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview the production build locally
 
-### `npm run dev`
+## License
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm run build`
-
-Builds the app for production to the `dist` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-### `npm run preview`
-
-Locally preview the production build.
-
-### `npm run lint`
-
-Runs ESLint to check for code issues.
-
-## Learn More
-
-To learn more about Vite, check out the [Vite documentation](https://vitejs.dev/guide/).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This project is licensed under the MIT License - see the LICENSE file for details.

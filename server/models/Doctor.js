@@ -1,175 +1,92 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
-const workingHoursSchema = new mongoose.Schema({
-  dayOfWeek: {
-    type: Number,
-    required: true,
-    min: 0,
-    max: 6
-  },
-  shifts: [{
-    startTime: {
-      type: String,
-      required: true,
-      match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Định dạng thời gian không hợp lệ']
-    },
-    endTime: {
-      type: String,
-      required: true,
-      match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Định dạng thời gian không hợp lệ']
-    },
-    hospitalId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Hospital',
-      required: true
-    }
-  }]
-});
-
-const onlineConsultationHoursSchema = new mongoose.Schema({
-  dayOfWeek: {
-    type: Number,
-    required: true,
-    min: 0,
-    max: 6
-  },
-  times: [{
-    startTime: {
-      type: String,
-      required: true,
-      match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Định dạng thời gian không hợp lệ']
-    },
-    endTime: {
-      type: String,
-      required: true,
-      match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Định dạng thời gian không hợp lệ']
-    }
-  }]
-});
 
 const doctorSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: [true, 'Email là bắt buộc'],
-    unique: true,
-    trim: true,
-    lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Email không hợp lệ']
-  },
-  phoneNumber: {
-    type: String,
-    required: [true, 'Số điện thoại là bắt buộc'],
-    trim: true,
-    match: [/^[0-9]{10,11}$/, 'Số điện thoại không hợp lệ']
-  },
-  passwordHash: {
-    type: String,
-    required: [true, 'Mật khẩu là bắt buộc']
-  },
-  fullName: {
-    type: String,
-    required: [true, 'Họ và tên là bắt buộc'],
-    trim: true
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
   specialtyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Specialty',
-    required: [true, 'Chuyên khoa là bắt buộc']
+    required: true
   },
-  specialtyName: {
-    type: String,
-    required: [true, 'Tên chuyên khoa là bắt buộc'],
-    trim: true
-  },
-  hospitalIds: [{
+  hospitalId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Hospital',
     required: true
+  },
+  services: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service'
   }],
+  title: {
+    type: String,
+    required: [true, 'Chức danh là bắt buộc'],
+    trim: true
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  education: {
+    type: String,
+    trim: true,
+    required: [true, 'Thông tin học vấn là bắt buộc']
+  },
   experience: {
-    type: Number,
-    required: [true, 'Số năm kinh nghiệm là bắt buộc'],
-    min: 0
+    type: Number, // Số năm kinh nghiệm
+    default: 0
   },
-  biography: {
-    type: String,
-    trim: true
-  },
-  education: [{
+  certifications: [{
     type: String,
     trim: true
   }],
-  avatarUrl: {
+  languages: [{
     type: String,
     trim: true
+  }],
+  consultationFee: {
+    type: Number,
+    required: true,
+    default: 0
   },
-  registrationDate: {
-    type: Date,
-    default: Date.now
-  },
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  isActive: {
+  isAvailable: {
     type: Boolean,
     default: true
   },
+  ratings: {
+    average: {
+      type: Number,
+      default: 0
+    },
+    count: {
+      type: Number,
+      default: 0
+    }
+  },
   averageRating: {
     type: Number,
-    default: 0,
-    min: 0,
-    max: 5
+    default: 0
   },
-  totalRatings: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  consultationFee: {
-    type: Number,
-    required: [true, 'Phí tư vấn là bắt buộc'],
-    min: 0
-  },
-  workingHours: [workingHoursSchema],
-  onlineConsultationHours: [onlineConsultationHoursSchema],
-  userId: {
+  reviews: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    unique: true
-  }
+    ref: 'Review'
+  }]
 }, {
   timestamps: true
 });
 
-// Phương thức so sánh mật khẩu
-doctorSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.passwordHash);
-};
-
-// Middleware hash mật khẩu trước khi lưu
-doctorSchema.pre('save', async function(next) {
-  if (!this.isModified('passwordHash')) {
-    return next();
-  }
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
+// Virtual field for full name
+doctorSchema.virtual('fullInfo').get(function() {
+  // Kiểm tra user có tồn tại trước khi truy cập fullName
+  if (!this.user) return this.title || '';
+  return `${this.title} ${this.user.fullName}`;
 });
 
-// Phương thức tính toán đánh giá trung bình
-doctorSchema.methods.calculateAverageRating = function(newRating) {
-  this.totalRatings += 1;
-  this.averageRating = ((this.averageRating * (this.totalRatings - 1)) + newRating) / this.totalRatings;
-  return this.averageRating;
-};
+// Ensure virtuals are included in JSON
+doctorSchema.set('toJSON', { virtuals: true });
+doctorSchema.set('toObject', { virtuals: true });
 
 const Doctor = mongoose.model('Doctor', doctorSchema);
 

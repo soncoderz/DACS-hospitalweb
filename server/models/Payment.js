@@ -4,74 +4,85 @@ const paymentSchema = new mongoose.Schema({
   appointmentId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Appointment',
-    required: [true, 'ID lịch hẹn là bắt buộc']
+    required: true,
+    unique: true
   },
-  patientId: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'ID bệnh nhân là bắt buộc']
+    required: true
+  },
+  doctorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Doctor',
+    required: true
+  },
+  serviceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service'
   },
   amount: {
     type: Number,
-    required: [true, 'Số tiền là bắt buộc'],
+    required: true,
+    min: 0
+  },
+  originalAmount: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  couponId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Coupon'
+  },
+  discount: {
+    type: Number,
+    default: 0,
     min: 0
   },
   paymentMethod: {
     type: String,
-    enum: ['visa', 'vnpay', 'momo'],
-    required: [true, 'Phương thức thanh toán là bắt buộc']
+    required: true,
+    enum: [ 'cash', 'paypal']
+  },
+  paymentStatus: {
+    type: String,
+    required: true,
+    enum: ['pending', 'completed', 'failed', 'refunded', 'cancelled'],
+    default: 'pending'
   },
   transactionId: {
     type: String,
-    required: [true, 'ID giao dịch là bắt buộc'],
-    unique: true
+    trim: true
   },
-  status: {
+  paymentDetails: {
+    type: Object
+  },
+  notes: {
     type: String,
-    enum: ['pending', 'success', 'failed', 'refunded'],
-    default: 'pending'
+    trim: true
   },
-  paymentDate: {
-    type: Date,
-    default: Date.now
-  },
-  invoiceNumber: {
-    type: String,
-    unique: true,
-    required: [true, 'Số hóa đơn là bắt buộc']
-  },
-  promoCodeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Promotion'
-  },
-  discountAmount: {
+  refundAmount: {
     type: Number,
-    min: 0,
-    default: 0
+    default: 0,
+    min: 0
+  },
+  refundReason: {
+    type: String,
+    trim: true
+  },
+  refundDate: {
+    type: Date
   }
 }, {
   timestamps: true
 });
 
-// Index để tìm kiếm theo bệnh nhân
-paymentSchema.index({ patientId: 1, paymentDate: -1 });
-
-// Index để tìm kiếm theo lịch hẹn
-paymentSchema.index({ appointmentId: 1 });
-
-// Index để tìm kiếm theo trạng thái
-paymentSchema.index({ status: 1 });
-
-// Phương thức tính tổng số tiền sau khi trừ giảm giá
-paymentSchema.methods.calculateFinalAmount = function() {
-  return this.amount - this.discountAmount;
-};
-
-// Phương thức kiểm tra xem thanh toán có thể được hoàn tiền không
-paymentSchema.methods.canBeRefunded = function() {
-  return this.status === 'success' && 
-         (new Date() - this.paymentDate) <= 7 * 24 * 60 * 60 * 1000; // Trong vòng 7 ngày
-};
+// Create indexes for faster queries
+paymentSchema.index({ userId: 1 });
+paymentSchema.index({ doctorId: 1 });
+paymentSchema.index({ paymentStatus: 1 });
+paymentSchema.index({ createdAt: 1 });
 
 const Payment = mongoose.model('Payment', paymentSchema);
 
