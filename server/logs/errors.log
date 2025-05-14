@@ -1,0 +1,912 @@
+[2025-04-13T07:41:39.277Z] [ERROR] POST /api/users/avatar MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb - Copy\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb - Copy\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-13T07:44:15.959Z] [ERROR] POST /api/users/avatar Error: Định dạng file không được hỗ trợ. Chỉ chấp nhận ảnh JPEG, JPG, PNG hoặc GIF.
+    at fileFilter (C:\DACS-hospitalweb - Copy\server\middlewares\uploadMiddleware.js:56:6)
+    at wrappedFileFilter (C:\DACS-hospitalweb - Copy\server\node_modules\multer\index.js:44:7)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb - Copy\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:567:19)
+[2025-04-13T07:45:09.478Z] [ERROR] POST /api/users/avatar Error: Định dạng file không được hỗ trợ. Chỉ chấp nhận ảnh JPEG, JPG, PNG hoặc GIF.
+    at fileFilter (C:\DACS-hospitalweb - Copy\server\middlewares\uploadMiddleware.js:56:6)
+    at wrappedFileFilter (C:\DACS-hospitalweb - Copy\server\node_modules\multer\index.js:44:7)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb - Copy\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:567:19)
+[2025-04-13T07:46:11.872Z] [ERROR] POST /api/users/avatar Error: Định dạng file không được hỗ trợ. Chỉ chấp nhận ảnh JPEG, JPG, PNG hoặc GIF.
+    at fileFilter (C:\DACS-hospitalweb - Copy\server\middlewares\uploadMiddleware.js:56:6)
+    at wrappedFileFilter (C:\DACS-hospitalweb - Copy\server\node_modules\multer\index.js:44:7)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb - Copy\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:567:19)
+[2025-04-13T12:48:50.784Z] [ERROR] POST /api/auth/login SyntaxError: Bad control character in string literal in JSON at position 68 (line 3 column 22)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-04-13T13:51:11.054Z] [ERROR] POST /api/appointments SyntaxError: Expected double-quoted property name in JSON at position 212 (line 10 column 1)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-04-13T13:51:21.260Z] [ERROR] POST /api/appointments SyntaxError: Expected double-quoted property name in JSON at position 246 (line 10 column 1)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-04-13T16:10:51.162Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:12:08.805Z] [ERROR] DELETE /api/appointments/67fbdf54da18f9e68867833a Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:12:24.653Z] [ERROR] DELETE /api/appointments/67fbe1ab3e6809c33731ad45 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:14:25.086Z] [ERROR] DELETE /api/appointments/67fbe1ab3e6809c33731ad45 Error: Không thể hủy lịch hẹn trước 24 giờ
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:340:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:15:53.447Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không thể hủy lịch hẹn trước 24 giờ
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:340:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:15:55.631Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không thể hủy lịch hẹn trước 24 giờ
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:340:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:21:49.224Z] [ERROR] DELETE /api/appointments/67fbe1ab3e6809c33731ad45 Error: Không thể hủy lịch hẹn trước 24 giờ
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:340:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:29:51.784Z] [ERROR] DELETE /api/appointments/67fbdf54da18f9e68867833a Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:30:21.039Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:30:23.066Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:30:24.054Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:30:25.000Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:30:25.883Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:30:26.926Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:31:30.237Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-13T16:31:31.911Z] [ERROR] DELETE /api/appointments/67fbd164ecf5848a3d8fa111 Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb - Copy\server\controllers\appointmentController.js:331:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-15T08:07:35.951Z] [ERROR] GET /api/admin/services/67fe12f25a13f6b86e7d5387 SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:86:15)
+    at C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+[2025-04-15T08:07:44.239Z] [ERROR] GET /api/admin/services/67fe12f25a13f6b86e7d5387 SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:86:15)
+    at C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+[2025-04-15T08:08:02.397Z] [ERROR] GET /api/admin/services/67fe12f25a13f6b86e7d5387 SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:86:15)
+    at C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+[2025-04-16T10:19:43.379Z] [ERROR] POST /api/users/avatar Error: Định dạng file không được hỗ trợ. Chỉ chấp nhận ảnh JPEG, JPG, PNG hoặc GIF.
+    at fileFilter (C:\DACS-hospitalweb - Copy\server\middlewares\uploadMiddleware.js:56:6)
+    at wrappedFileFilter (C:\DACS-hospitalweb - Copy\server\node_modules\multer\index.js:44:7)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb - Copy\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:567:19)
+[2025-04-16T10:22:32.958Z] [ERROR] POST /api/users/avatar Error: Định dạng file không được hỗ trợ. Hệ thống chấp nhận hầu hết các định dạng ảnh phổ biến như JPEG, PNG, GIF, WEBP, SVG, BMP, TIFF và các định dạng chuyên dụng khác.
+    at fileFilter (C:\DACS-hospitalweb - Copy\server\middlewares\uploadMiddleware.js:56:6)
+    at wrappedFileFilter (C:\DACS-hospitalweb - Copy\server\node_modules\multer\index.js:44:7)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb - Copy\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:567:19)
+[2025-04-16T10:52:42.527Z] [ERROR] POST /api/users/avatar Error: ENOENT: no such file or directory, open 'C:\DACS-hospitalweb - Copy\server\uploads\avatar-1744800762524-610156362.png'
+[2025-04-16T11:06:11.889Z] [ERROR] POST /api/users/avatar Error: Định dạng file không được hỗ trợ. Hệ thống chấp nhận hầu hết các định dạng ảnh phổ biến như JPEG, PNG, GIF, WEBP, SVG, BMP, TIFF và các định dạng chuyên dụng khác.
+    at fileFilter (C:\DACS-hospitalweb - Copy\server\middlewares\uploadMiddleware.js:56:6)
+    at wrappedFileFilter (C:\DACS-hospitalweb - Copy\server\node_modules\multer\index.js:44:7)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb - Copy\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb - Copy\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb - Copy\server\node_modules\busboy\lib\types\multipart.js:567:19)
+[2025-04-17T09:11:20.704Z] [ERROR] POST /api/admin/hospitals SyntaxError: Expected double-quoted property name in JSON at position 172 (line 7 column 3)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb - Copy\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb - Copy\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-04-18T08:47:30.484Z] [ERROR] POST /api/users/avatar MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-19T08:55:39.081Z] [ERROR] POST /api/admin/coupons Error: Không tìm thấy dịch vụ với ID 660b2a9fd6a7dcfa6fa098ab
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:90:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T08:56:42.321Z] [ERROR] POST /api/admin/coupons Error: Không tìm thấy chuyên khoa với ID 67fdfa2f86607552b035b291
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:104:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T08:59:32.297Z] [ERROR] POST /api/admin/coupons Error: Mã giảm giá này đã tồn tại
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:51:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T09:02:09.539Z] [ERROR] POST /api/admin/coupons SyntaxError: Expected double-quoted property name in JSON at position 436 (line 15 column 1)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-04-19T09:19:43.804Z] [ERROR] GET /api/admin/coupons/6803669d190bb41af3266829k Error: ID mã giảm giá không hợp lệ
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:383:17
+    at C:\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:421:3)
+[2025-04-19T09:20:32.639Z] [ERROR] PUT /api/admin/coupons/6803669d190bb41af3266829 Error: Mã giảm giá phải từ 3-15 ký tự và chỉ bao gồm chữ hoa và số
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:163:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T09:20:43.231Z] [ERROR] PUT /api/admin/coupons/6803669d190bb41af3266829 Error: ID chuyên khoa không hợp lệ
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:212:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T09:20:50.337Z] [ERROR] PUT /api/admin/coupons/6803669d190bb41af3266829 Error: ID chuyên khoa không hợp lệ
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:212:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T09:20:55.378Z] [ERROR] PUT /api/admin/coupons/6803669d190bb41af3266829 Error: ID dịch vụ không hợp lệ
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:198:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T09:22:05.793Z] [ERROR] DELETE /api/admin/coupons/6803669d190bb41af3266829 TypeError: coupon.remove is not a function
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:273:16
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T09:24:48.458Z] [ERROR] DELETE /api/admin/coupons/6803669d190bb41af3266829 TypeError: coupon.remove is not a function
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:273:16
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-19T11:12:53.362Z] [ERROR] POST /api/appointments SyntaxError: Expected double-quoted property name in JSON at position 699 (line 25 column 1)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-04-20T16:42:05.685Z] [ERROR] POST /api/appointments SyntaxError: Expected double-quoted property name in JSON at position 526 (line 19 column 1)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-04-20T16:55:26.210Z] [ERROR] DELETE /api/appointments/6800dbc93c822cfc843a599f Error: Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\appointmentController.js:635:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-21T17:10:53.444Z] [ERROR] POST /api/chat/conversations SyntaxError: Expected double-quoted property name in JSON at position 52 (line 3 column 2)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-04-22T18:50:00.140Z] [ERROR] POST /api/medical-records SyntaxError: Unexpected token '"', ""prescript"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at createStrictSyntaxError (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\body-parser\lib\types\json.js:169:10)
+    at parse (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\body-parser\lib\types\json.js:86:15)
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:211:14)
+    at invokeCallback (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+[2025-04-24T08:01:41.847Z] [ERROR] POST /api/doctors/avatar MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-24T08:57:50.899Z] [ERROR] POST /api/admin/hospitals/67fdfa2f86607552b035b29f/image MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-24T08:58:04.687Z] [ERROR] POST /api/admin/hospitals/67fdfa2f86607552b035b29f/image MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-24T09:19:06.404Z] [ERROR] GET /api/admin/coupons/6803669d190bb41af3266829 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-04-24T09:19:31.611Z] [ERROR] GET /api/admin/coupons/6803669d190bb41af3266829 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-04-24T09:20:11.563Z] [ERROR] PUT /api/admin/coupons/6803669d190bb41af3266829 Error: Mã giảm giá phải từ 3-15 ký tự và chỉ bao gồm chữ hoa và số
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:163:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-24T09:20:34.990Z] [ERROR] POST /api/admin/coupons Error: Không tìm thấy dịch vụ với ID 660b2a9fd6a7dcfa6fa098ab
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:90:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-24T09:21:22.770Z] [ERROR] POST /api/admin/coupons Error: Không tìm thấy chuyên khoa với ID 660b2abfd6a7dcfa6fa098d3
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:104:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-24T09:44:44.586Z] [ERROR] DELETE /api/admin/hospitals/reviews/67fdfa2f86607552b035b29f Error: Không tìm thấy đánh giá
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\hospitalReviewController.js:235:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-25T07:56:10.143Z] [ERROR] GET /api/statistics/users TypeError: Cannot read properties of undefined (reading 'roleType')
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\statisticsController.js:103:16
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:175:3)
+[2025-04-25T07:56:32.407Z] [ERROR] GET /api/statistics/users TypeError: Cannot read properties of undefined (reading 'roleType')
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\statisticsController.js:103:16
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:175:3)
+[2025-04-25T07:57:02.444Z] [ERROR] GET /api/statistics/users TypeError: Cannot read properties of undefined (reading 'roleType')
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\statisticsController.js:103:16
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:175:3)
+[2025-04-25T07:57:04.037Z] [ERROR] GET /api/statistics/users TypeError: Cannot read properties of undefined (reading 'roleType')
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\statisticsController.js:103:16
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:175:3)
+[2025-04-25T07:57:05.412Z] [ERROR] GET /api/statistics/users TypeError: Cannot read properties of undefined (reading 'roleType')
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\controllers\statisticsController.js:103:16
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:175:3)
+[2025-04-25T08:38:23.481Z] [ERROR] POST /api/admin/doctors/680b201f78b7aadb0a7af5f2/avatar MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-25T08:38:34.844Z] [ERROR] POST /api/admin/doctors/680b201f78b7aadb0a7af5ed/avatar MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:248:10)
+    at SBMH.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-25T08:40:42.107Z] [ERROR] POST /api/admin/doctors/680b201f78b7aadb0a7af5ed/avatar MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-25T08:44:55.270Z] [ERROR] POST /api/admin/doctors/680b201f78b7aadb0a7af5ed/avatar MulterError: Unexpected field
+    at wrappedFileFilter (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\index.js:40:19)
+    at Multipart.<anonymous> (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:109:7)
+    at Multipart.emit (node:events:518:28)
+    at HeaderParser.cb (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:358:14)
+    at HeaderParser.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:394:37)
+    at feed (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:200:10)
+    at SBMH.push (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+[2025-04-27T16:36:34.971Z] [ERROR] GET /api/coupons/validate?code=%2F%2F+Validate+coupon+route+-+accessible+by+all+authenticated+users&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Vui lòng cung cấp mã giảm giá
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:424:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:175:3)
+[2025-04-27T16:36:45.398Z] [ERROR] GET /api/coupons/validate?code=HEALTH100K&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Vui lòng cung cấp mã giảm giá
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:424:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:175:3)
+[2025-04-27T16:36:57.982Z] [ERROR] GET /api/coupons/validate?code=HEALTH100K&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Vui lòng cung cấp mã giảm giá
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:424:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\catchAsync.js:9:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:280:10)
+    at Function.handle (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:175:3)
+[2025-04-27T16:42:45.616Z] [ERROR] GET /api/coupons/validate?code=HEALTH100&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-04-28T07:13:39.716Z] [ERROR] POST /api/medical-records/680b202d78b7aadb0a7afac7/attachments/multiple MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:21:59.610Z] [ERROR] GET /api/appointments/doctors/[object%20Object]/schedules Error: ID bác sĩ không hợp lệ
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\appointmentController.js:2125:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\errorHandler.js:13:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:421:3)
+[2025-04-28T07:21:59.775Z] [ERROR] GET /api/appointments/doctors/[object%20Object]/schedules Error: ID bác sĩ không hợp lệ
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\appointmentController.js:2125:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\errorHandler.js:13:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:421:3)
+[2025-04-28T07:25:41.209Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:26:03.277Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:28:48.290Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:31:33.636Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:31:49.949Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:33:10.383Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:33:20.302Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:33:24.147Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:33:28.376Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:33:30.454Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:33:49.766Z] [ERROR] POST /api/doctors/medical-records/680b202d78b7aadb0a7afac7/attachments MulterError: Field name missing
+    at abortWithCode (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:73:22)
+    at Multipart.<anonymous> (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\multer\lib\make-middleware.js:78:37)
+    at Multipart.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:537:16)
+    at feed (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:219:14)
+    at SBMH.push (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+[2025-04-28T07:45:12.976Z] [ERROR] GET /api/appointments/doctors/[object%20Object]/schedules Error: ID bác sĩ không hợp lệ
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\appointmentController.js:2125:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\errorHandler.js:13:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:421:3)
+[2025-04-28T07:45:13.141Z] [ERROR] GET /api/appointments/doctors/[object%20Object]/schedules Error: ID bác sĩ không hợp lệ
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\appointmentController.js:2125:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\errorHandler.js:13:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:421:3)
+[2025-04-28T07:59:26.999Z] [ERROR] GET /api/appointments/doctors/[object%20Object]/schedules Error: ID bác sĩ không hợp lệ
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\appointmentController.js:2125:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\errorHandler.js:13:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:421:3)
+[2025-04-28T07:59:27.150Z] [ERROR] GET /api/appointments/doctors/[object%20Object]/schedules Error: ID bác sĩ không hợp lệ
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\controllers\appointmentController.js:2125:17
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\utils\errorHandler.js:13:5
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\ACER\Desktop\DACS-hospitalweb\DACS-hospitalweb\server\node_modules\express\lib\router\index.js:421:3)
+[2025-05-03T08:41:24.641Z] [ERROR] GET /api/coupons/validate?code=q&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T08:41:29.565Z] [ERROR] GET /api/coupons/validate?code=qq%C6%B0eq&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T10:40:38.366Z] [ERROR] GET /api/coupons/validate?code=%C3%A1d&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T10:40:39.401Z] [ERROR] GET /api/coupons/validate?code=%C3%A1dasd&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T15:01:37.559Z] [ERROR] PUT /api/admin/coupons/68162faf1776d7fdc1b37bbb Error: ID dịch vụ không hợp lệ
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:198:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T15:05:42.967Z] [ERROR] GET /api/admin/coupons/680b202578b7aadb0a7af9b3 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-05-03T15:05:49.410Z] [ERROR] GET /api/admin/coupons/680b202578b7aadb0a7af9b3 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-05-03T15:06:25.241Z] [ERROR] GET /api/admin/coupons/680b202578b7aadb0a7af9b3 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-05-03T19:37:14.033Z] [ERROR] GET /api/coupons/validate?code=123&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:14.110Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:14.273Z] [ERROR] GET /api/coupons/validate?code=12&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:14.548Z] [ERROR] GET /api/coupons/validate?code=123&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:15.804Z] [ERROR] GET /api/coupons/validate?code=12&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:16.043Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:17.203Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:17.708Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:22.462Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:23.238Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:28.573Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:28.684Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:34.640Z] [ERROR] GET /api/coupons/validate?code=12&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:34.735Z] [ERROR] GET /api/coupons/validate?code=123&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:34.830Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:34.943Z] [ERROR] GET /api/coupons/validate?code=1231&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:34.956Z] [ERROR] GET /api/coupons/validate?code=12312&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:35.373Z] [ERROR] GET /api/coupons/validate?code=123123&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:35.900Z] [ERROR] GET /api/coupons/validate?code=123123&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:38.044Z] [ERROR] GET /api/coupons/validate?code=12312&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:38.303Z] [ERROR] GET /api/coupons/validate?code=1231&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:38.358Z] [ERROR] GET /api/coupons/validate?code=1&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:38.633Z] [ERROR] GET /api/coupons/validate?code=12&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:37:38.928Z] [ERROR] GET /api/coupons/validate?code=123&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-03T19:45:46.740Z] [ERROR] GET /api/coupons/validate?code=qqqqqqq&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:531:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T07:59:49.633Z] [ERROR] GET /api/admin/coupons/680b202578b7aadb0a7af9b3 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-05-10T07:59:55.017Z] [ERROR] GET /api/admin/coupons/680b202578b7aadb0a7af9b3 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-05-10T18:10:11.931Z] [ERROR] GET /api/admin/coupons/680b202578b7aadb0a7af9b3 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-05-10T18:49:04.666Z] [ERROR] GET /api/admin/coupons/680b202578b7aadb0a7af9b3 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-05-10T18:49:19.516Z] [ERROR] GET /api/admin/coupons/680b202578b7aadb0a7af9b3 StrictPopulateError: Cannot populate path `patient` because it is not in your schema. Set the `strictPopulate` option to false to override.
+    at getModelsMapForPopulate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\helpers\populate\getModelsMapForPopulate.js:50:12)
+    at _populatePath (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4446:21)
+    at Function.populate (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\model.js:4413:21)
+    at model.Query._find (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:2407:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async model.Query.exec (C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\node_modules\mongoose\lib\query.js:4456:63)
+    at async C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:398:24
+[2025-05-10T19:48:56.185Z] [ERROR] POST /api/coupons/validate Error: Mã giảm giá này không áp dụng cho dịch vụ đã chọn
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:457:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T19:48:58.787Z] [ERROR] POST /api/coupons/validate Error: Mã giảm giá này không áp dụng cho dịch vụ đã chọn
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:457:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T19:59:26.245Z] [ERROR] POST /api/coupons/validate Error: Mã giảm giá này không áp dụng cho dịch vụ đã chọn
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:457:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T20:14:10.209Z] [ERROR] GET /api/coupons/validate?code=SONDZXc&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:537:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T20:14:13.717Z] [ERROR] GET /api/coupons/validate?code=SONDZXc&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:537:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T20:18:25.550Z] [ERROR] GET /api/coupons/validate?code=WELCOME2023&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:537:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T20:34:09.203Z] [ERROR] GET /api/coupons/validate?code=WELCOME2023&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d3 Error: Mã giảm giá này không áp dụng cho dịch vụ đã chọn
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:554:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T20:34:15.033Z] [ERROR] GET /api/coupons/validate?code=WELCOME2023&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d3 Error: Mã giảm giá này không áp dụng cho dịch vụ đã chọn
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:554:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T20:34:16.521Z] [ERROR] GET /api/coupons/validate?code=WELCOME2023&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d3 Error: Mã giảm giá này không áp dụng cho dịch vụ đã chọn
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:554:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-10T20:40:46.164Z] [ERROR] GET /api/coupons/validate?code=WELCOME2023&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá này không áp dụng cho chuyên khoa đã chọn
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:570:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-11T12:29:59.238Z] [ERROR] GET /api/coupons/validate?code=ELDERLY25V&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá đã hết hạn hoặc đã đạt giới hạn sử dụng
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:539:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-11T12:30:02.668Z] [ERROR] GET /api/coupons/validate?code=ELDERLY25V&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá đã hết hạn hoặc đã đạt giới hạn sử dụng
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:539:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-11T12:30:10.626Z] [ERROR] GET /api/coupons/validate?code=ELDERLY25V&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá đã hết hạn hoặc đã đạt giới hạn sử dụng
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:539:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-11T12:31:47.758Z] [ERROR] GET /api/coupons/validate?code=ELDERLY25V&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá đã hết hạn hoặc đã đạt giới hạn sử dụng
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:539:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-11T12:31:52.120Z] [ERROR] GET /api/coupons/validate?code=ELDERLY25V&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá đã hết hạn hoặc đã đạt giới hạn sử dụng
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:539:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-11T12:32:13.219Z] [ERROR] GET /api/coupons/validate?code=ELDERLY25V&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá đã hết hạn hoặc đã đạt giới hạn sử dụng
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:539:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-11T12:32:52.360Z] [ERROR] GET /api/coupons/validate?code=ELDERLY25V&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá đã hết hạn hoặc đã đạt giới hạn sử dụng
+    at C:\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:539:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-14T07:19:32.950Z] [ERROR] GET /api/coupons/validate?code=s&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at D:\icon\DACS-hospitalweb - Copy fn\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:534:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+body {
+    @apply font-sans text-gray-800 bg-white;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium text-gray-900;
+  }
+  
+  h1 {
+    @apply text-3xl md:text-4xl;
+  }
+  
+  h2 {
+    @apply text-2xl md:text-3xl;
+  }
+  
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+  
+  a {
+    @apply text-primary hover:text-primary-dark transition-colors;
+  }
+}
+
+@layer components {
+  .container {
+    @apply px-4 mx-auto max-w-7xl;
+  }
+  
+  .btn {
+    @apply inline-block px-4 py-2 rounded font-medium transition-all;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-dark;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-white hover:bg-gray-600;
+  }
+  
+  .btn-outline {
+    @apply border border-primary text-primary hover:bg-primary hover:text-white;
+  }
+
+  .form-control {
+    @apply w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary/50;
+  }
+  
+  /* Spinner */
+  .spinner {
+    @apply inline-block w-10 h-10 border-4 border-gray-200 rounded-full border-l-primary animate-spin;
+  }
+  
+  /* Loading components */
+  .loading-container, .loading-spinner, .loading, .loading-app {
+    @apply flex flex-col items-center justify-center min-h-[200px] p-4;
+  }
+  
+  .loading-services, .form-loading, .profile-custom-avatar-loading {
+    @apply flex items-center justify-center min-h-[100px];
+  }
+  
+  .day-loading {
+    @apply flex items-center justify-center h-full;
+  }
+}
+
+/* Define the spin animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
