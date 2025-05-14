@@ -19,6 +19,12 @@ const {
   appointmentCanceledNotification,
   appointmentReminderNotification
 } = require('../services/notificationService');
+// Import socket functions for time slot locking
+const { 
+  isTimeSlotLocked, 
+  getTimeSlotLocker, 
+  unlockTimeSlot 
+} = require('../config/socketConfig');
 
 /**
  * @desc    Get all services for a specific hospital
@@ -111,6 +117,19 @@ exports.createAppointment = async (req, res) => {
         success: false,
         message: 'Thiếu thông tin khung giờ hoặc định dạng không hợp lệ. Vui lòng chọn lại khung giờ.'
       });
+    }
+    
+    // Check if the time slot is currently locked by another user
+    if (isTimeSlotLocked(scheduleId, timeSlot.startTime)) {
+      const lockerUserId = getTimeSlotLocker(scheduleId, timeSlot.startTime);
+      
+      // If locked by another user, reject the request
+      if (lockerUserId !== req.user.id.toString()) {
+        return res.status(409).json({
+          success: false,
+          message: 'Khung giờ này đang được người khác đặt. Vui lòng chọn khung giờ khác hoặc thử lại sau.'
+        });
+      }
     }
     
     // Validate required fields theo luồng Bệnh viện → chuyên khoa → dịch vụ → bác sĩ → phòng khám → lịch trống → phương thức thanh toán
@@ -279,6 +298,9 @@ exports.createAppointment = async (req, res) => {
     );
     
     if (!availableSlot) {
+      // Unlock the time slot in case it was locked by this user
+      unlockTimeSlot(scheduleId, timeSlot.startTime, req.user.id);
+      
       return res.status(400).json({
         success: false,
         message: 'Khung giờ này đã được đặt hoặc không tồn tại'
@@ -665,6 +687,9 @@ exports.createAppointment = async (req, res) => {
       await schedule.save();
     }
     
+    // Unlock the time slot after it has been successfully booked
+    unlockTimeSlot(scheduleId, timeSlot.startTime, req.user.id);
+    
     // Tạo bản ghi thanh toán tương ứng
     let payment;
     let redirectUrl = null;
@@ -870,6 +895,12 @@ exports.createAppointment = async (req, res) => {
     
   } catch (error) {
     console.error('Create appointment error:', error);
+    
+    // Ensure time slot is unlocked if the operation fails
+    if (req.body.scheduleId && req.body.timeSlot && req.body.timeSlot.startTime) {
+      unlockTimeSlot(req.body.scheduleId, req.body.timeSlot.startTime, req.user.id);
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi đặt lịch khám',
@@ -1082,7 +1113,8 @@ exports.cancelAppointment = catchAsync(async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  const appointment = await Appointment.findOne({ _id: id, patientId: userId });
+  const appointment = await Appointment.findOne({ _id: id, patientId: userId })
+    .populate('scheduleId');
   
   if (!appointment) {
     return next(new AppError('Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy', 404));
@@ -1098,6 +1130,11 @@ exports.cancelAppointment = catchAsync(async (req, res, next) => {
     { _id: appointment.scheduleId, 'timeSlots.startTime': appointment.timeSlot.startTime, 'timeSlots.endTime': appointment.timeSlot.endTime },
     { $set: { 'timeSlots.$.isBooked': false, 'timeSlots.$.appointmentId': null } }
   );
+
+  // If the slot was being locked by this user, unlock it
+  if (appointment.scheduleId && appointment.timeSlot && appointment.timeSlot.startTime) {
+    unlockTimeSlot(appointment.scheduleId._id, appointment.timeSlot.startTime, userId);
+  }
 
   res.status(200).json({
     status: 'success',
@@ -3381,6 +3418,74 @@ exports.getDoctorAppointmentCounts = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy số lượng lịch hẹn theo trạng thái',
+      error: error.message
+    });
+  }
+};
+
+// Add a new endpoint to check slot availability and lock status
+exports.checkTimeSlotAvailability = async (req, res) => {
+  try {
+    const { scheduleId, timeSlotId } = req.params;
+    
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(scheduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID lịch không hợp lệ'
+      });
+    }
+    
+    // Find schedule
+    const schedule = await Schedule.findById(scheduleId);
+    if (!schedule) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy lịch'
+      });
+    }
+    
+    // Find time slot
+    const timeSlot = schedule.timeSlots.find(slot => 
+      slot.startTime === timeSlotId || slot._id.toString() === timeSlotId
+    );
+    
+    if (!timeSlot) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy khung giờ'
+      });
+    }
+    
+    // Check if slot is booked
+    if (timeSlot.isBooked) {
+      return res.status(200).json({
+        success: true,
+        isAvailable: false,
+        isLocked: false,
+        message: 'Khung giờ đã được đặt'
+      });
+    }
+    
+    // Check if slot is locked by another user
+    const isLocked = isTimeSlotLocked(scheduleId, timeSlot.startTime);
+    const lockerUserId = isLocked ? getTimeSlotLocker(scheduleId, timeSlot.startTime) : null;
+    const isLockedByCurrentUser = isLocked && lockerUserId === req.user.id.toString();
+    
+    return res.status(200).json({
+      success: true,
+      isAvailable: !isLocked || isLockedByCurrentUser,
+      isLocked: isLocked && !isLockedByCurrentUser,
+      message: isLocked && !isLockedByCurrentUser 
+        ? 'Khung giờ đang được người khác xử lý' 
+        : 'Khung giờ có sẵn'
+    });
+    
+  } catch (error) {
+    console.error('Check time slot availability error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi kiểm tra khung giờ',
       error: error.message
     });
   }

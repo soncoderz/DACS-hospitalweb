@@ -34,6 +34,9 @@ router.get('/coupons/validate', appointmentController.validateCoupon);
 // === AUTHENTICATED ROUTES ===
 router.use(protect);
 
+// Kiểm tra trạng thái khóa của khung giờ
+router.get('/schedules/:scheduleId/time-slots/:timeSlotId/availability', appointmentController.checkTimeSlotAvailability);
+
 // === ROUTES DÀNH CHO BỆNH NHÂN ===
 
 // POST /api/appointments – Đặt lịch khám
