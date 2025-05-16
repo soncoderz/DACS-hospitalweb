@@ -266,7 +266,7 @@ const Appointment = () => {
     }
   };
 
-  // Fetch schedules when doctor is selected - FIXED THIS FUNCTION
+  // Fetch schedules when doctor is selected
   const fetchSchedules = async () => {
     if (!formData.doctorId) return;
 
@@ -289,6 +289,9 @@ const Appointment = () => {
       // Updated endpoint to match the API response format shown
       const response = await api.get(`/appointments/doctors/${formData.doctorId}/schedules`);
       
+      // Enhanced debugging for the API response
+      console.log('Raw API response:', response.data);
+      
       // Handle different data structures
       let scheduleData = [];
       if (response.data) {
@@ -299,7 +302,31 @@ const Appointment = () => {
         }
       }
       
-      console.log('Doctor schedules data:', scheduleData);
+      // Fix any potential issues with the data structure
+      if (scheduleData && scheduleData.length > 0) {
+        // Normalize the schedule data to ensure all properties exist
+        scheduleData = scheduleData.map(schedule => {
+          if (schedule.timeSlots && Array.isArray(schedule.timeSlots)) {
+            const normalizedTimeSlots = schedule.timeSlots.map(slot => ({
+              ...slot,
+              // Ensure these properties exist with correct defaults
+              bookedCount: slot.bookedCount || 0,
+              maxBookings: slot.maxBookings || 3,
+              appointmentIds: slot.appointmentIds || [],
+              // Force isBooked to be false for new slots with bookedCount of 0
+              isBooked: slot.bookedCount >= (slot.maxBookings || 3)
+            }));
+            
+            return {
+              ...schedule,
+              timeSlots: normalizedTimeSlots
+            };
+          }
+          return schedule;
+        });
+      }
+      
+      console.log('Normalized Doctor schedules data:', scheduleData);
       setSchedules(scheduleData);
 
       // Extract and format available dates from schedules
@@ -373,14 +400,25 @@ const Appointment = () => {
         // If schedule has timeSlots array
         if (schedule.timeSlots && Array.isArray(schedule.timeSlots)) {
           // Map all slots, including booked ones
-          const slotsFromThisSchedule = schedule.timeSlots.map(slot => ({
-            scheduleId: schedule._id,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            _id: slot._id,
-            roomId: slot.roomId,
-            isBooked: slot.isBooked || slot.appointmentId
-          }));
+          const slotsFromThisSchedule = schedule.timeSlots.map(slot => {
+            // Check if we need to override the isBooked property based on bookedCount
+            // This handles the case where isBooked might be true but bookedCount is 0
+            const isFullyBooked = (slot.bookedCount !== undefined && 
+                                 slot.maxBookings !== undefined && 
+                                 slot.bookedCount >= slot.maxBookings);
+            
+            return {
+              scheduleId: schedule._id,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              _id: slot._id,
+              roomId: slot.roomId,
+              bookedCount: slot.bookedCount || 0,
+              maxBookings: slot.maxBookings || 3,
+              // Force isBooked to be determined ONLY by the bookedCount vs maxBookings comparison
+              isBooked: isFullyBooked
+            };
+          });
           
           allSlots.push(...slotsFromThisSchedule);
         }
@@ -399,6 +437,9 @@ const Appointment = () => {
         // If hours are equal, compare minutes
         return timeA[1] - timeB[1];
       });
+      
+      // Debug log showing the exact data that will be used for displaying slots
+      console.log("Time slots before rendering:", JSON.stringify(allSlots, null, 2));
       
       setTimeSlots(allSlots);
       
@@ -1967,10 +2008,12 @@ const Appointment = () => {
                                     : 'text-green-500'
                               }`}>
                                 {slot.isBooked 
-                                  ? 'Đã đặt' 
+                                  ? 'Đã đầy' 
                                   : isLockedByOther 
                                     ? 'Đang có người chọn' 
-                                    : 'Còn trống'}
+                                    : slot.bookedCount > 0
+                                      ? `Còn ${slot.maxBookings - slot.bookedCount}/${slot.maxBookings}`
+                                      : 'Còn trống'}
                               </div>
                               
                               {(isLockedByOther || isLockedByMe) && (
@@ -1991,7 +2034,8 @@ const Appointment = () => {
                           <ul className="list-disc pl-5 space-y-1">
                             <li><span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> <span className="font-medium">Còn trống:</span> Khung giờ có thể đặt lịch</li> 
                             <li><span className="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span> <span className="font-medium">Đang có người chọn:</span> Khung giờ đang được người khác xử lý (tự động mở khóa sau 5 phút)</li>
-                            <li><span className="inline-block w-3 h-3 bg-red-400 rounded-full mr-1"></span> <span className="font-medium">Đã đặt:</span> Khung giờ đã được đặt lịch</li>
+                            <li><span className="inline-block w-3 h-3 bg-red-400 rounded-full mr-1"></span> <span className="font-medium">Đã đầy:</span> Khung giờ đã đạt giới hạn tối đa (3 lịch hẹn)</li>
+                            <li><span className="inline-block w-3 h-3 bg-blue-400 rounded-full mr-1"></span> <span className="font-medium">Còn X/3:</span> Khung giờ đã có người đặt nhưng vẫn còn chỗ trống</li>
                           </ul>
                         </div>
                       </div>

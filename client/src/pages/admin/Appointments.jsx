@@ -566,7 +566,6 @@ const Appointments = () => {
                       >
                         <option value="no-show">Không đến</option>
                         <option value="completed">Đã hoàn thành</option>
-                        <option value="cancelled">Đã hủy</option>
                       </select>
                     </div>
                     

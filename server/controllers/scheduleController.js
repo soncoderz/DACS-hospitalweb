@@ -86,7 +86,9 @@ exports.getAvailableSchedules = async (req, res) => {
     
     // Transform the results to include available slots only
     const availableSchedules = schedules.map(schedule => {
-      const availableTimeSlots = schedule.timeSlots.filter(slot => !slot.isBooked);
+      const availableTimeSlots = schedule.timeSlots.filter(slot => 
+        !slot.isBooked && (slot.bookedCount < slot.maxBookings || typeof slot.bookedCount === 'undefined')
+      );
       return {
         ...schedule.toObject(),
         timeSlots: availableTimeSlots,
@@ -257,6 +259,19 @@ const checkTimeSlotConflicts = async (doctorId, date, timeSlots, existingSchedul
   }
 
   return conflicts;
+};
+
+// Function to create formatted time slots with default maxBookings = 3
+const createFormattedTimeSlots = (timeSlots, roomId = null) => {
+  return timeSlots.map(slot => ({
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    isBooked: false,
+    bookedCount: 0,
+    maxBookings: 3,
+    appointmentIds: [],
+    roomId: slot.roomId || roomId
+  }));
 };
 
 /**
@@ -454,6 +469,9 @@ exports.createSchedule = async (req, res) => {
         startTime: slot.startTime,
         endTime: slot.endTime,
         isBooked: false,
+        bookedCount: 0,
+        maxBookings: slot.maxBookings || 3,
+        appointmentIds: [],
         roomId: slotRoomId
       });
     }
@@ -1245,12 +1263,17 @@ exports.getDoctorSchedules = async (req, res) => {
       // Convert to plain object
       const plainSchedule = schedule.toObject();
       
-      // Check if timeSlots have properly populated roomId
+      // Add availability status in terms of booking counts
       if (plainSchedule.timeSlots) {
         plainSchedule.timeSlots.forEach(slot => {
-          if (slot.roomId && typeof slot.roomId === 'string') {
-            console.log(`Warning: roomId is still a string: ${slot.roomId}`);
-          }
+          // Add booking info
+          slot.bookedCount = slot.bookedCount || 0;
+          slot.maxBookings = slot.maxBookings || 3;
+          slot.availableSpots = slot.maxBookings - slot.bookedCount;
+          slot.isFull = slot.bookedCount >= slot.maxBookings;
+          
+          // For backward compatibility
+          slot.isBooked = slot.isFull;
         });
       }
       
@@ -1404,7 +1427,10 @@ exports.createDoctorSchedule = async (req, res) => {
       formattedTimeSlots.push({
         startTime: slot.startTime,
         endTime: slot.endTime,
-        isBooked: false
+        isBooked: false,
+        bookedCount: 0,
+        maxBookings: slot.maxBookings || 3,
+        appointmentIds: []
       });
     }
     
@@ -1572,7 +1598,9 @@ exports.updateDoctorSchedule = async (req, res) => {
           startTime: slot.startTime,
           endTime: slot.endTime,
           isBooked: false,
-          roomId: slot.roomId || schedule.timeSlots[0]?.roomId
+          bookedCount: 0,
+          maxBookings: slot.maxBookings || 3,
+          appointmentIds: []
         });
       }
       

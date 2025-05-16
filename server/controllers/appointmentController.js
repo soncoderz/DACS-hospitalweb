@@ -290,20 +290,32 @@ exports.createAppointment = async (req, res) => {
       });
     }
     
-    // Check if the time slot is available
-    const availableSlot = schedule.timeSlots.find(
+    // Check if the time slot is available - modified to support multiple bookings
+    const timeSlotIndex = schedule.timeSlots.findIndex(
       slot => slot.startTime === timeSlot.startTime && 
-              slot.endTime === timeSlot.endTime && 
-              !slot.isBooked
+              slot.endTime === timeSlot.endTime
     );
     
-    if (!availableSlot) {
+    if (timeSlotIndex === -1) {
       // Unlock the time slot in case it was locked by this user
       unlockTimeSlot(scheduleId, timeSlot.startTime, req.user.id);
       
       return res.status(400).json({
         success: false,
-        message: 'Khung giờ này đã được đặt hoặc không tồn tại'
+        message: 'Khung giờ không tồn tại trong lịch này'
+      });
+    }
+    
+    const availableSlot = schedule.timeSlots[timeSlotIndex];
+    
+    // Check if the slot is already at maximum capacity
+    if (availableSlot.isBooked || (availableSlot.bookedCount >= (availableSlot.maxBookings || 3))) {
+      // Unlock the time slot in case it was locked by this user
+      unlockTimeSlot(scheduleId, timeSlot.startTime, req.user.id);
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Khung giờ này đã đầy. Vui lòng chọn khung giờ khác.'
       });
     }
     
@@ -318,8 +330,8 @@ exports.createAppointment = async (req, res) => {
       if (room && room.status === 'active' && room.isActive) {
         console.log(`Found room from timeSlot: ${room.name} (${room.number})`);
         
-        // Kiểm tra xem phòng có sẵn sàng cho khung giờ đã chọn không
-        const roomIsBusy = await Appointment.findOne({
+        // Đếm số lịch hẹn hiện tại trong phòng và khung giờ đã chọn
+        const roomBookings = await Appointment.countDocuments({
           roomId: room._id,
           appointmentDate: new Date(appointmentDate),
           status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -327,10 +339,9 @@ exports.createAppointment = async (req, res) => {
           'timeSlot.endTime': timeSlot.endTime
         });
         
-        if (roomIsBusy) {
-          console.log(`Room from timeSlot is busy, will search for another room`);
-          room = null; // Đặt lại room để tìm phòng khác
-        }
+        console.log(`Room ${room.name} (${room.number}) has ${roomBookings} bookings for time slot ${timeSlot.startTime}-${timeSlot.endTime}`);
+        
+        // Không kiểm tra phòng bận hay không - cho phép nhiều lịch hẹn (tối đa 3) trong cùng phòng và khung giờ
       } else {
         console.log(`Room from timeSlot not found or inactive, will search for another room`);
         room = null; // Đặt lại room để tìm phòng khác
@@ -379,8 +390,9 @@ exports.createAppointment = async (req, res) => {
         });
       }
       
-      // Kiểm tra xem phòng có sẵn sàng cho khung giờ đã chọn không
-      const roomIsBusy = await Appointment.findOne({
+      // Không kiểm tra phòng bận hay không - cho phép nhiều lịch hẹn (tối đa 3) trong cùng phòng và cùng khung giờ
+      // Đếm số lịch hẹn hiện tại trong phòng và khung giờ này
+      const roomBookings = await Appointment.countDocuments({
         roomId: room._id,
         appointmentDate: new Date(appointmentDate),
         status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -388,12 +400,10 @@ exports.createAppointment = async (req, res) => {
         'timeSlot.endTime': timeSlot.endTime
       });
       
-      if (roomIsBusy) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phòng đã có lịch khám vào khung giờ này. Vui lòng chọn phòng khác hoặc khung giờ khác.'
-        });
-      }
+      // Ghi log số lượng lịch hẹn hiện tại trong phòng
+      console.log(`Room ${room.name} (${room.number}) has ${roomBookings} bookings for time slot ${timeSlot.startTime}-${timeSlot.endTime}`);
+      
+      // Không báo lỗi ngay cả khi phòng đã có lịch hẹn - cho phép nhiều bệnh nhân dùng cùng một phòng
     } else if (!room) {
       // Tự động tìm phòng phù hợp khi không có roomId
       console.log('Finding suitable room for appointment...');
@@ -410,9 +420,12 @@ exports.createAppointment = async (req, res) => {
       if (doctorRooms.length > 0) {
         console.log(`Found ${doctorRooms.length} rooms with doctor assigned`);
         
-        // Kiểm tra phòng nào còn trống trong khung giờ này
+        // Kiểm tra phòng nào có thể sử dụng (cho phép mỗi phòng có tối đa 3 lịch hẹn trong cùng khung giờ)
+        const selectedRooms = [];
+        
         for (const candidateRoom of doctorRooms) {
-          const isRoomBusy = await Appointment.findOne({
+          // Đếm số lịch hẹn hiện có trong phòng ứng viên
+          const roomBookingCount = await Appointment.countDocuments({
             roomId: candidateRoom._id,
             appointmentDate: new Date(appointmentDate),
             status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -420,11 +433,20 @@ exports.createAppointment = async (req, res) => {
             'timeSlot.endTime': timeSlot.endTime
           });
           
-          if (!isRoomBusy) {
-            room = candidateRoom;
-            console.log(`Selected room: ${room.name} (${room.number})`);
-            break;
-          }
+          // Thêm vào danh sách phòng có thể dùng, với thông tin số lịch đã đặt
+          selectedRooms.push({
+            room: candidateRoom,
+            bookingCount: roomBookingCount
+          });
+        }
+        
+        // Sắp xếp phòng theo số lịch đã đặt, ưu tiên phòng có ít lịch hơn
+        selectedRooms.sort((a, b) => a.bookingCount - b.bookingCount);
+        
+        // Lấy phòng đầu tiên (phòng có ít lịch nhất)
+        if (selectedRooms.length > 0) {
+          room = selectedRooms[0].room;
+          console.log(`Selected room: ${room.name} (${room.number}) with ${selectedRooms[0].bookingCount} existing bookings`);
         }
       }
       
@@ -442,9 +464,12 @@ exports.createAppointment = async (req, res) => {
         if (specialtyRooms.length > 0) {
           console.log(`Found ${specialtyRooms.length} rooms for this specialty`);
           
-          // Kiểm tra phòng nào còn trống trong khung giờ này
+          // Kiểm tra phòng nào có thể sử dụng (ưu tiên phòng có ít lịch hẹn)
+          const selectedRooms = [];
+          
           for (const candidateRoom of specialtyRooms) {
-            const isRoomBusy = await Appointment.findOne({
+            // Đếm số lịch hẹn hiện có trong phòng ứng viên
+            const roomBookingCount = await Appointment.countDocuments({
               roomId: candidateRoom._id,
               appointmentDate: new Date(appointmentDate),
               status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -452,11 +477,20 @@ exports.createAppointment = async (req, res) => {
               'timeSlot.endTime': timeSlot.endTime
             });
             
-            if (!isRoomBusy) {
-              room = candidateRoom;
-              console.log(`Selected room: ${room.name} (${room.number})`);
-              break;
-            }
+            // Thêm vào danh sách phòng có thể dùng, với thông tin số lịch đã đặt
+            selectedRooms.push({
+              room: candidateRoom,
+              bookingCount: roomBookingCount
+            });
+          }
+          
+          // Sắp xếp phòng theo số lịch đã đặt, ưu tiên phòng có ít lịch hơn
+          selectedRooms.sort((a, b) => a.bookingCount - b.bookingCount);
+          
+          // Lấy phòng đầu tiên (phòng có ít lịch nhất)
+          if (selectedRooms.length > 0) {
+            room = selectedRooms[0].room;
+            console.log(`Selected room: ${room.name} (${room.number}) with ${selectedRooms[0].bookingCount} existing bookings`);
           }
         }
       }
@@ -472,9 +506,12 @@ exports.createAppointment = async (req, res) => {
         });
         
         if (anyRooms.length > 0) {
-          // Kiểm tra phòng nào còn trống trong khung giờ này
+          // Kiểm tra tất cả phòng và chọn phòng ít lịch hẹn nhất
+          const selectedRooms = [];
+          
           for (const candidateRoom of anyRooms) {
-            const isRoomBusy = await Appointment.findOne({
+            // Đếm số lịch hẹn hiện có trong phòng ứng viên
+            const roomBookingCount = await Appointment.countDocuments({
               roomId: candidateRoom._id,
               appointmentDate: new Date(appointmentDate),
               status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -482,11 +519,20 @@ exports.createAppointment = async (req, res) => {
               'timeSlot.endTime': timeSlot.endTime
             });
             
-            if (!isRoomBusy) {
-              room = candidateRoom;
-              console.log(`Selected room (any available): ${room.name} (${room.number})`);
-              break;
-            }
+            // Thêm vào danh sách phòng có thể dùng, với thông tin số lịch đã đặt
+            selectedRooms.push({
+              room: candidateRoom,
+              bookingCount: roomBookingCount
+            });
+          }
+          
+          // Sắp xếp phòng theo số lịch đã đặt, ưu tiên phòng có ít lịch hơn
+          selectedRooms.sort((a, b) => a.bookingCount - b.bookingCount);
+          
+          // Lấy phòng đầu tiên (phòng có ít lịch nhất)
+          if (selectedRooms.length > 0) {
+            room = selectedRooms[0].room;
+            console.log(`Selected room (any available): ${room.name} (${room.number}) with ${selectedRooms[0].bookingCount} existing bookings`);
           }
         }
       }
@@ -496,7 +542,7 @@ exports.createAppointment = async (req, res) => {
         console.log('No available rooms found for this time slot');
         return res.status(400).json({
           success: false,
-          message: 'Không có phòng khám trống cho khung giờ này. Vui lòng chọn khung giờ khác.'
+          message: 'Không tìm thấy phòng khám phù hợp cho chuyên khoa và bác sĩ đã chọn. Vui lòng chọn khung giờ khác hoặc liên hệ bệnh viện.'
         });
       }
     }
@@ -670,14 +716,28 @@ exports.createAppointment = async (req, res) => {
     
     const appointment = await Appointment.create(appointmentData);
     
-    // Update the schedule to mark the time slot as booked
+    // Update the schedule to mark the time slot as booked - modified for multiple bookings
     const slotIndex = schedule.timeSlots.findIndex(
       slot => slot.startTime === timeSlot.startTime && slot.endTime === timeSlot.endTime
     );
     
     if (slotIndex !== -1) {
-      schedule.timeSlots[slotIndex].isBooked = true;
-      schedule.timeSlots[slotIndex].appointmentId = appointment._id;
+      // Increment bookedCount
+      const currentCount = schedule.timeSlots[slotIndex].bookedCount || 0;
+      const maxBookings = schedule.timeSlots[slotIndex].maxBookings || 3;
+      
+      schedule.timeSlots[slotIndex].bookedCount = currentCount + 1;
+      
+      // Add appointment ID to the list
+      if (!schedule.timeSlots[slotIndex].appointmentIds) {
+        schedule.timeSlots[slotIndex].appointmentIds = [];
+      }
+      schedule.timeSlots[slotIndex].appointmentIds.push(appointment._id);
+      
+      // Mark as fully booked if we've reached the maximum
+      if (currentCount + 1 >= maxBookings) {
+        schedule.timeSlots[slotIndex].isBooked = true;
+      }
       
       // Add room to time slot if available
       if (room) {
@@ -1022,17 +1082,64 @@ exports.cancelAppointment = catchAsync(async (req, res, next) => {
   appointment.cancellationReason = req.body.cancellationReason || 'Người dùng hủy';
   await appointment.save();
 
-  // Giải phóng khung giờ trong lịch
-  await Schedule.updateOne(
-    { _id: appointment.scheduleId, 'timeSlots.startTime': appointment.timeSlot.startTime, 'timeSlots.endTime': appointment.timeSlot.endTime },
-    { $set: { 'timeSlots.$.isBooked': false, 'timeSlots.$.appointmentId': null } }
-  );
-
-  // If the slot was being locked by this user, unlock it
-  if (appointment.scheduleId && appointment.timeSlot && appointment.timeSlot.startTime) {
-    unlockTimeSlot(appointment.scheduleId._id, appointment.timeSlot.startTime, userId);
+  // Giải phóng khung giờ trong lịch và cập nhật số lượng đặt chỗ
+  const scheduleId = appointment.scheduleId._id || appointment.scheduleId;
+  console.log(`Updating schedule with ID: ${scheduleId}`);
+  
+  const schedule = await Schedule.findById(scheduleId);
+  if (schedule) {
+    // Tìm time slot cần cập nhật
+    const timeSlotIndex = schedule.timeSlots.findIndex(
+      slot => slot.startTime === appointment.timeSlot.startTime && 
+              slot.endTime === appointment.timeSlot.endTime
+    );
+    
+    if (timeSlotIndex !== -1) {
+      // Lấy dữ liệu time slot hiện tại
+      const timeSlot = schedule.timeSlots[timeSlotIndex];
+      
+      // Giảm bookedCount nếu có
+      if (timeSlot.bookedCount && timeSlot.bookedCount > 0) {
+        schedule.timeSlots[timeSlotIndex].bookedCount -= 1;
+        
+        // Xóa appointment ID khỏi danh sách nếu có
+        if (Array.isArray(timeSlot.appointmentIds)) {
+          schedule.timeSlots[timeSlotIndex].appointmentIds = timeSlot.appointmentIds.filter(
+            apptId => apptId.toString() !== appointment._id.toString()
+          );
+        }
+        
+        // Đánh dấu là chưa đặt đầy nếu bookedCount < maxBookings
+        if (schedule.timeSlots[timeSlotIndex].bookedCount < (timeSlot.maxBookings || 3)) {
+          schedule.timeSlots[timeSlotIndex].isBooked = false;
+        }
+        
+        // Xóa thông tin cũ nếu không còn booking nào
+        if (schedule.timeSlots[timeSlotIndex].bookedCount === 0) {
+          schedule.timeSlots[timeSlotIndex].appointmentId = null;
+        }
+        
+        console.log(`Slot updated: bookedCount=${schedule.timeSlots[timeSlotIndex].bookedCount}, isBooked=${schedule.timeSlots[timeSlotIndex].isBooked}`);
+      } else {
+        // Trường hợp cũ không có bookedCount - chỉ đánh dấu là chưa đặt
+        schedule.timeSlots[timeSlotIndex].isBooked = false;
+        schedule.timeSlots[timeSlotIndex].appointmentId = null;
+        
+        console.log(`Legacy slot marked as not booked`);
+      }
+      
+      await schedule.save();
+    }
   }
 
+  // If the slot was being locked by this user, unlock it
+  if (appointment.timeSlot && appointment.timeSlot.startTime) {
+    unlockTimeSlot(scheduleId, appointment.timeSlot.startTime, userId);
+  }
+
+  // Log the successful cancellation with details
+  console.log(`Appointment ${id} cancelled successfully. Schedule slot updated to decrease booking count.`);
+  
   res.status(200).json({
     status: 'success',
     message: 'Lịch hẹn đã được hủy thành công'
@@ -1233,17 +1340,26 @@ exports.rescheduleAppointment = async (req, res) => {
       });
     }
     
-    // Kiểm tra time slot mới có available không
-    const availableSlot = newSchedule.timeSlots.find(
+    // Kiểm tra time slot mới có available không - modified for multiple bookings
+    const timeSlotIndex = newSchedule.timeSlots.findIndex(
       slot => slot.startTime === timeSlot.startTime && 
-              slot.endTime === timeSlot.endTime && 
-              !slot.isBooked
+              slot.endTime === timeSlot.endTime
     );
     
-    if (!availableSlot) {
+    if (timeSlotIndex === -1) {
       return res.status(400).json({
         success: false,
-        message: 'Khung giờ này đã được đặt hoặc không tồn tại'
+        message: 'Khung giờ không tồn tại trong lịch khám này'
+      });
+    }
+    
+    const selectedSlot = newSchedule.timeSlots[timeSlotIndex];
+    
+    // Check if the slot is already at maximum capacity
+    if (selectedSlot.isBooked || (selectedSlot.bookedCount >= (selectedSlot.maxBookings || 3))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Khung giờ này đã đầy. Vui lòng chọn khung giờ khác.'
       });
     }
     
@@ -1324,35 +1440,103 @@ exports.rescheduleAppointment = async (req, res) => {
     // Lưu lịch hẹn đã cập nhật
     await appointment.save();
     
-    // Cập nhật lại trạng thái của time slot cũ (đánh dấu là trống)
-    const oldSchedule = await Schedule.findById(oldScheduleId);
-    if (oldSchedule) {
-      const oldSlotIndex = oldSchedule.timeSlots.findIndex(
-        slot => 
-          slot.startTime === oldTimeSlot.startTime && 
-          slot.endTime === oldTimeSlot.endTime
-      );
-      
-      if (oldSlotIndex !== -1) {
-        oldSchedule.timeSlots[oldSlotIndex].isBooked = false;
-        oldSchedule.timeSlots[oldSlotIndex].appointmentId = null;
-        oldSchedule.timeSlots[oldSlotIndex].roomId = null;
-        await oldSchedule.save();
+    // Cập nhật lại trạng thái của time slot cũ (đánh dấu là trống hoặc giảm số lượng đặt)
+    try {
+      // Tìm vị trí của time slot cũ 
+      const oldSchedule = await Schedule.findById(oldScheduleId);
+      if (oldSchedule) {
+        const oldSlotIndex = oldSchedule.timeSlots.findIndex(
+          slot => 
+            slot.startTime === oldTimeSlot.startTime && 
+            slot.endTime === oldTimeSlot.endTime
+        );
+        
+        if (oldSlotIndex !== -1) {
+          console.log(`Updating old schedule ${oldScheduleId}, slot index ${oldSlotIndex}`);
+          
+          // Sử dụng findOneAndUpdate để tránh xung đột phiên bản
+          await Schedule.findOneAndUpdate(
+            { 
+              _id: oldScheduleId,
+              [`timeSlots.${oldSlotIndex}.startTime`]: oldTimeSlot.startTime,
+              [`timeSlots.${oldSlotIndex}.endTime`]: oldTimeSlot.endTime
+            },
+            { 
+              $inc: { [`timeSlots.${oldSlotIndex}.bookedCount`]: -1 },
+              $pull: { [`timeSlots.${oldSlotIndex}.appointmentIds`]: appointment._id },
+              $set: {
+                [`timeSlots.${oldSlotIndex}.isBooked`]: false,
+                [`timeSlots.${oldSlotIndex}.appointmentId`]: null,
+                [`timeSlots.${oldSlotIndex}.roomId`]: null
+              }
+            },
+            { 
+              new: true,
+              runValidators: false
+            }
+          );
+          
+          console.log(`Old schedule slot updated successfully`);
+        }
       }
+    } catch (updateError) {
+      console.error('Error updating old schedule:', updateError);
+      // Tiếp tục xử lý mặc dù có lỗi khi cập nhật lịch cũ
     }
     
-    // Cập nhật lại trạng thái của time slot mới (đánh dấu là đã đặt)
-    const newSlotIndex = newSchedule.timeSlots.findIndex(
-      slot => slot.startTime === timeSlot.startTime && slot.endTime === timeSlot.endTime
-    );
-    
-    if (newSlotIndex !== -1) {
-      newSchedule.timeSlots[newSlotIndex].isBooked = true;
-      newSchedule.timeSlots[newSlotIndex].appointmentId = appointment._id;
-      if (room && room._id) {
-        newSchedule.timeSlots[newSlotIndex].roomId = room._id;
+    // Cập nhật lại trạng thái của time slot mới (tăng số lượng đặt)
+    try {
+      const newSlotIndex = newSchedule.timeSlots.findIndex(
+        slot => slot.startTime === timeSlot.startTime && slot.endTime === timeSlot.endTime
+      );
+      
+      if (newSlotIndex !== -1) {
+        console.log(`Updating new schedule ${scheduleId}, slot index ${newSlotIndex}`);
+        
+        // Lấy thông tin hiện tại của slot
+        const currentCount = newSchedule.timeSlots[newSlotIndex].bookedCount || 0;
+        const maxBookings = newSchedule.timeSlots[newSlotIndex].maxBookings || 3;
+        
+        // Xác định xem slot sẽ đầy sau khi thêm booking này không
+        const willBeFull = (currentCount + 1) >= maxBookings;
+        
+        // Cập nhật slot bằng findOneAndUpdate để tránh xung đột phiên bản
+        const updateFields = {
+          $inc: { [`timeSlots.${newSlotIndex}.bookedCount`]: 1 },
+          $addToSet: { [`timeSlots.${newSlotIndex}.appointmentIds`]: appointment._id },
+          $set: {
+            [`timeSlots.${newSlotIndex}.appointmentId`]: appointment._id
+          }
+        };
+        
+        // Chỉ cập nhật isBooked nếu slot sẽ đầy
+        if (willBeFull) {
+          updateFields.$set[`timeSlots.${newSlotIndex}.isBooked`] = true;
+        }
+        
+        // Cập nhật roomId nếu có
+        if (room && room._id) {
+          updateFields.$set[`timeSlots.${newSlotIndex}.roomId`] = room._id;
+        }
+        
+        await Schedule.findOneAndUpdate(
+          { 
+            _id: scheduleId,
+            [`timeSlots.${newSlotIndex}.startTime`]: timeSlot.startTime,
+            [`timeSlots.${newSlotIndex}.endTime`]: timeSlot.endTime
+          },
+          updateFields,
+          { 
+            new: true,
+            runValidators: false
+          }
+        );
+        
+        console.log(`New schedule slot updated successfully`);
       }
-      await newSchedule.save();
+    } catch (updateError) {
+      console.error('Error updating new schedule:', updateError);
+      // Tiếp tục xử lý dù có lỗi khi cập nhật lịch mới
     }
     
     // Gửi email thông báo đổi lịch cho bệnh nhân
@@ -1405,10 +1589,25 @@ exports.rescheduleAppointment = async (req, res) => {
     
   } catch (error) {
     console.error('Reschedule appointment error:', error);
+    
+    // Xử lý các loại lỗi cụ thể và cung cấp thông báo phù hợp
+    let errorMessage = 'Lỗi khi đổi lịch hẹn';
+    
+    if (error.name === 'VersionError') {
+      errorMessage = 'Có một người dùng khác đang đặt lịch cùng lúc với bạn. Vui lòng thử lại sau.';
+    } else if (error.name === 'ValidationError') {
+      errorMessage = 'Dữ liệu không hợp lệ: ' + Object.values(error.errors).map(e => e.message).join(', ');
+    } else if (error.name === 'CastError') {
+      errorMessage = 'ID không hợp lệ hoặc không đúng định dạng';
+    } else if (error.code === 11000) {  // Duplicate key error
+      errorMessage = 'Dữ liệu bị trùng lặp, vui lòng thử lại';
+    }
+    
     return res.status(500).json({
       success: false,
-      message: 'Lỗi khi đổi lịch hẹn',
-      error: error.message
+      message: errorMessage,
+      error: error.message,
+      errorType: error.name
     });
   }
 };

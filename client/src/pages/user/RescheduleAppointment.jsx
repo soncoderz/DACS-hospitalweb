@@ -64,6 +64,8 @@ const RescheduleAppointment = () => {
       setLoading(true);
       const response = await api.get(`/appointments/${id}`);
       
+      console.log("Original appointment data loaded:", response.data);
+      
       if (response.data.success && response.data.data) {
         const appointment = response.data.data;
         setOriginalAppointment(appointment);
@@ -97,7 +99,7 @@ const RescheduleAppointment = () => {
       }
       
       // Handle different API response formats
-      const scheduleData = response.data.data || [];
+      let scheduleData = response.data.data || [];
       
       // Log schedule data for debugging
       console.log("Schedule data received:", scheduleData);
@@ -112,6 +114,31 @@ const RescheduleAppointment = () => {
         return;
       }
       
+      // Normalize schedule data to ensure bookedCount and maxBookings exist
+      // and isBooked is determined correctly based on bookedCount
+      scheduleData = scheduleData.map(schedule => {
+        if (schedule.timeSlots && Array.isArray(schedule.timeSlots)) {
+          const normalizedTimeSlots = schedule.timeSlots.map(slot => ({
+            ...slot,
+            // Ensure these properties exist with correct defaults
+            bookedCount: slot.bookedCount || 0,
+            maxBookings: slot.maxBookings || 3,
+            // Force isBooked to be determined ONLY by the bookedCount vs maxBookings comparison
+            isBooked: (slot.bookedCount !== undefined && 
+                     slot.maxBookings !== undefined && 
+                     slot.bookedCount >= (slot.maxBookings || 3))
+          }));
+          
+          return {
+            ...schedule,
+            timeSlots: normalizedTimeSlots
+          };
+        }
+        return schedule;
+      });
+      
+      // Log normalized data
+      console.log("Normalized schedule data:", scheduleData);
       setSchedules(scheduleData);
 
       // Extract and format available dates from schedules
@@ -179,14 +206,25 @@ const RescheduleAppointment = () => {
         };
       }
       
-      // Map the timeSlots
+      // Map the timeSlots with correct availability logic
       return {
         scheduleId: schedule._id,
-        timeSlots: schedule.timeSlots.map(slot => ({
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          isBooked: slot.isBooked
-        }))
+        timeSlots: schedule.timeSlots.map(slot => {
+          // Check if we need to override the isBooked property based on bookedCount
+          // This handles the case where isBooked might be true but bookedCount is 0
+          const isFullyBooked = (slot.bookedCount !== undefined && 
+                               slot.maxBookings !== undefined && 
+                               slot.bookedCount >= (slot.maxBookings || 3));
+          
+          return {
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            bookedCount: slot.bookedCount || 0,
+            maxBookings: slot.maxBookings || 3,
+            // Force isBooked to be determined ONLY by the bookedCount vs maxBookings comparison
+            isBooked: isFullyBooked
+          };
+        })
       };
     });
     
@@ -362,6 +400,12 @@ const RescheduleAppointment = () => {
         endTime: slot.endTime
       }
     });
+    
+    console.log("Selected time slot:", {
+      scheduleId,
+      startTime: slot.startTime,
+      endTime: slot.endTime
+    });
   };
 
   // Handle form submission
@@ -375,13 +419,31 @@ const RescheduleAppointment = () => {
     
     setSubmitting(true);
     try {
-      const response = await api.put(`/appointments/${id}/reschedule`, {
+      // Log thông tin lịch hẹn gốc để kiểm tra
+      console.log("Original Appointment Data:", {
+        id: id,
+        originalAppointment: originalAppointment,
+        doctorId: originalAppointment?.doctorId?._id || originalAppointment?.doctorId,
+        scheduleId: originalAppointment?.scheduleId?._id || originalAppointment?.scheduleId,
+      });
+      
+      // Đảm bảo định dạng của timeSlot đúng theo yêu cầu của server
+      const timeSlotData = {
+        startTime: formData.timeSlot.startTime,
+        endTime: formData.timeSlot.endTime
+      };
+      
+      // Tạo payload đúng định dạng
+      const payload = {
         scheduleId: formData.scheduleId,
         appointmentDate: formData.appointmentDate,
-        timeSlot: formData.timeSlot,
-        status: 'rescheduled',
-        isRescheduled: true
-      });
+        timeSlot: timeSlotData
+      };
+      
+      console.log("Sending reschedule payload:", payload);
+      console.log("Reschedule endpoint:", `/appointments/${id}/reschedule`);
+      
+      const response = await api.put(`/appointments/${id}/reschedule`, payload);
       
       if (response.data.success) {
         toast.success('Đổi lịch hẹn thành công!');
@@ -400,7 +462,48 @@ const RescheduleAppointment = () => {
       }
     } catch (err) {
       console.error('Error rescheduling appointment:', err);
-      toast.error(err.response?.data?.message || 'Không thể đổi lịch hẹn. Vui lòng thử lại sau.');
+      // Hiển thị chi tiết lỗi để dễ gỡ lỗi
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        errorType: err.response?.data?.errorType
+      });
+      
+      let errorMessage = 'Không thể đổi lịch hẹn. Vui lòng thử lại sau.';
+      
+      // Nếu có thông báo lỗi từ server, sử dụng nó
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      // Xử lý các trường hợp lỗi cụ thể
+      if (err.response?.status === 409) {
+        errorMessage = "Khung giờ này đang được người khác xử lý. Vui lòng chọn khung giờ khác hoặc thử lại sau.";
+      } else if (err.response?.status === 400) {
+        // Hiển thị thông báo lỗi validation
+        errorMessage = err.response.data.message || "Vui lòng kiểm tra lại thông tin và thử lại.";
+      } else if (err.response?.status === 500 && err.response?.data?.errorType === 'VersionError') {
+        errorMessage = "Có người đang đặt lịch cùng lúc với bạn. Vui lòng thử lại sau vài giây.";
+        
+        // Thêm nút thử lại sau 3 giây
+        setTimeout(() => {
+          toast.info("Bạn có thể thử lại bây giờ", {
+            autoClose: 5000,
+            onClick: () => setSubmitting(false)
+          });
+        }, 3000);
+      }
+      
+      toast.error(errorMessage);
+      
+      // Nếu lỗi nghiêm trọng, hiển thị icon và gợi ý làm mới trang
+      if (err.response?.status === 500) {
+        toast.error("Đã xảy ra lỗi hệ thống. Bạn có thể thử làm mới trang.", {
+          autoClose: 10000,
+          icon: "🔄"
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -509,9 +612,17 @@ const RescheduleAppointment = () => {
           <div className="flex">
             <FaInfoCircle className="text-blue-500 mr-2 mt-1 flex-shrink-0" />
             <div>
-              <p className="text-blue-800">
-                <strong>Lưu ý:</strong> Chỉ có thể đổi lịch cho các cuộc hẹn có trạng thái "Chờ xác nhận" hoặc "Đã đổi lịch". Các cuộc hẹn đã được xác nhận hoặc hoàn thành không thể đổi lịch.
+              <p className="text-blue-800 mb-2">
+                <strong>Lưu ý:</strong> 
               </p>
+              <ul className="list-disc pl-5 text-sm text-blue-700">
+                <li>Mỗi lịch hẹn chỉ được phép đổi tối đa 2 lần</li>
+                <li>Không thể đổi lịch hẹn trong vòng 4 giờ trước thời gian hẹn</li>
+                <li>Không thể đổi lịch hẹn về thời gian đã qua</li>
+                <li>Không thể đổi lịch hẹn xa quá 30 ngày kể từ hôm nay</li>
+                <li>Mỗi bệnh nhân chỉ được phép có tối đa 3 cuộc hẹn trong một ngày</li>
+                <li>Khi đổi lịch trong cùng một ngày, phải chọn khung giờ khác với lịch hẹn cũ</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -630,7 +741,7 @@ const RescheduleAppointment = () => {
                             ${!day.isAvailable || !day.isCurrentMonth ? 'cursor-default' : 'cursor-pointer'}
                           `}
                           onClick={() => day.isCurrentMonth && day.isAvailable && handleDateSelect(day.dateString)}
-                          title={day.isAvailable ? 'Có lịch khám' : 'Không có lịch khám'}
+                          title={day.isAvailable ? 'Có lịch khám (có thể còn chỗ trống)' : 'Không có lịch khám'}
                         >
                           {day.date.getDate()}
                         </div>
@@ -663,25 +774,51 @@ const RescheduleAppointment = () => {
                             rounded-lg border p-2 text-center cursor-pointer transition-all
                             ${slot.isBooked 
                               ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
-                              : formData.scheduleId === schedule.scheduleId && formData.timeSlot.startTime === slot.startTime
-                                ? 'bg-primary/10 border-primary text-primary shadow-sm'
-                                : 'bg-white border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-700'
+                              : slot.bookedCount > 0 
+                                ? formData.scheduleId === schedule.scheduleId && formData.timeSlot.startTime === slot.startTime
+                                  ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                                  : 'bg-yellow-50 border-yellow-200 hover:border-primary hover:bg-primary/5 text-gray-700'
+                                : formData.scheduleId === schedule.scheduleId && formData.timeSlot.startTime === slot.startTime
+                                  ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                                  : 'bg-white border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-700'
                             }
                           `}
                           onClick={() => !slot.isBooked && handleTimeSlotSelect(schedule.scheduleId, slot)}
                         >
                           <div className="text-xs font-medium">{slot.startTime} - {slot.endTime}</div>
                           <div className={`text-xs ${slot.isBooked ? 'text-red-400' : 'text-green-500'}`}>
-                            {slot.isBooked ? 'Đã đặt' : 'Còn trống'}
+                            {slot.isBooked ? 'Đã đầy' : `Còn ${(slot.maxBookings || 3) - (slot.bookedCount || 0)}/${slot.maxBookings || 3}`}
                           </div>
                         </div>
                       ))
                     )}
                   </div>
+                  
+                                      {/* Legend for time slot statuses */}
+                  <div className="mt-4 bg-blue-50 rounded-lg p-3 text-sm text-blue-700 flex items-start">
+                    <FaInfoCircle className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium mb-1">Chú thích trạng thái khung giờ:</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li><span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> <span className="font-medium">Còn trống:</span> Khung giờ có thể đặt lịch</li>
+                        <li><span className="inline-block w-3 h-3 bg-yellow-400 rounded-full mr-1"></span> <span className="font-medium">Còn X/3:</span> Khung giờ đã có người đặt nhưng vẫn còn chỗ trống</li>
+                        <li><span className="inline-block w-3 h-3 bg-red-400 rounded-full mr-1"></span> <span className="font-medium">Đã đầy:</span> Khung giờ đã đạt giới hạn tối đa (3 lịch hẹn)</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
               
-              <div className="flex justify-end mt-8">
+              <div className="flex justify-end mt-8 space-x-4">
+                {/* Thêm nút huỷ */}
+                <Link
+                  to="/appointments"
+                  className="px-6 py-2 rounded-lg font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Huỷ
+                </Link>
+                
+                {/* Nút xác nhận */}
                 <button
                   type="submit"
                   className={`px-6 py-2 rounded-lg font-medium ${
@@ -691,7 +828,14 @@ const RescheduleAppointment = () => {
                   }`}
                   disabled={submitting || !formData.appointmentDate || !formData.scheduleId || !formData.timeSlot.startTime}
                 >
-                  {submitting ? 'Đang xử lý...' : 'Xác nhận đổi lịch'}
+                  {submitting ? (
+                    <span className="flex items-center">
+                      <span className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                      Đang xử lý...
+                    </span>
+                  ) : (
+                    'Xác nhận đổi lịch'
+                  )}
                 </button>
               </div>
             </form>

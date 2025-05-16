@@ -57,12 +57,10 @@ const initializeSocket = (server) => {
     socket.on('lock_time_slot', ({ scheduleId, timeSlotId, doctorId, date }) => {
       const slotKey = `${scheduleId}_${timeSlotId}`;
       
-      // If this slot is already locked by someone else, notify the user
+      // If slot is already locked by someone else, reject with 409 Conflict
       if (lockedTimeSlots.has(slotKey) && lockedTimeSlots.get(slotKey) !== socket.userId.toString()) {
         socket.emit('time_slot_lock_rejected', { 
-          message: 'This time slot is currently being processed by another user', 
-          scheduleId,
-          timeSlotId 
+          message: 'This time slot is currently being processed by another user'
         });
         return;
       }

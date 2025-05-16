@@ -910,3 +910,17 @@
 [2025-05-14T07:19:32.950Z] [ERROR] GET /api/coupons/validate?code=s&serviceId=680b201e78b7aadb0a7af5db&specialtyId=680b201e78b7aadb0a7af5d2 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
     at D:\icon\DACS-hospitalweb - Copy fn\DACS-hospitalweb - Copy (3)\DACS-hospitalweb\server\controllers\couponController.js:534:17
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-16T16:50:52.636Z] [ERROR] POST /api/admin/schedules SyntaxError: Expected ',' or ']' after array element in JSON at position 528 (line 14 column 3)
+    at JSON.parse (<anonymous>)
+    at parse (C:\DACS-hospitalweb\server\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\DACS-hospitalweb\server\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+    at invokeCallback (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:238:16)
+    at done (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\DACS-hospitalweb\server\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-05-16T16:57:07.809Z] [ERROR] GET /api/coupons/validate?code=WELCOME2023&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2&totalAmount=650000 Error: Mã giảm giá này không áp dụng cho dịch vụ đã chọn
+    at C:\DACS-hospitalweb\server\controllers\couponController.js:554:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
