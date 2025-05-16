@@ -909,110 +909,7 @@ exports.createAppointment = async (req, res) => {
   }
 };
 
-exports.getAppointments = async (req, res) => { 
-  try {
-    const { userId, status, page = 1, limit = 10 } = req.query;
-    
-    // Xác định người dùng để lấy lịch hẹn
-    const targetUserId = userId || req.user.id;
-    
-    // Kiểm tra quyền truy cập
-    if (targetUserId !== req.user.id && req.user.roleType !== 'admin' && req.user.roleType !== 'doctor') {
-      return res.status(403).json({
-        success: false,
-        message: 'Không có quyền truy cập lịch hẹn của người dùng khác'
-      });
-    }
-    
-    // Tạo điều kiện truy vấn
-    const query = {};
-    
-    // Nếu là bệnh nhân, chỉ xem lịch hẹn của mình
-    if (req.user.roleType === 'user') {
-      query.patientId = req.user.id;
-    } 
-    // Nếu là bác sĩ, chỉ xem lịch hẹn của mình
-    else if (req.user.roleType === 'doctor') {
-      // Tìm doctorId dựa trên userId
-      const doctorProfile = await Doctor.findOne({ user: req.user.id });
-      if (!doctorProfile) {
-        return res.status(404).json({
-          success: false,
-          message: 'Không tìm thấy thông tin bác sĩ'
-        });
-      }
-      query.doctorId = doctorProfile._id;
-    } 
-    // Nếu là quản trị viên, có thể xem tất cả hoặc lọc theo userId
-    else if (req.user.roleType === 'admin') {
-      if (userId) {
-        // Kiểm tra xem userId là của bệnh nhân hay bác sĩ
-        const user = await User.findById(userId);
-        if (!user) {
-          return res.status(404).json({
-            success: false,
-            message: 'Không tìm thấy người dùng'
-          });
-        }
-        
-        if (user.roleType === 'doctor') {
-          const doctorProfile = await Doctor.findOne({ user: userId });
-          if (doctorProfile) {
-            query.doctorId = doctorProfile._id;
-          }
-        } else {
-          query.patientId = userId;
-        }
-      }
-    }
-    
-    // Lọc theo trạng thái nếu được cung cấp
-    if (status) {
-      query.status = status;
-    }
-    
-    // Tính toán pagination
-    const skip = (page - 1) * limit;
-    
-    // Thực hiện truy vấn với pagination và populate thêm chuyên khoa, dịch vụ phòng, và phòng
-    const appointments = await Appointment.find(query)
-      .populate('patientId', 'fullName email phoneNumber avatarUrl')
-      .populate({
-        path: 'doctorId',
-        populate: {
-          path: 'user',
-          select: 'fullName email'
-        }
-      })
-      .populate('hospitalId', 'name address imageUrl image')
-      .populate('specialtyId', 'name')  // Populating specialty
-      .populate('serviceId', 'name')    // Populating service
-      .populate('roomId', 'name')       // Populating room
-      .sort({ appointmentDate: -1, 'timeSlot.startTime': -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-    
-    // Đếm tổng số lịch hẹn thỏa mãn điều kiện
-    const total = await Appointment.countDocuments(query);
-    
-    return res.status(200).json({
-      success: true,
-      count: appointments.length,
-      total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: parseInt(page),
-      data: appointments
-    });
-    
-  } catch (error) {
-    console.error('Get appointments error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Lỗi khi lấy danh sách lịch hẹn',
-      error: error.message
-    });
-  }
-};
+
 
 
 // GET /api/appointments/:id – Chi tiết lịch khám
@@ -1230,6 +1127,66 @@ exports.rescheduleAppointment = async (req, res) => {
       });
     }
     
+    // THÊM: Kiểm tra không cho phép đổi lịch quá gần thời gian hẹn
+    const now = new Date();
+    const originalAppointmentDate = new Date(appointment.appointmentDate);
+    const hoursBeforeAppointment = Math.round((originalAppointmentDate - now) / (60 * 60 * 1000));
+    
+    const minimumHoursForReschedule = 4; // Ít nhất 4 giờ trước khi hẹn
+    if (hoursBeforeAppointment < minimumHoursForReschedule) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể đổi lịch hẹn khi còn ít hơn ${minimumHoursForReschedule} giờ trước thời gian hẹn. Vui lòng liên hệ trực tiếp với bệnh viện.`
+      });
+    }
+    
+    // THÊM: Kiểm tra ngày đổi lịch không được trong quá khứ
+    const newRequestDate = new Date(appointmentDate);
+    if (newRequestDate < now) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể đổi lịch hẹn về thời gian đã qua'
+      });
+    }
+    
+    // THÊM: Giới hạn đổi lịch tối đa 30 ngày trong tương lai
+    const maxDaysInFuture = 30;
+    const maxFutureDate = new Date();
+    maxFutureDate.setDate(maxFutureDate.getDate() + maxDaysInFuture);
+    
+    if (newRequestDate > maxFutureDate) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể đổi lịch hẹn xa quá ${maxDaysInFuture} ngày kể từ hôm nay`
+      });
+    }
+    
+    // THÊM: Kiểm tra số lượng lịch hẹn của bệnh nhân trong ngày mới
+    const appointmentDate_start = new Date(appointmentDate);
+    appointmentDate_start.setHours(0, 0, 0, 0);
+    
+    const appointmentDate_end = new Date(appointmentDate);
+    appointmentDate_end.setHours(23, 59, 59, 999);
+    
+    const patientDailyAppointments = await Appointment.countDocuments({
+      patientId: appointment.patientId._id,
+      appointmentDate: {
+        $gte: appointmentDate_start,
+        $lte: appointmentDate_end
+      },
+      _id: { $ne: appointment._id }, // Không tính lịch hẹn hiện tại
+      status: { $nin: ['cancelled', 'rejected'] } // Không tính các lịch hẹn đã hủy hoặc bị từ chối
+    });
+    
+    // Bệnh nhân có thể có tối đa 3 cuộc hẹn một ngày
+    const maxPatientDailyAppointments = 3;
+    if (patientDailyAppointments >= maxPatientDailyAppointments) {
+      return res.status(400).json({
+        success: false,
+        message: `Bạn đã có ${maxPatientDailyAppointments} cuộc hẹn khác trong ngày này. Vui lòng chọn ngày khác.`
+      });
+    }
+    
     // Kiểm tra schedule mới có tồn tại không
     const Schedule = require('../models/Schedule');
     const newSchedule = await Schedule.findById(scheduleId);
@@ -1262,6 +1219,17 @@ exports.rescheduleAppointment = async (req, res) => {
         message: 'Ngày trong lịch khám không khớp với ngày yêu cầu đổi lịch',
         scheduleDateStr,
         requestDateStr
+      });
+    }
+    
+    // THÊM: Kiểm tra nếu đổi lịch trong cùng một ngày, buộc phải chọn khung giờ khác
+    const originalAppointmentDateStr = originalAppointmentDate.toISOString().split('T')[0];
+    if (originalAppointmentDateStr === requestDateStr &&
+        appointment.timeSlot.startTime === timeSlot.startTime && 
+        appointment.timeSlot.endTime === timeSlot.endTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Khi đổi lịch trong cùng một ngày, bạn phải chọn khung giờ khác với lịch hẹn cũ'
       });
     }
     
@@ -2951,7 +2919,7 @@ exports.confirmAppointment = async (req, res) => {
     }
     
     // Kiểm tra trạng thái hiện tại của lịch hẹn
-    if (appointment.status !== 'pending') {
+    if (appointment.status !== 'pending' && appointment.status !== 'rescheduled' ) {
       return res.status(400).json({
         success: false,
         message: `Không thể xác nhận lịch hẹn vì trạng thái hiện tại là ${appointment.status}`
@@ -3486,6 +3454,248 @@ exports.checkTimeSlotAvailability = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi kiểm tra khung giờ',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get all appointments for logged-in doctor
+ * @route   GET /api/appointments/doctor
+ * @access  Private (doctor)
+ */
+exports.getDoctorAppointments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Tìm doctor record dựa vào user id
+    const doctor = await Doctor.findOne({ user: userId });
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thông tin bác sĩ'
+      });
+    }
+    
+    // Lấy query parameters cho phân trang và lọc
+    const { page = 1, limit = 10, status, fromDate, toDate, search } = req.query;
+    
+    // Xây dựng query
+    const query = {
+      doctorId: doctor._id
+    };
+    
+    // Thêm bộ lọc trạng thái nếu có
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    // Thêm bộ lọc theo khoảng thời gian nếu có
+    if (fromDate || toDate) {
+      query.appointmentDate = {};
+      
+      if (fromDate) {
+        const startDate = new Date(fromDate);
+        startDate.setHours(0, 0, 0, 0);
+        query.appointmentDate.$gte = startDate;
+      }
+      
+      if (toDate) {
+        const endDate = new Date(toDate);
+        endDate.setHours(23, 59, 59, 999);
+        query.appointmentDate.$lte = endDate;
+      }
+    }
+    
+    // Tìm kiếm theo tên bệnh nhân hoặc mã đặt lịch nếu có
+    if (search) {
+      // Tìm danh sách user IDs khớp với từ khóa tìm kiếm
+      const users = await User.find({
+        fullName: { $regex: search, $options: 'i' }
+      }).select('_id');
+      
+      const userIds = users.map(user => user._id);
+      
+      // Mở rộng query để tìm kiếm theo ID bệnh nhân hoặc mã đặt lịch
+      query.$or = [
+        { patientId: { $in: userIds } },
+        { bookingCode: { $regex: search, $options: 'i' } },
+        { appointmentCode: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    console.log('Doctor appointments query:', JSON.stringify(query));
+    
+    // Tính toán skip cho phân trang
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Đếm tổng số lịch hẹn thỏa mãn điều kiện
+    const total = await Appointment.countDocuments(query);
+    
+    // Lấy danh sách lịch hẹn
+    const appointments = await Appointment.find(query)
+      .populate('patientId', 'fullName phoneNumber email gender dateOfBirth avatarUrl')
+      .populate('hospitalId', 'name address imageUrl image')
+      .populate('specialtyId', 'name')
+      .populate('serviceId', 'name price')
+      .sort({ appointmentDate: -1, 'timeSlot.startTime': -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    console.log(`Found ${appointments.length} appointments for doctor, including statuses:`, 
+               appointments.map(a => a.status));
+    
+    return res.status(200).json({
+      success: true,
+      count: appointments.length,
+      total: total,
+      totalPages: Math.ceil(total / parseInt(limit)),
+      currentPage: parseInt(page),
+      data: appointments
+    });
+  } catch (error) {
+    console.error('Get doctor appointments error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách lịch hẹn',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get all appointments for logged-in patient
+ * @route   GET /api/appointments/user/patient
+ * @access  Private (patient)
+ */
+exports.getPatientAppointments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Lấy query parameters cho phân trang và lọc
+    const { page = 1, limit = 10, status, fromDate, toDate } = req.query;
+    
+    console.log('Original query params:', { page, limit, status, fromDate, toDate });
+    
+    // Xây dựng query
+    const query = {
+      patientId: userId
+    };
+    
+    // Only apply status filter if specifically requested and not 'all'
+    if (status && status !== 'all' && status !== '') {
+      query.status = status;
+    }
+    // Don't add any default status filtering - this allows all statuses to be shown
+    
+    console.log('Final MongoDB query:', JSON.stringify(query));
+    
+    // Tính toán skip cho phân trang
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Đếm tổng số lịch hẹn thỏa mãn điều kiện
+    const total = await Appointment.countDocuments(query);
+    
+    // Lấy danh sách lịch hẹn
+    const appointments = await Appointment.find(query)
+      .populate({
+        path: 'doctorId',
+        populate: {
+          path: 'user',
+          select: 'fullName avatarUrl'
+        }
+      })
+      .populate('hospitalId', 'name address imageUrl image')
+      .populate('specialtyId', 'name')
+      .populate('serviceId', 'name price')
+      .sort({ appointmentDate: -1, 'timeSlot.startTime': -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    // Add debug logging to verify the fix
+    console.log(`Found ${appointments.length} appointments with these statuses:`, 
+                appointments.map(a => a.status).join(', '));
+    
+    return res.status(200).json({
+      success: true,
+      count: appointments.length,
+      total: total,
+      totalPages: Math.ceil(total / parseInt(limit)),
+      currentPage: parseInt(page),
+      data: appointments
+    });
+  } catch (error) {
+    console.error('Get patient appointments error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách lịch hẹn',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Mark appointment as no-show
+ * @route   PUT /api/appointments/:id/no-show
+ * @access  Private (doctor)
+ */
+exports.markAsNoShow = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the doctor associated with the logged-in user
+    const doctor = await Doctor.findOne({ user: req.user.id });
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thông tin bác sĩ'
+      });
+    }
+    
+    // Find the appointment
+    const appointment = await Appointment.findById(id);
+    
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy lịch hẹn'
+      });
+    }
+    
+    // Verify the appointment belongs to this doctor
+    if (appointment.doctorId.toString() !== doctor._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Không có quyền thực hiện'
+      });
+    }
+    
+    // Check the current status of the appointment
+    if (appointment.status !== 'confirmed') {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể đánh dấu không đến khám vì trạng thái hiện tại là ${appointment.status}`
+      });
+    }
+    
+    // Update the appointment status
+    appointment.status = 'no-show';
+    appointment.noShowDate = new Date();
+    
+    await appointment.save();
+    
+    return res.status(200).json({
+      success: true,
+      data: appointment,
+      message: 'Đã đánh dấu bệnh nhân không đến khám'
+    });
+  } catch (error) {
+    console.error('Mark as no-show error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi đánh dấu bệnh nhân không đến khám',
       error: error.message
     });
   }

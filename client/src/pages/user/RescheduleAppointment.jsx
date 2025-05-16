@@ -378,7 +378,9 @@ const RescheduleAppointment = () => {
       const response = await api.put(`/appointments/${id}/reschedule`, {
         scheduleId: formData.scheduleId,
         appointmentDate: formData.appointmentDate,
-        timeSlot: formData.timeSlot
+        timeSlot: formData.timeSlot,
+        status: 'rescheduled',
+        isRescheduled: true
       });
       
       if (response.data.success) {

@@ -42,8 +42,6 @@ router.get('/schedules/:scheduleId/time-slots/:timeSlotId/availability', appoint
 // POST /api/appointments – Đặt lịch khám
 router.post('/', appointmentController.createAppointment);
 
-// GET /api/appointments – Lấy danh sách lịch hẹn của người dùng đăng nhập
-router.get('/', appointmentController.getAppointments);
 
 // GET /api/appointments/:id – Chi tiết lịch khám
 router.get('/:id', appointmentController.getAppointmentById);
@@ -57,7 +55,13 @@ router.put('/:id/reschedule', appointmentController.rescheduleAppointment);
 // POST /api/appointments/:id/review – Đánh giá sau khám
 router.post('/:id/review', appointmentController.reviewAppointment);
 
+// GET /api/appointments/patient - Lấy tất cả lịch hẹn của người dùng đăng nhập
+router.get('/user/patient', appointmentController.getPatientAppointments);
+
 // === ROUTES DÀNH CHO BÁC SĨ ===
+
+// GET /api/appointments/doctor - Lấy tất cả lịch hẹn của bác sĩ đăng nhập
+router.get('/user/doctor', authorize('doctor'), appointmentController.getDoctorAppointments);
 
 // GET /api/appointments/doctor/counts - Lấy số lượng lịch hẹn theo trạng thái
 router.get('/doctor/counts', authorize('doctor'), appointmentController.getDoctorAppointmentCounts);
@@ -74,5 +78,7 @@ router.put('/:id/reject', authorize('doctor'), appointmentController.rejectAppoi
 // PUT /api/appointments/:id/complete – Bác sĩ hoàn thành lịch hẹn
 router.put('/:id/complete', authorize('doctor'), appointmentController.completeAppointment);
 
+// PUT /api/appointments/:id/no-show – Bác sĩ đánh dấu bệnh nhân không đến khám
+router.put('/:id/no-show', authorize('doctor'), appointmentController.markAsNoShow);
 
 module.exports = router; 

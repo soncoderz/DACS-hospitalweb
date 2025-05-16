@@ -126,11 +126,53 @@ const Appointments = () => {
     setLoading(true);
     setError(null);
     try {
-      let endpoint = '/appointments';
-      let params = { page: currentPage, limit: 10 };
+      let endpoint = '/appointments/user/doctor';
+      let params = { 
+        page: currentPage, 
+        limit: 10 
+      };
       
       if (activeTab === 'today') {
         endpoint = '/appointments/doctor/today';
+      } else if (statusFilter === 'pending_rescheduled') {
+        // For pending_rescheduled, we'll make two separate API calls and combine the results
+        const pendingParams = { ...params, status: 'pending' };
+        const rescheduledParams = { ...params, status: 'rescheduled' };
+        
+        console.log("Fetching pending appointments");
+        const pendingResponse = await api.get(endpoint, { params: pendingParams });
+        
+        console.log("Fetching rescheduled appointments");
+        const rescheduledResponse = await api.get(endpoint, { params: rescheduledParams });
+        
+        if (pendingResponse.data.success && rescheduledResponse.data.success) {
+          // Get data from both responses
+          const pendingAppointments = pendingResponse.data.data || [];
+          const rescheduledAppointments = rescheduledResponse.data.data || [];
+          
+          // Combine appointments and sort by date
+          const combinedAppointments = [...pendingAppointments, ...rescheduledAppointments].sort((a, b) => {
+            return new Date(b.appointmentDate) - new Date(a.appointmentDate);
+          });
+          
+          // Calculate total appointments for pagination
+          const totalPending = pendingResponse.data.total || pendingAppointments.length;
+          const totalRescheduled = rescheduledResponse.data.total || rescheduledAppointments.length;
+          const totalCombined = totalPending + totalRescheduled;
+          
+          // Set combined data
+          setAppointments(combinedAppointments);
+          setTotalPages(Math.ceil(totalCombined / params.limit) || 1);
+          
+          console.log(`Found ${combinedAppointments.length} combined appointments`);
+          setLoading(false);
+          return;
+        } else {
+          console.error("Error fetching combined appointments");
+          setError("Không thể tải dữ liệu lịch hẹn kết hợp");
+          setLoading(false);
+          return;
+        }
       } else if (statusFilter !== 'all') {
         params.status = statusFilter;
       }
@@ -140,13 +182,13 @@ const Appointments = () => {
       console.log("Kết quả:", response.data);
       
       if (response.data.success) {
-        const appointmentsData = response.data.data.docs || response.data.data || [];
-        setAppointments(appointmentsData);
+        const appointmentsData = response.data.data || [];
+        setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
         
-        const calculatedTotalPages = response.data.data.totalPages || 
-                                   response.data.totalPages || 
-                                   Math.ceil((response.data.data.total || response.data.total || 0) / params.limit) || 
-                                   1;
+        // Improved pagination data handling
+        const calculatedTotalPages = response.data.totalPages || 
+                                 Math.ceil((response.data.total || 0) / params.limit) || 
+                                 1;
         
         setTotalPages(calculatedTotalPages);
         console.log("Total pages set to:", calculatedTotalPages);
@@ -223,6 +265,9 @@ const Appointments = () => {
           setIsUpdating(false);
           return;
         }
+      } else if (newStatus === 'no-show') {
+        // Handle no-show status - patient didn't attend the appointment
+        endpoint = `/appointments/${appointmentId}/no-show`;
       }
       
       console.log("Gửi yêu cầu cập nhật:", endpoint, requestData);
@@ -332,6 +377,14 @@ const Appointments = () => {
     const newStatus = e.target.value;
     setStatusFilter(newStatus);
     setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  // Add a new function to handle pending and rescheduled appointments together
+  const handlePendingFilter = () => {
+    setActiveTab('all');
+    // Use a special status value that will be handled in fetchAppointments
+    setStatusFilter('pending_rescheduled');
+    setCurrentPage(1);
   };
 
   const handleSearch = (e) => {
@@ -699,15 +752,46 @@ const Appointments = () => {
                         </>
                       )}
                       
+                      {appointment.status === 'rescheduled' && (
+                        <>
+                          <button
+                            onClick={() => handleStatusChange(appointment._id, 'confirmed')}
+                            disabled={isUpdating}
+                            className="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded hover:bg-green-100 transition-colors disabled:opacity-50"
+                          >
+                            <FaCheck className="mr-1" />
+                            Xác nhận
+                          </button>
+                          <button
+                            onClick={() => openRejectionModal(appointment)}
+                            disabled={isUpdating}
+                            className="inline-flex items-center px-2 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100 transition-colors disabled:opacity-50"
+                          >
+                            <FaTimes className="mr-1" />
+                            Từ chối
+                          </button>
+                        </>
+                      )}
+                      
                       {appointment.status === 'confirmed' && (
-                        <button
-                          onClick={() => handleStatusChange(appointment._id, 'completed')}
-                          disabled={isUpdating}
-                          className="inline-flex items-center px-2 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition-colors disabled:opacity-50"
-                        >
-                          <FaClipboardCheck className="mr-1" />
-                          Hoàn thành
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleStatusChange(appointment._id, 'completed')}
+                            disabled={isUpdating}
+                            className="inline-flex items-center px-2 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                          >
+                            <FaClipboardCheck className="mr-1" />
+                            Hoàn thành
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(appointment._id, 'no-show')}
+                            disabled={isUpdating}
+                            className="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-700 rounded hover:bg-gray-100 transition-colors disabled:opacity-50"
+                          >
+                            <FaBan className="mr-1" />
+                            Không đến
+                          </button>
+                        </>
                       )}
                       
                       {appointment.status === 'completed' && (
@@ -727,29 +811,84 @@ const Appointments = () => {
           </table>
         </div>
         
-        {/* Pagination */}
+        {/* Improved Pagination */}
         {totalPages > 1 && (
-          <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-0">
-                Trang {currentPage} / {totalPages}
+              <div className="text-sm text-gray-600 mb-4 sm:mb-0">
+                Hiển thị <span className="font-medium">{displayAppointments.length}</span> lịch hẹn - Trang <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
               </div>
-              <div className="flex justify-center sm:justify-end space-x-2">
+              <div className="flex justify-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Trang đầu"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M15.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M7.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L3.414 10l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  className="inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Trang trước"
                 >
-                  <FaAngleLeft className="mr-1.5" />
-                  Trước
+                  <FaAngleLeft className="h-4 w-4" />
                 </button>
+                
+                {/* Page number buttons */}
+                {Array.from({ length: Math.min(5, totalPages) }).map((_, idx) => {
+                  // Logic to show pages around current page
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = idx + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = idx + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + idx;
+                  } else {
+                    pageNum = currentPage - 2 + idx;
+                  }
+                  
+                  if (pageNum > 0 && pageNum <= totalPages) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`inline-flex items-center justify-center w-9 h-9 border rounded-md transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-white text-gray-500 border-gray-300 hover:bg-blue-50 hover:text-blue-600'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  }
+                  return null;
+                })}
+                
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  className="inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Trang sau"
                 >
-                  Sau
-                  <FaAngleRight className="ml-1.5" />
+                  <FaAngleRight className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded-md bg-white text-gray-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Trang cuối"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 15.707a1 1 0 001.414 0l5-5a1 1 0 000-1.414l-5-5a1 1 0 00-1.414 1.414L8.586 10 4.293 14.293a1 1 0 000 1.414z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M12.293 15.707a1 1 0 001.414 0l5-5a1 1 0 000-1.414l-5-5a1 1 0 00-1.414 1.414L16.586 10l-4.293 4.293a1 1 0 000 1.414z" clipRule="evenodd" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -1134,11 +1273,12 @@ const Appointments = () => {
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="pending">Chờ xác nhận</option>
+                <option value="rescheduled">Đã đổi lịch</option>
+                <option value="pending_rescheduled">Chờ xác nhận & Đã đổi lịch</option>
                 <option value="confirmed">Đã xác nhận</option>
                 <option value="completed">Hoàn thành</option>
                 <option value="cancelled">Đã hủy</option>
                 <option value="rejected">Đã từ chối</option>
-                <option value="rescheduled">Đã đổi lịch</option>
                 <option value="no-show">Không đến</option>
               </select>
             </div>
@@ -1175,17 +1315,17 @@ const Appointments = () => {
             </button>
             
             <button
-              onClick={() => { setActiveTab('all'); setStatusFilter('pending'); setCurrentPage(1); }}
+              onClick={handlePendingFilter}
               className={`inline-flex items-center py-3 px-4 border-b-2 text-sm font-medium ${
-                activeTab === 'all' && statusFilter === 'pending'
+                activeTab === 'all' && (statusFilter === 'pending' || statusFilter === 'pending_rescheduled')
                   ? 'border-yellow-500 text-yellow-700'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <FaClock className={`mr-2 ${activeTab === 'all' && statusFilter === 'pending' ? 'text-yellow-500' : 'text-gray-400'}`} />
+              <FaClock className={`mr-2 ${activeTab === 'all' && (statusFilter === 'pending' || statusFilter === 'pending_rescheduled') ? 'text-yellow-500' : 'text-gray-400'}`} />
               Chờ xác nhận
               <span className="ml-2 bg-yellow-100 text-yellow-800 py-0.5 px-2 rounded-full text-xs">
-                {statusCounts.pending}
+                {statusCounts.pending + statusCounts.rescheduled}
               </span>
             </button>
             
@@ -1201,6 +1341,21 @@ const Appointments = () => {
               Đã xác nhận
               <span className="ml-2 bg-blue-100 text-blue-800 py-0.5 px-2 rounded-full text-xs">
                 {statusCounts.confirmed}
+              </span>
+            </button>
+            
+            <button
+              onClick={() => { setActiveTab('all'); setStatusFilter('rescheduled'); setCurrentPage(1); }}
+              className={`inline-flex items-center py-3 px-4 border-b-2 text-sm font-medium ${
+                activeTab === 'all' && statusFilter === 'rescheduled'
+                  ? 'border-purple-500 text-purple-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FaExchangeAlt className={`mr-2 ${activeTab === 'all' && statusFilter === 'rescheduled' ? 'text-purple-500' : 'text-gray-400'}`} />
+              Đã đổi lịch
+              <span className="ml-2 bg-purple-100 text-purple-800 py-0.5 px-2 rounded-full text-xs">
+                {statusCounts.rescheduled}
               </span>
             </button>
           </nav>

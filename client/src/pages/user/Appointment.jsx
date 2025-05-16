@@ -440,16 +440,29 @@ const Appointment = () => {
     
     setValidatingCoupon(true);
     try {
+      // Calculate total before discount to check against minPurchase
+      const totalBeforeDiscount = priceDetails.totalBeforeDiscount;
+      
       const response = await api.get(`/coupons/validate`, {
         params: {
           code: code.trim(),
           serviceId: formData.serviceId || '',
-          specialtyId: formData.specialtyId || ''
+          specialtyId: formData.specialtyId || '',
+          totalAmount: totalBeforeDiscount // Send total amount to validate minPurchase on backend
         }
       });
       
       if (response.data.success) {
-        setCouponInfo(response.data.data);
+        const coupon = response.data.data;
+        
+        // Check minPurchase requirement on the frontend too
+        if (coupon.minPurchase && totalBeforeDiscount < coupon.minPurchase) {
+          setCouponInfo(null);
+          toast.error(`Mã giảm giá yêu cầu đơn hàng tối thiểu ${coupon.minPurchase.toLocaleString('vi-VN')} VNĐ`);
+          return;
+        }
+        
+        setCouponInfo(coupon);
         toast.success('Mã giảm giá hợp lệ!');
       } else {
         setCouponInfo(null);
@@ -485,6 +498,17 @@ const Appointment = () => {
     
     if (!formData.specialtyId) {
       toast.error('Vui lòng chọn chuyên khoa trước khi kiểm tra mã giảm giá');
+      return;
+    }
+    
+    if (!formData.doctorId) {
+      toast.error('Vui lòng chọn bác sĩ trước khi kiểm tra mã giảm giá');
+      return;
+    }
+    
+    // Make sure prices are calculated before validating coupon
+    if (priceDetails.totalBeforeDiscount === 0) {
+      toast.error('Vui lòng chọn dịch vụ trước khi kiểm tra mã giảm giá');
       return;
     }
     
@@ -656,7 +680,7 @@ const Appointment = () => {
     }
   }, [formData.appointmentDate]);
 
-  // Add function to calculate prices
+    // Add function to calculate prices
   const calculatePrices = async () => {
     if (!formData.doctorId) return;
     
@@ -679,17 +703,25 @@ const Appointment = () => {
       // Calculate discount if coupon is valid
       let discountAmount = 0;
       if (couponInfo) {
-        if (couponInfo.discountType === 'percentage') {
-          discountAmount = (totalBeforeDiscount * couponInfo.discountValue) / 100;
-          // Cap discount at maxDiscount if specified
-          if (couponInfo.maxDiscount && discountAmount > couponInfo.maxDiscount) {
-            discountAmount = couponInfo.maxDiscount;
-          }
-        } else { // fixed discount
-          discountAmount = couponInfo.discountValue;
-          // Make sure discount doesn't exceed total
-          if (discountAmount > totalBeforeDiscount) {
-            discountAmount = totalBeforeDiscount;
+        // Check if total meets minimum purchase requirement
+        if (couponInfo.minPurchase && totalBeforeDiscount < couponInfo.minPurchase) {
+          // Invalidate coupon if minimum purchase requirement not met
+          setCouponInfo(null);
+          toast.error(`Không thể áp dụng mã giảm giá: Yêu cầu đơn hàng tối thiểu ${couponInfo.minPurchase.toLocaleString('vi-VN')} VNĐ`);
+        } else {
+          // Apply discount based on type
+          if (couponInfo.discountType === 'percentage') {
+            discountAmount = (totalBeforeDiscount * couponInfo.discountValue) / 100;
+            // Cap discount at maxDiscount if specified
+            if (couponInfo.maxDiscount && discountAmount > couponInfo.maxDiscount) {
+              discountAmount = couponInfo.maxDiscount;
+            }
+          } else { // fixed discount
+            discountAmount = couponInfo.discountValue;
+            // Make sure discount doesn't exceed total
+            if (discountAmount > totalBeforeDiscount) {
+              discountAmount = totalBeforeDiscount;
+            }
           }
         }
       }
@@ -708,7 +740,7 @@ const Appointment = () => {
       toast.error('Không thể tính chi phí. Vui lòng thử lại sau.');
     }
   };
-  
+
   // Add useEffect to calculate prices when relevant data changes
   useEffect(() => {
     if (formData.doctorId) {
@@ -2117,16 +2149,7 @@ const Appointment = () => {
                     )}
                   </button>
                 </div>
-                {couponInfo && (
-                  <div className="mt-2 p-2 bg-green-50 text-green-800 text-sm rounded-md flex items-center">
-                    <FaInfoCircle className="mr-2 text-green-500" />
-                    <span>
-                      {couponInfo.discountType === 'percentage' 
-                        ? `Giảm ${couponInfo.discountValue}% (tối đa ${couponInfo.maxDiscount?.toLocaleString('vi-VN') || 'không giới hạn'} VNĐ)` 
-                        : `Giảm ${couponInfo.discountValue.toLocaleString('vi-VN')} VNĐ`}
-                    </span>
-                  </div>
-                )}
+                              {couponInfo && (                  <div className="mt-2 p-2 bg-green-50 text-green-800 text-sm rounded-md flex items-center">                    <FaInfoCircle className="mr-2 text-green-500" />                    <div className="flex flex-col">                      <span>                        {couponInfo.discountType === 'percentage'                           ? `Giảm ${couponInfo.discountValue}% (tối đa ${couponInfo.maxDiscount?.toLocaleString('vi-VN') || 'không giới hạn'} VNĐ)`                           : `Giảm ${couponInfo.discountValue.toLocaleString('vi-VN')} VNĐ`}                      </span>                      {couponInfo.minPurchase > 0 && (                        <span className="text-xs mt-1">                          Yêu cầu đơn hàng tối thiểu: {couponInfo.minPurchase.toLocaleString('vi-VN')} VNĐ                        </span>                      )}                      {couponInfo.endDate && (                        <span className="text-xs mt-1">                          Hạn sử dụng: {new Date(couponInfo.endDate).toLocaleDateString('vi-VN')}                        </span>                      )}                    </div>                  </div>                )}
               </div>
               
               <div className="mb-6">

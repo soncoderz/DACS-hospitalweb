@@ -6,7 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 
 import { FaCalendarAlt, FaClock, FaHospital, FaUserMd, FaNotesMedical, FaFileMedical, 
          FaMoneyBillWave, FaExclamationTriangle, FaTimesCircle, FaCheckCircle, 
-         FaCalendarCheck, FaPrint, FaFileDownload, FaStar, FaEye, FaRedo, FaInfoCircle, FaQuestion, FaCheck, FaCheckDouble, FaTimes, FaRegCalendarCheck, FaExchangeAlt } from 'react-icons/fa';
+         FaCalendarCheck, FaPrint, FaFileDownload, FaStar, FaEye, FaRedo, FaInfoCircle, FaQuestion, FaCheck, FaCheckDouble, FaTimes, FaRegCalendarCheck, FaExchangeAlt, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
 import { FaPaypal } from 'react-icons/fa';
 import CancelAppointmentModal from '../../components/shared/CancelAppointmentModal';
 
@@ -43,6 +43,12 @@ const Appointments = () => {
   const paypalRef = React.useRef(null);
   const [paypalContainerRefs, setPaypalContainerRefs] = useState({});
   const [upcomingFilter, setUpcomingFilter] = useState('all');
+  
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalAppointments, setTotalAppointments] = useState(0);
 
   useEffect(() => {
     // Display success message from location state if available
@@ -57,7 +63,7 @@ const Appointments = () => {
     }
     
     fetchAppointments();
-  }, [location]);
+  }, [location, currentPage, limit, activeTab, upcomingFilter]);
 
   useEffect(() => {
     // Fix PayPal SDK loading to prevent 404 error
@@ -95,7 +101,26 @@ const Appointments = () => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/appointments');
+      
+      // Add pagination and status filter parameters
+      const params = {
+        page: currentPage,
+        limit: limit
+      };
+      
+      // Add status filter if appropriate based on activeTab and upcomingFilter
+      if (activeTab === 'upcoming') {
+        if (upcomingFilter !== 'all') {
+          params.status = upcomingFilter;
+        }
+      } else if (activeTab === 'completed') {
+        params.status = 'completed';
+      } else if (activeTab === 'cancelled') {
+        params.status = 'cancelled';
+      }
+      
+      console.log('Fetching appointments with params:', params);
+      const res = await api.get('/appointments/user/patient', { params });
       
       // Thêm console.log để kiểm tra cấu trúc dữ liệu thực tế
       console.log('API response data:', res.data);
@@ -103,6 +128,10 @@ const Appointments = () => {
       if (res.data.success) {
         // Kiểm tra xem dữ liệu có đúng cấu trúc không
         const appointmentsData = res.data.appointments || res.data.data || [];
+        
+        // Set pagination data
+        setTotalAppointments(res.data.total || 0);
+        setTotalPages(res.data.totalPages || Math.ceil(res.data.total / limit) || 1);
         
         // Đảm bảo rằng appointmentsData là một mảng trước khi gọi sort
         if (Array.isArray(appointmentsData)) {
@@ -817,7 +846,10 @@ const Appointments = () => {
                 ? 'bg-primary text-white' 
                 : 'text-gray-600 hover:text-primary'
             }`}
-            onClick={() => setActiveTab('upcoming')}
+            onClick={() => {
+              setActiveTab('upcoming');
+              setCurrentPage(1);
+            }}
           >
             Sắp tới
           </button>
@@ -827,7 +859,10 @@ const Appointments = () => {
                 ? 'bg-primary text-white' 
                 : 'text-gray-600 hover:text-primary'
             }`}
-            onClick={() => setActiveTab('completed')}
+            onClick={() => {
+              setActiveTab('completed');
+              setCurrentPage(1);
+            }}
           >
             Đã hoàn thành
           </button>
@@ -837,7 +872,10 @@ const Appointments = () => {
                 ? 'bg-primary text-white' 
                 : 'text-gray-600 hover:text-primary'
             }`}
-            onClick={() => setActiveTab('cancelled')}
+            onClick={() => {
+              setActiveTab('cancelled');
+              setCurrentPage(1);
+            }}
           >
             Đã hủy
           </button>
@@ -852,7 +890,10 @@ const Appointments = () => {
                   ? 'bg-blue-100 text-blue-800' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
-              onClick={() => setUpcomingFilter('all')}
+              onClick={() => {
+                setUpcomingFilter('all');
+                setCurrentPage(1);
+              }}
             >
               Tất cả
             </button>
@@ -862,7 +903,10 @@ const Appointments = () => {
                   ? 'bg-yellow-100 text-yellow-800' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
-              onClick={() => setUpcomingFilter('pending')}
+              onClick={() => {
+                setUpcomingFilter('pending');
+                setCurrentPage(1);
+              }}
             >
               Chờ xác nhận
             </button>
@@ -872,7 +916,10 @@ const Appointments = () => {
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
-              onClick={() => setUpcomingFilter('confirmed')}
+              onClick={() => {
+                setUpcomingFilter('confirmed');
+                setCurrentPage(1);
+              }}
             >
               Đã xác nhận
             </button>
@@ -882,7 +929,10 @@ const Appointments = () => {
                   ? 'bg-purple-100 text-purple-800' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
-              onClick={() => setUpcomingFilter('rescheduled')}
+              onClick={() => {
+                setUpcomingFilter('rescheduled');
+                setCurrentPage(1);
+              }}
             >
               Đã đổi lịch
             </button>
@@ -899,7 +949,7 @@ const Appointments = () => {
           <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-6">
             <p className="font-medium">{error}</p>
           </div>
-        ) : filteredAppointments.length === 0 ? (
+        ) : appointments.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-8 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaCalendarAlt className="text-2xl text-gray-400" />
@@ -927,11 +977,51 @@ const Appointments = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredAppointments.map((appointment) => (
+            {appointments.map((appointment) => (
               <div key={appointment._id}>
                 {renderAppointmentCard(appointment)}
               </div>
             ))}
+            
+            {/* Pagination UI */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center bg-white rounded-lg p-4 shadow-sm mt-6">
+                <div className="text-sm text-gray-600">
+                  Hiển thị <span className="font-medium">{appointments.length}</span> trên tổng số <span className="font-medium">{totalAppointments}</span> lịch hẹn
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`flex items-center px-3 py-2 rounded-lg text-sm ${
+                      currentPage === 1
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <FaAngleLeft className="mr-1.5" />
+                    Trước
+                  </button>
+                  
+                  <div className="flex items-center">
+                    <span className="text-sm font-medium text-gray-700">Trang {currentPage} / {totalPages}</span>
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className={`flex items-center px-3 py-2 rounded-lg text-sm ${
+                      currentPage === totalPages
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Sau
+                    <FaAngleRight className="ml-1.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

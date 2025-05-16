@@ -70,6 +70,8 @@ import AdminReviews from './pages/admin/Reviews';
 import AdminDoctorSchedules from './pages/admin/DoctorSchedules';
 import AdminMedications from './pages/admin/Medications';
 
+import Facilities from './pages/user/Facilities';
+import FacilitySurgery from './pages/user/FacilitySurgery';
 
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
@@ -166,6 +168,10 @@ function AppContent() {
                 
                 {/* New routes */}
                 <Route path="/set-social-password" element={<SetSocialPassword />} />
+                
+                {/* New facilities routes */}
+                <Route path="/facilities" element={<Facilities />} />
+                <Route path="/facilities/surgery" element={<FacilitySurgery />} />
                 
                 {/* Catch All */}
                 <Route path="*" element={<NotFound />} />
