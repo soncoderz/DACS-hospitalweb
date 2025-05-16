@@ -73,7 +73,7 @@ const initializeSocket = (server) => {
         clearTimeout(timeoutIds.get(slotKey));
       }
       
-      // Set timeout to automatically unlock after 5 minutes
+      // Set timeout to automatically unlock after 30 seconds
       const timeoutId = setTimeout(() => {
         if (lockedTimeSlots.has(slotKey)) {
           lockedTimeSlots.delete(slotKey);
@@ -81,7 +81,7 @@ const initializeSocket = (server) => {
           io.emit('time_slot_unlocked', { scheduleId, timeSlotId });
           timeoutIds.delete(slotKey);
         }
-      }, 5 * 60 * 1000); // 5 minutes
+      }, 30 * 1000); // 30 seconds
       
       timeoutIds.set(slotKey, timeoutId);
       
@@ -208,20 +208,34 @@ const broadcastNotification = (notification) => {
   }
 };
 
+// Broadcast time slot update when booking status changes
+const broadcastTimeSlotUpdate = (scheduleId, timeSlotInfo, doctorId, date) => {
+  if (io) {
+    console.log(`Broadcasting time slot update for doctor ${doctorId} on ${date}`);
+    // Notify all clients viewing the same doctor schedule
+    const roomKey = `appointments_${doctorId}_${date}`;
+    io.to(roomKey).emit('time_slot_status_changed', {
+      scheduleId,
+      timeSlotInfo,
+      updateType: 'booking_changed'
+    });
+  }
+};
+
 // Lock a time slot temporarily
 const lockTimeSlot = (scheduleId, timeSlotId, userId) => {
   if (io) {
     const slotKey = `${scheduleId}_${timeSlotId}`;
     lockedTimeSlots.set(slotKey, userId.toString());
     
-    // Set timeout to automatically unlock after 5 minutes
+    // Set timeout to automatically unlock after 30 seconds
     const timeoutId = setTimeout(() => {
       if (lockedTimeSlots.has(slotKey)) {
         lockedTimeSlots.delete(slotKey);
         io.emit('time_slot_unlocked', { scheduleId, timeSlotId });
         timeoutIds.delete(slotKey);
       }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 30 * 1000); // 30 seconds
     
     timeoutIds.set(slotKey, timeoutId);
     
@@ -276,6 +290,7 @@ module.exports = {
   sendNotificationToUsers,
   sendNotificationToRole,
   broadcastNotification,
+  broadcastTimeSlotUpdate,
   lockTimeSlot,
   unlockTimeSlot,
   isTimeSlotLocked,

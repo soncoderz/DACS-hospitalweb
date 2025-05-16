@@ -1414,6 +1414,43 @@ const Appointment = () => {
         }
       });
 
+      // Listen for time slot booking status changes
+      socketInstance.on('time_slot_status_changed', ({ scheduleId, timeSlotInfo, updateType }) => {
+        console.log(`Time slot booking status changed: ${scheduleId}, slot: ${timeSlotInfo.startTime}`, timeSlotInfo);
+        
+        // Update the time slots with the new booking information
+        setTimeSlots(prev => {
+          return prev.map(slot => {
+            // If this is the slot that was updated
+            if (slot.scheduleId === scheduleId && slot.startTime === timeSlotInfo.startTime) {
+              // Return updated slot with new booking information
+              return {
+                ...slot,
+                isBooked: timeSlotInfo.isBooked,
+                bookedCount: timeSlotInfo.bookedCount,
+                maxBookings: timeSlotInfo.maxBookings
+              };
+            }
+            return slot;
+          });
+        });
+        
+        // Show toast notification about the change
+        if (formData.scheduleId === scheduleId) {
+          if (updateType === 'booking_changed') {
+            if (timeSlotInfo.isBooked) {
+              toast.info(`Khung giờ ${timeSlotInfo.startTime}-${timeSlotInfo.endTime} vừa được đặt kín.`, {
+                autoClose: 3000,
+              });
+            } else if (timeSlotInfo.bookedCount > 0) {
+              toast.info(`Khung giờ ${timeSlotInfo.startTime}-${timeSlotInfo.endTime} còn ${timeSlotInfo.maxBookings - timeSlotInfo.bookedCount}/${timeSlotInfo.maxBookings} chỗ trống.`, {
+                autoClose: 3000,
+              });
+            }
+          }
+        }
+      });
+
       socketInstance.on('time_slot_lock_confirmed', ({ scheduleId, timeSlotId }) => {
         console.log(`Your lock was confirmed for: ${scheduleId}_${timeSlotId}`);
       });

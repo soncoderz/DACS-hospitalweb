@@ -19,11 +19,12 @@ const {
   appointmentCanceledNotification,
   appointmentReminderNotification
 } = require('../services/notificationService');
-// Import socket functions for time slot locking
+// Import socket functions for time slot locking and real-time updates
 const { 
   isTimeSlotLocked, 
   getTimeSlotLocker, 
-  unlockTimeSlot 
+  unlockTimeSlot,
+  broadcastTimeSlotUpdate
 } = require('../config/socketConfig');
 
 /**
@@ -745,6 +746,26 @@ exports.createAppointment = async (req, res) => {
       }
       
       await schedule.save();
+      
+      // Broadcast the updated time slot info to all users viewing this doctor's schedule
+      const timeSlotInfo = {
+        _id: schedule.timeSlots[slotIndex]._id,
+        startTime: schedule.timeSlots[slotIndex].startTime,
+        endTime: schedule.timeSlots[slotIndex].endTime,
+        isBooked: schedule.timeSlots[slotIndex].isBooked,
+        bookedCount: schedule.timeSlots[slotIndex].bookedCount,
+        maxBookings: schedule.timeSlots[slotIndex].maxBookings || 3
+      };
+      
+      // Get the doctor's details to extract the date for the socket room
+      const doctor = await Doctor.findById(doctorId);
+      if (doctor) {
+        // Format date as YYYY-MM-DD for the socket room
+        const formattedDate = new Date(appointmentDate).toISOString().split('T')[0];
+        // Broadcast update to all clients viewing this doctor's schedule
+        broadcastTimeSlotUpdate(scheduleId, timeSlotInfo, doctorId, formattedDate);
+        console.log(`Broadcasting time slot update for ${schedule.timeSlots[slotIndex].startTime}-${schedule.timeSlots[slotIndex].endTime}`);
+      }
     }
     
     // Unlock the time slot after it has been successfully booked
@@ -1129,6 +1150,31 @@ exports.cancelAppointment = catchAsync(async (req, res, next) => {
       }
       
       await schedule.save();
+      
+      // Broadcast the updated time slot status to all users viewing this schedule
+      if (timeSlotIndex !== -1) {
+        const timeSlotInfo = {
+          _id: schedule.timeSlots[timeSlotIndex]._id,
+          startTime: schedule.timeSlots[timeSlotIndex].startTime,
+          endTime: schedule.timeSlots[timeSlotIndex].endTime,
+          isBooked: schedule.timeSlots[timeSlotIndex].isBooked,
+          bookedCount: schedule.timeSlots[timeSlotIndex].bookedCount,
+          maxBookings: schedule.timeSlots[timeSlotIndex].maxBookings || 3
+        };
+        
+        // Format date as YYYY-MM-DD for the socket room
+        const formattedDate = new Date(appointment.appointmentDate).toISOString().split('T')[0];
+        
+        // Broadcast update to all clients viewing this doctor's schedule
+        broadcastTimeSlotUpdate(
+          scheduleId, 
+          timeSlotInfo, 
+          appointment.doctorId._id || appointment.doctorId, 
+          formattedDate
+        );
+        
+        console.log(`Broadcasting time slot cancellation update for ${timeSlotInfo.startTime}-${timeSlotInfo.endTime}`);
+      }
     }
   }
 
@@ -1533,6 +1579,33 @@ exports.rescheduleAppointment = async (req, res) => {
         );
         
         console.log(`New schedule slot updated successfully`);
+        
+        // Fetch the updated schedule to broadcast changes
+        const updatedSchedule = await Schedule.findById(scheduleId);
+        if (updatedSchedule && updatedSchedule.timeSlots[newSlotIndex]) {
+          // Create time slot info object for broadcasting
+          const timeSlotInfo = {
+            _id: updatedSchedule.timeSlots[newSlotIndex]._id,
+            startTime: updatedSchedule.timeSlots[newSlotIndex].startTime,
+            endTime: updatedSchedule.timeSlots[newSlotIndex].endTime,
+            isBooked: updatedSchedule.timeSlots[newSlotIndex].isBooked,
+            bookedCount: updatedSchedule.timeSlots[newSlotIndex].bookedCount,
+            maxBookings: updatedSchedule.timeSlots[newSlotIndex].maxBookings || 3
+          };
+          
+          // Format date as YYYY-MM-DD for the socket room
+          const formattedDate = new Date(appointmentDate).toISOString().split('T')[0];
+          
+          // Broadcast update to all clients viewing this doctor's schedule
+          broadcastTimeSlotUpdate(
+            scheduleId, 
+            timeSlotInfo, 
+            appointment.doctorId._id || appointment.doctorId, 
+            formattedDate
+          );
+          
+          console.log(`Broadcasting reschedule time slot update for ${timeSlotInfo.startTime}-${timeSlotInfo.endTime}`);
+        }
       }
     } catch (updateError) {
       console.error('Error updating new schedule:', updateError);
