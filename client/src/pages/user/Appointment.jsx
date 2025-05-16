@@ -1336,25 +1336,28 @@ const Appointment = () => {
   // Initialize socket connection
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Khoảng dòng 1265
-      // Thay thế
       const apiBaseUrl = import.meta.env?.VITE_API_URL || 'http://localhost:5000/api';
-      const socketUrl = apiBaseUrl.replace(/\/api$/, ''); // Loại bỏ /api nếu có
+      // Extract base server URL (without /api)
+      const socketUrl = apiBaseUrl.replace(/\/api$/, '');
 
       console.log("Connecting to socket server at:", socketUrl);
 
-      // Sử dụng socketUrl để kết nối
+      // Get JWT token from localStorage
       const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
       const token = userInfo.token;
 
+      // Create socket instance with improved configuration
       const socketInstance = io(socketUrl, {
         auth: {
           token: token
         },
         reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        transports: ['websocket', 'polling'],
-        path: '/socket.io'
+        reconnectionDelay: 1000, // Increase timeout
+        // Start with polling first, then upgrade to websocket if possible
+        transports: ['polling', 'websocket'],
+        path: '/socket.io',
+        forceNew: true,
+        autoConnect: true
       });
 
       socketInstance.on('connect', () => {
@@ -1366,7 +1369,7 @@ const Appointment = () => {
         toast.error('Không thể kết nối tới máy chủ cho tính năng cập nhật thời gian thực. Vui lòng thử lại sau.');
       });
 
-      // Set up event listeners for time slot locking
+      // Set up event listeners for time slot locking (keep the rest of the code as it is)
       socketInstance.on('time_slot_locked', ({ scheduleId, timeSlotId, userId }) => {
         console.log(`Time slot locked: ${scheduleId}_${timeSlotId} by ${userId}`);
         setLockedSlots(prev => {
