@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { 
   FaCalendarAlt, FaUserInjured, FaClipboardList, 
   FaUserMd, FaClock, FaSignOutAlt, FaChartLine, 
-  FaTachometerAlt, FaCommentMedical, FaBell,
+  FaTachometerAlt, FaCommentMedical,
   FaBars, FaTimes
 } from 'react-icons/fa';
 
@@ -151,10 +151,6 @@ const DoctorLayout = ({ children }) => {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-full transition-colors">
-                <FaBell className="text-xl" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              </button>
               <div className="hidden md:block">
                 <div className="flex items-center space-x-3 py-1 px-3 bg-gray-100 rounded-full">
                   <img 

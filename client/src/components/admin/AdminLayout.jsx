@@ -5,9 +5,10 @@ import {
   FaTachometerAlt, FaUsers, FaUserMd, FaHospital, 
   FaFileAlt, FaCalendarAlt, FaPercentage, FaCreditCard,
   FaStar, FaProcedures, FaDoorOpen, FaChartBar, FaSignOutAlt,
-  FaClock, FaBell, FaCog, FaSearch, FaBars, FaTimes,
+  FaClock, FaCog, FaSearch, FaBars, FaTimes,
   FaUserShield, FaLock, FaExclamationTriangle, FaMedkit
 } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 
 const AdminLayout = ({ children }) => {
   const location = useLocation();
@@ -30,6 +31,7 @@ const AdminLayout = ({ children }) => {
     '/admin/payments',
     '/admin/reviews',
     '/admin/medications',
+    '/admin/news',
   ];
 
   const doctorRoutes = [
@@ -121,6 +123,7 @@ const AdminLayout = ({ children }) => {
     { path: '/admin/coupons', label: 'Mã giảm giá', icon: <FaPercentage /> },
     { path: '/admin/payments', label: 'Thanh toán', icon: <FaCreditCard /> },
     { path: '/admin/reviews', label: 'Đánh giá', icon: <FaStar /> },
+    { path: '/admin/news', label: 'Tin tức', icon: <FaFileAlt /> },
   ] : [];
 
   // Group the navigation items for admin
@@ -129,7 +132,7 @@ const AdminLayout = ({ children }) => {
     users: navItems.length > 2 ? [navItems[1], navItems[2]] : [], // Users, Doctors
     scheduling: navItems.length > 9 ? [navItems[3], navItems[9]] : [], // Doctor schedules, Appointments
     facilities: navItems.length > 8 ? [navItems[4], navItems[5], navItems[6], navItems[7], navItems[8]] : [], // Hospitals, Specialties, Services, Rooms, Medications
-    business: navItems.length > 12 ? [navItems[10], navItems[11], navItems[12]] : [] // Coupons, Payments, Reviews
+    business: navItems.length > 13 ? [navItems[10], navItems[11], navItems[12], navItems[13]] : [] // Coupons, Payments, Reviews, News
   };
 
   // Get the current page name for header
@@ -138,6 +141,28 @@ const AdminLayout = ({ children }) => {
     const matchedItem = navItems.find(item => item.path === currentPath);
     return matchedItem?.label || 'Tổng quan';
   };
+
+  // Header user dropdown section
+  const headerUserSection = (
+    <div className="relative" id="header-user-menu">
+      <button 
+        className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 items-center"
+        aria-expanded="false"
+        aria-haspopup="true"
+      >
+        <span className="sr-only">Open user menu</span>
+        <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 flex items-center justify-center text-white font-medium">
+          {user?.fullName?.charAt(0) || 'U'}
+        </div>
+        <span className="ml-2 text-sm font-medium text-gray-700 hidden sm:block">
+          {user?.fullName?.split(' ').slice(-1)[0] || 'User'}
+        </span>
+        <svg className="ml-1 w-4 h-4 text-gray-500 hidden sm:block" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -320,60 +345,54 @@ const AdminLayout = ({ children }) => {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-x-hidden">
         {/* Header */}
-        <header className="bg-white shadow-sm flex items-center h-16 px-6 sticky top-0 z-10">
-          {/* Mobile menu button */}
-          <button 
-            className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:hidden p-2 rounded-md"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <FaBars className="h-5 w-5" />
-          </button>
-
-          {/* Page title for mobile */}
-          <div className="lg:hidden mx-4 font-semibold text-gray-700">
-            {getCurrentPageName()}
-          </div>
-
-          {/* Search */}
-          <div className="flex-1 ml-6 lg:ml-0">
-            <div className="max-w-md relative group">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 group-focus-within:text-blue-500">
-                <FaSearch className="h-4 w-4" />
-              </div>
-              <input
-                className="w-full pl-10 pr-12 py-2 rounded-lg border border-gray-300 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
-                type="text"
-                placeholder="Tìm kiếm..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button 
-                  onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                >
-                  <FaTimes className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Right side header icons */}
+        <header className="w-full h-16 bg-white shadow-sm flex items-center justify-between px-6 flex-shrink-0 z-10">
           <div className="flex items-center">
-            <button className="relative p-2 text-gray-500 rounded-full hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-              <FaBell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            <button 
+              onClick={() => setSidebarOpen(true)} 
+              className="text-gray-600 hover:text-blue-600 lg:hidden focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 p-1.5 rounded-md"
+            >
+              <span className="sr-only">Open sidebar</span>
+              <FaBars className="h-6 w-6" />
             </button>
-            <button className="ml-4 p-2 text-gray-500 rounded-full hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-              <FaCog className="h-5 w-5" />
-            </button>
+            <h1 className="ml-3 lg:ml-0 text-lg md:text-xl font-semibold text-gray-800">{getCurrentPageName()}</h1>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div className="flex-1 max-w-xs md:max-w-md">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaSearch className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                  placeholder="Tìm kiếm..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center">
+              {/* User dropdown */}
+              {headerUserSection}
+
+              {/* Logout button */}
+              <button 
+                onClick={logout}
+                className="ml-4 p-2 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                title="Đăng xuất"
+              >
+                <FaSignOutAlt className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+        {/* Page Content */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             {/* Page header */}
             <div className="mb-6 bg-white p-6 rounded-lg shadow-sm border border-gray-100">

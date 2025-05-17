@@ -19,6 +19,9 @@ const initializeSocket = (server) => {
     path: '/socket.io'  // Đảm bảo path khớp với client
   });
 
+  // Make io globally available
+  global.io = io;
+
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
@@ -45,7 +48,7 @@ const initializeSocket = (server) => {
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.userId}`);
     
-    // User joins their personal room for targeted notifications
+    // User joins their personal room for targeted messages
     socket.join(socket.userId.toString());
     
     // Join role-based rooms for broadcasts to specific user types
@@ -144,31 +147,35 @@ const initializeSocket = (server) => {
       }
     });
     
+    // Handle disconnect
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.userId}`);
       
-      // Clean up any locks created by this user
-      for (const [key, userId] of lockedTimeSlots.entries()) {
-        if (userId === socket.userId.toString()) {
-          lockedTimeSlots.delete(key);
-          
-          // Clear timeout
-          if (timeoutIds.has(key)) {
-            clearTimeout(timeoutIds.get(key));
-            timeoutIds.delete(key);
-          }
-          
-          // Extract scheduleId and timeSlotId from the key
-          const [scheduleId, timeSlotId] = key.split('_');
-          
-          // Notify all relevant rooms that the time slot is available again
-          io.emit('time_slot_unlocked', { scheduleId, timeSlotId });
-        }
+      // Clean up appointment rooms
+      if (appointmentRooms.has(socket.id)) {
+        appointmentRooms.get(socket.id).forEach(room => {
+          socket.leave(room);
+        });
+        appointmentRooms.delete(socket.id);
       }
       
-      // Leave all appointment rooms
-      if (appointmentRooms.has(socket.id)) {
-        appointmentRooms.delete(socket.id);
+      // Check if this user has any locked time slots and unlock them
+      for (const [slotKey, userId] of lockedTimeSlots.entries()) {
+        if (userId === socket.userId.toString()) {
+          lockedTimeSlots.delete(slotKey);
+          
+          // Clear timeout
+          if (timeoutIds.has(slotKey)) {
+            clearTimeout(timeoutIds.get(slotKey));
+            timeoutIds.delete(slotKey);
+          }
+          
+          // Extract scheduleId and timeSlotId from the slotKey
+          const [scheduleId, timeSlotId] = slotKey.split('_');
+          
+          // Notify all clients that the time slot is available again
+          io.emit('time_slot_unlocked', { scheduleId, timeSlotId });
+        }
       }
     });
   });
@@ -176,99 +183,64 @@ const initializeSocket = (server) => {
   return io;
 };
 
-// Send notification to specific user
-const sendNotificationToUser = (userId, notification) => {
-  if (io) {
-    io.to(userId.toString()).emit('notification', notification);
-  }
-};
-
-// Send notification to multiple users
-const sendNotificationToUsers = (userIds, notification) => {
-  if (io && userIds && userIds.length > 0) {
-    userIds.forEach(userId => {
-      if (userId) {
-        io.to(userId.toString()).emit('notification', notification);
-      }
-    });
-  }
-};
-
-// Send notification to all users with a specific role
-const sendNotificationToRole = (role, notification) => {
-  if (io) {
-    io.to(`role:${role}`).emit('notification', notification);
-  }
-};
-
-// Broadcast notification to all connected users
-const broadcastNotification = (notification) => {
-  if (io) {
-    io.emit('notification', notification);
-  }
-};
-
 // Broadcast time slot update when booking status changes
 const broadcastTimeSlotUpdate = (scheduleId, timeSlotInfo, doctorId, date) => {
-  if (io) {
-    console.log(`Broadcasting time slot update for doctor ${doctorId} on ${date}`);
-    // Notify all clients viewing the same doctor schedule
-    const roomKey = `appointments_${doctorId}_${date}`;
-    io.to(roomKey).emit('time_slot_status_changed', {
-      scheduleId,
-      timeSlotInfo,
-      updateType: 'booking_changed'
-    });
-  }
+  if (!io) return;
+  
+  const roomKey = `appointments_${doctorId}_${date}`;
+  io.to(roomKey).emit('time_slot_updated', { 
+    scheduleId, 
+    timeSlotInfo
+  });
 };
 
-// Lock a time slot temporarily
+// Lock a time slot
 const lockTimeSlot = (scheduleId, timeSlotId, userId) => {
-  if (io) {
-    const slotKey = `${scheduleId}_${timeSlotId}`;
-    lockedTimeSlots.set(slotKey, userId.toString());
-    
-    // Set timeout to automatically unlock after 30 seconds
-    const timeoutId = setTimeout(() => {
-      if (lockedTimeSlots.has(slotKey)) {
-        lockedTimeSlots.delete(slotKey);
-        io.emit('time_slot_unlocked', { scheduleId, timeSlotId });
-        timeoutIds.delete(slotKey);
-      }
-    }, 30 * 1000); // 30 seconds
-    
-    timeoutIds.set(slotKey, timeoutId);
-    
-    // Notify all clients that the time slot is locked
-    io.emit('time_slot_locked', { scheduleId, timeSlotId, userId });
-    
-    return true;
+  const slotKey = `${scheduleId}_${timeSlotId}`;
+  
+  // If slot is already locked by someone else, return false
+  if (lockedTimeSlots.has(slotKey) && lockedTimeSlots.get(slotKey) !== userId) {
+    return false;
   }
-  return false;
+  
+  // Lock the time slot
+  lockedTimeSlots.set(slotKey, userId);
+  
+  // Clear any existing timeout
+  if (timeoutIds.has(slotKey)) {
+    clearTimeout(timeoutIds.get(slotKey));
+  }
+  
+  // Set timeout to automatically unlock after 30 seconds
+  const timeoutId = setTimeout(() => {
+    if (lockedTimeSlots.has(slotKey)) {
+      lockedTimeSlots.delete(slotKey);
+      timeoutIds.delete(slotKey);
+    }
+  }, 30 * 1000); // 30 seconds
+  
+  timeoutIds.set(slotKey, timeoutId);
+  
+  return true;
 };
 
 // Unlock a time slot
 const unlockTimeSlot = (scheduleId, timeSlotId, userId) => {
-  if (io) {
-    const slotKey = `${scheduleId}_${timeSlotId}`;
+  const slotKey = `${scheduleId}_${timeSlotId}`;
+  
+  // Only the user who locked it can unlock it
+  if (lockedTimeSlots.has(slotKey) && lockedTimeSlots.get(slotKey) === userId) {
+    lockedTimeSlots.delete(slotKey);
     
-    // Only the user who locked it or the system can unlock it
-    if (lockedTimeSlots.has(slotKey) && 
-        (lockedTimeSlots.get(slotKey) === userId.toString() || userId === 'system')) {
-      lockedTimeSlots.delete(slotKey);
-      
-      // Clear timeout
-      if (timeoutIds.has(slotKey)) {
-        clearTimeout(timeoutIds.get(slotKey));
-        timeoutIds.delete(slotKey);
-      }
-      
-      // Notify all clients that the time slot is available again
-      io.emit('time_slot_unlocked', { scheduleId, timeSlotId });
-      
-      return true;
+    // Clear timeout
+    if (timeoutIds.has(slotKey)) {
+      clearTimeout(timeoutIds.get(slotKey));
+      timeoutIds.delete(slotKey);
     }
+    
+    return true;
   }
+  
   return false;
 };
 
@@ -286,10 +258,6 @@ const getTimeSlotLocker = (scheduleId, timeSlotId) => {
 
 module.exports = {
   initializeSocket,
-  sendNotificationToUser,
-  sendNotificationToUsers,
-  sendNotificationToRole,
-  broadcastNotification,
   broadcastTimeSlotUpdate,
   lockTimeSlot,
   unlockTimeSlot,

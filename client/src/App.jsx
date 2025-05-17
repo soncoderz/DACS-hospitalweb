@@ -19,7 +19,6 @@ import Appointments from './pages/user/Appointments.jsx';
 import Appointment from './pages/user/Appointment.jsx';
 import AppointmentDetail from './pages/user/AppointmentDetail.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-import { NotificationProvider } from './context/NotificationContext.jsx';
 import ForgotPassword from './pages/user/ForgotPassword';
 import OtpVerification from './pages/user/OtpVerification';
 import ResetPassword from './pages/user/ResetPassword';
@@ -69,9 +68,12 @@ import AdminPayments from './pages/admin/Payments';
 import AdminReviews from './pages/admin/Reviews';
 import AdminDoctorSchedules from './pages/admin/DoctorSchedules';
 import AdminMedications from './pages/admin/Medications';
+import AdminNews from './pages/admin/News';
 
 import Facilities from './pages/user/Facilities';
 import FacilitySurgery from './pages/user/FacilitySurgery';
+import News from './pages/user/News';
+import NewsDetail from './pages/user/NewsDetail';
 
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
@@ -101,6 +103,7 @@ function AppContent() {
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="doctor-schedules" element={<AdminDoctorSchedules />} />
           <Route path="medications" element={<AdminMedications />} />
+          <Route path="news" element={<AdminNews />} />
         </Route>
 
         {/* Doctor Routes - No Navbar/Footer */}
@@ -173,6 +176,10 @@ function AppContent() {
                 <Route path="/facilities" element={<Facilities />} />
                 <Route path="/facilities/surgery" element={<FacilitySurgery />} />
                 
+                {/* News routes */}
+                <Route path="/tin-tuc" element={<News />} />
+                <Route path="/tin-tuc/:slug" element={<NewsDetail />} />
+                
                 {/* Catch All */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
@@ -189,27 +196,25 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <NotificationProvider>
-          <AppContent />
-          <ToastContainer
-            position="top-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick={false}
-            rtl={false}
-            pauseOnFocusLoss
-            draggable={false}
-            pauseOnHover
-            theme="light"
-            limit={3}
-            style={{
-              fontSize: '16px',
-              zIndex: 9999,
-              marginTop: '4.5rem'
-            }}
-          />
-        </NotificationProvider>
+        <AppContent />
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick={false}
+          rtl={false}
+          pauseOnFocusLoss
+          draggable={false}
+          pauseOnHover
+          theme="light"
+          limit={3}
+          style={{
+            fontSize: '16px',
+            zIndex: 9999,
+            marginTop: '4.5rem'
+          }}
+        />
       </Router>
     </AuthProvider>
   );

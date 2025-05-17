@@ -5,7 +5,6 @@ const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Service = require('../models/Service');
 const { validationResult } = require('express-validator');
-const { paymentNotification } = require('../services/notificationService');
 
 // Get all payments with filtering options (Admin only)
 exports.getAllPayments = async (req, res) => {
@@ -229,14 +228,6 @@ exports.updatePayment = async (req, res) => {
       } catch (appointmentError) {
         console.error('Error updating appointment:', appointmentError);
       }
-    }
-
-    // Send real-time notification for payment status change
-    try {
-      await paymentNotification(payment, req.user.id);
-    } catch (notificationError) {
-      console.error('Error sending payment update notification:', notificationError);
-      // Continue execution
     }
 
     res.status(200).json({
@@ -664,16 +655,6 @@ exports.cancelPayPalPayment = async (req, res) => {
 exports.paypalSuccess = async (req, res) => {
   try {
     // ... existing code ...
-    
-    // After successfully processing PayPal payment, add:
-    
-    // Send real-time notification
-    try {
-      await paymentNotification(payment, req.user.id);
-    } catch (notificationError) {
-      console.error('Error sending PayPal payment notification:', notificationError);
-      // Continue execution - don't fail the payment processing if notification fails
-    }
     
     // ... existing response code ...
   } catch (error) {

@@ -5,8 +5,35 @@ const User = require('../models/User');
 const Appointment = require('../models/Appointment');
 const Hospital = require('../models/Hospital');
 const { validationResult } = require('express-validator');
-const { sendNotification } = require('../utils/notification');
 const AppError = require('../utils/appError');
+
+// Simple utility function to format review response
+const formatReviewResponse = (review) => {
+  if (!review) return null;
+  return {
+    id: review._id,
+    user: review.userId ? {
+      id: review.userId._id,
+      name: review.userId.fullName,
+      avatar: review.userId.avatarUrl || review.userId.avatar
+    } : null,
+    rating: review.rating,
+    comment: review.comment,
+    createdAt: review.createdAt,
+    type: review.type,
+    replies: Array.isArray(review.replies) ? review.replies.map(reply => ({
+      id: reply._id,
+      user: reply.userId ? {
+        id: reply.userId._id,
+        name: reply.userId.fullName,
+        avatar: reply.userId.avatarUrl || reply.userId.avatar,
+        role: reply.userId.roleType
+      } : null,
+      comment: reply.comment,
+      createdAt: reply.createdAt
+    })) : []
+  };
+};
 
 // @desc    Get all reviews (with filters)
 // @route   GET /api/admin/reviews
@@ -255,21 +282,6 @@ exports.replyToReview = async (req, res) => {
 
     // Get the latest reply with user details
     const latestReply = updatedReview.replies[updatedReview.replies.length - 1];
-
-    // Send notification to the review owner if the reply is from admin
-    if (userRole === 'admin') {
-      try {
-      await sendNotification({
-        userId: review.userId,
-        type: 'reviewReply',
-        title: 'New Reply to Your Review',
-        message: 'Admin has replied to your review',
-        referenceId: review._id
-      });
-      } catch (notificationError) {
-        console.error('Error sending notification:', notificationError);
-      }
-    }
 
     return res.status(201).json({
       success: true,

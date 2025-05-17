@@ -14,7 +14,7 @@ const Appointment = require('../models/Appointment');
 router.get('/user', protect, paymentController.getUserPayments);
 
 // Get payment by ID - Admin only
-router.get('/:id', protect, authorize('admin'), paymentController.getPaymentById);
+router.get('/payment/:id', protect, authorize('admin'), paymentController.getPaymentById);
 
 // Get all payments - Admin only
 router.get('/', protect, authorize('admin'), paymentController.getAllPayments);
