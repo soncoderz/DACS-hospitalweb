@@ -51,7 +51,7 @@ const NewsDetail = () => {
   
   const fetchRelatedNews = async (category, currentId) => {
     try {
-      const response = await api.get('/news', {
+      const response = await api.get('/news/all', {
         params: {
           category,
           limit: 3,
@@ -242,7 +242,7 @@ const NewsDetail = () => {
                 {relatedNews.length > 0 ? (
                   <div className="space-y-4">
                     {relatedNews.map(item => (
-                      <Link to={`/tin-tuc/${item.slug}`} key={item._id}>
+                      <Link to={`/news/${item.slug}`} key={item._id}>
                         <Card 
                           hoverable 
                           className="mb-4"

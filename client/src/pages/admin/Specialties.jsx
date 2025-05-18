@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaFilter, FaDownload, FaImage, FaTimes, FaExclamationCircle, FaUserMd, FaHospital, FaFolderOpen, FaCamera } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaFilter, FaDownload, FaImage, FaTimes, FaExclamationCircle, FaUserMd, FaHospital, FaFolderOpen, FaCamera, FaStethoscope, FaHeartbeat, FaLungs, FaBrain, FaAmbulance, FaBaby, FaTooth, FaEye, FaFileMedicalAlt, FaNotesMedical, FaXRay, FaBone, FaAllergies, FaWheelchair, FaPills, FaProcedures, FaHandHoldingMedical, FaVial, FaCheck, FaAngleRight, FaDna, FaFirstAid, FaBandAid, FaMicroscope, FaBed, FaVirus, FaTemperatureLow, FaHeadSideMask, FaCapsules, FaSyringe, FaPrescriptionBottle, FaFlask, FaHeadSideCough, FaBookMedical, FaIdCard, FaThermometer, FaHospitalUser, FaHospitalAlt, FaClinicMedical, FaHeartBroken, FaLungsVirus, FaWeight, FaSkull } from 'react-icons/fa';
+import { GiMedicines, GiDna1, GiMedicalPack, GiHealthNormal, GiHumanEar, GiHeartOrgan, GiChemicalDrop } from 'react-icons/gi';
+import { MdLocalHospital, MdMedicalServices, MdBloodtype, MdOutlineVaccines } from 'react-icons/md';
+import { IoNutritionOutline } from 'react-icons/io5';
 import api from '../../utils/api';
 import { toast } from 'react-toastify';
 
@@ -22,13 +25,89 @@ const Specialties = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    isActive: true
+    isActive: true,
+    icon: 'stethoscope'
   });
   const [selectedImage, setSelectedImage] = useState(null);
   const [loadingAction, setLoadingAction] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [showIconSelector, setShowIconSelector] = useState(false);
+
+  // Danh sách các icon có thể chọn
+  const availableIcons = [
+    { name: 'stethoscope', component: FaStethoscope, label: 'Ống nghe' },
+    { name: 'heartbeat', component: FaHeartbeat, label: 'Nhịp tim' },
+    { name: 'lungs', component: FaLungs, label: 'Phổi' },
+    { name: 'brain', component: FaBrain, label: 'Não' },
+    { name: 'ambulance', component: FaAmbulance, label: 'Xe cứu thương' },
+    { name: 'baby', component: FaBaby, label: 'Trẻ em' },
+    { name: 'tooth', component: FaTooth, label: 'Răng' },
+    { name: 'eye', component: FaEye, label: 'Mắt' },
+    { name: 'file-medical-alt', component: FaFileMedicalAlt, label: 'Hồ sơ y tế' },
+    { name: 'notes-medical', component: FaNotesMedical, label: 'Ghi chú y tế' },
+    { name: 'x-ray', component: FaXRay, label: 'X-quang' },
+    { name: 'bone', component: FaBone, label: 'Xương' },
+    { name: 'allergies', component: FaAllergies, label: 'Dị ứng' },
+    { name: 'wheelchair', component: FaWheelchair, label: 'Xe lăn' },
+    { name: 'pills', component: FaPills, label: 'Thuốc' },
+    { name: 'procedures', component: FaProcedures, label: 'Phẫu thuật' },
+    { name: 'hand-holding-medical', component: FaHandHoldingMedical, label: 'Chăm sóc y tế' },
+    { name: 'vial', component: FaVial, label: 'Ống nghiệm' },
+    { name: 'user-md', component: FaUserMd, label: 'Bác sĩ' },
+    { name: 'hospital', component: FaHospital, label: 'Bệnh viện' },
+    { name: 'dna', component: FaDna, label: 'DNA' },
+    { name: 'first-aid', component: FaFirstAid, label: 'Sơ cứu' },
+    { name: 'band-aid', component: FaBandAid, label: 'Băng cá nhân' },
+    { name: 'microscope', component: FaMicroscope, label: 'Kính hiển vi' },
+    { name: 'bed', component: FaBed, label: 'Giường bệnh' },
+    { name: 'virus', component: FaVirus, label: 'Virus' },
+    { name: 'temperature-low', component: FaTemperatureLow, label: 'Nhiệt độ' },
+    { name: 'head-side-mask', component: FaHeadSideMask, label: 'Khẩu trang' },
+    { name: 'capsules', component: FaCapsules, label: 'Viên nang' },
+    { name: 'syringe', component: FaSyringe, label: 'Tiêm' },
+    { name: 'prescription-bottle', component: FaPrescriptionBottle, label: 'Lọ thuốc' },
+    { name: 'flask', component: FaFlask, label: 'Ống nghiệm' },
+    { name: 'head-side-cough', component: FaHeadSideCough, label: 'Ho' },
+    { name: 'book-medical', component: FaBookMedical, label: 'Sách y khoa' },
+    { name: 'id-card', component: FaIdCard, label: 'Thẻ bệnh nhân' },
+    { name: 'thermometer', component: FaThermometer, label: 'Nhiệt kế' },
+    { name: 'hospital-user', component: FaHospitalUser, label: 'Bệnh nhân' },
+    { name: 'hospital-alt', component: FaHospitalAlt, label: 'Tòa nhà y tế' },
+    { name: 'clinic-medical', component: FaClinicMedical, label: 'Phòng khám' },
+    { name: 'heart-broken', component: FaHeartBroken, label: 'Tim đập chậm' },
+    { name: 'lungs-virus', component: FaLungsVirus, label: 'Viêm phổi' },
+    { name: 'weight', component: FaWeight, label: 'Cân nặng' },
+    { name: 'skull', component: FaSkull, label: 'Xương sọ' },
+    { name: 'gi-medicines', component: GiMedicines, label: 'Thuốc' },
+    { name: 'gi-dna', component: GiDna1, label: 'DNA' },
+    { name: 'gi-medical-pack', component: GiMedicalPack, label: 'Túi y tế' },
+    { name: 'gi-health', component: GiHealthNormal, label: 'Sức khỏe' },
+    { name: 'gi-ear', component: GiHumanEar, label: 'Tai' },
+    { name: 'gi-heart', component: GiHeartOrgan, label: 'Tim' },
+    { name: 'gi-chemical', component: GiChemicalDrop, label: 'Hóa chất' },
+    { name: 'md-hospital', component: MdLocalHospital, label: 'Bệnh viện' },
+    { name: 'md-medical', component: MdMedicalServices, label: 'Dịch vụ y tế' },
+    { name: 'md-blood', component: MdBloodtype, label: 'Nhóm máu' },
+    { name: 'md-vaccines', component: MdOutlineVaccines, label: 'Vắc xin' },
+    { name: 'io-nutrition', component: IoNutritionOutline, label: 'Dinh dưỡng' },
+  ];
+
+  // Component hiển thị icon đã chọn
+  const SelectedIconDisplay = ({ iconName }) => {
+    const selectedIcon = availableIcons.find(icon => icon.name === iconName) || availableIcons[0];
+    const IconComponent = selectedIcon.component;
+    
+    return (
+      <div className="flex items-center">
+        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-2">
+          <IconComponent className="text-blue-600" />
+        </div>
+        <div>{selectedIcon.label}</div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     fetchData();
@@ -94,13 +173,15 @@ const Specialties = () => {
       setFormData({
         name: '',
         description: '',
-        isActive: true
+        isActive: true,
+        icon: 'stethoscope'
       });
     } else if (type === 'edit' && specialty) {
       setFormData({
         name: specialty.name || '',
         description: specialty.description || '',
-        isActive: specialty.isActive !== undefined ? specialty.isActive : true
+        isActive: specialty.isActive !== undefined ? specialty.isActive : true,
+        icon: specialty.icon || 'stethoscope'
       });
     } else if (type === 'addImage') {
       setSelectedImage(null);
@@ -108,6 +189,7 @@ const Specialties = () => {
       setSelectedFile(null);
     }
     
+    setShowIconSelector(false);
     setIsModalOpen(true);
   };
 
@@ -127,6 +209,12 @@ const Specialties = () => {
   
   const handleIsActiveChange = (e) => {
     setFormData({ ...formData, isActive: e.target.value === 'true' });
+  };
+
+  // Hàm xử lý khi chọn icon
+  const handleIconSelect = (iconName) => {
+    setFormData({ ...formData, icon: iconName });
+    setShowIconSelector(false);
   };
   
   const handleImageChange = (e) => {
@@ -324,6 +412,46 @@ const Specialties = () => {
                       placeholder="Nhập tên chuyên khoa"
                       required
                     />
+                  </div>
+                  
+                  {/* Thêm phần chọn Icon */}
+                  <div className="mb-4">
+                    <label htmlFor="icon" className="block text-sm font-medium text-gray-700 mb-1">
+                      Icon chuyên khoa <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowIconSelector(!showIconSelector)}
+                        className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        <SelectedIconDisplay iconName={formData.icon} />
+                        <FaAngleRight className={`transition-transform ${showIconSelector ? 'rotate-90' : ''}`} />
+                      </button>
+                      
+                      {showIconSelector && (
+                        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          <div className="p-2 grid grid-cols-2 gap-2">
+                            {availableIcons.map((icon) => (
+                              <button
+                                key={icon.name}
+                                type="button"
+                                onClick={() => handleIconSelect(icon.name)}
+                                className={`flex items-center p-2 hover:bg-gray-100 rounded-md ${
+                                  formData.icon === icon.name ? 'bg-blue-100' : ''
+                                }`}
+                              >
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center mr-2 bg-gray-100">
+                                  {React.createElement(icon.component, { className: formData.icon === icon.name ? 'text-blue-600' : 'text-gray-600' })}
+                                </div>
+                                <span className="text-sm truncate">{icon.label}</span>
+                                {formData.icon === icon.name && <FaCheck className="ml-auto text-blue-600" />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="mb-4">
@@ -566,6 +694,7 @@ const Specialties = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hình ảnh</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên chuyên khoa</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mô tả</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
@@ -574,74 +703,84 @@ const Specialties = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {specialties.length > 0 ? (
-                specialties.map((specialty) => (
-                  <tr key={specialty._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-16 w-16 rounded-md overflow-hidden bg-gray-100">
-                        <img 
-                          src={specialty.imageUrl || '/avatars/default-avatar.png'} 
-                          alt={specialty.name} 
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            e.target.src = '/avatars/default-avatar.png';
-                            e.target.onerror = null;
-                          }}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{specialty.name}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 max-w-xs truncate">{specialty.description || 'Không có mô tả'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        specialty.status === 'active' || specialty.isActive === true
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {specialty.status === 'active' || specialty.isActive === true
-                          ? 'Đang hoạt động' 
-                          : 'Tạm ngưng'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          className="p-1.5 text-blue-600 hover:text-blue-900 rounded-full hover:bg-blue-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openModal('addImage', specialty);
-                          }}
-                          title="Cập nhật ảnh"
-                        >
-                          <FaImage className="h-4 w-4" />
-                        </button>
-                        <button
-                          className="p-1.5 text-blue-600 hover:text-blue-900 rounded-full hover:bg-blue-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openModal('edit', specialty);
-                          }}
-                          title="Chỉnh sửa"
-                        >
-                          <FaEdit className="h-4 w-4" />
-                        </button>
-                        <button
-                          className="p-1.5 text-red-600 hover:text-red-900 rounded-full hover:bg-red-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openModal('delete', specialty);
-                          }}
-                          title="Xóa"
-                        >
-                          <FaTrash className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                specialties.map((specialty) => {
+                  // Lấy component icon từ tên icon
+                  const IconComponent = availableIcons.find(i => i.name === specialty.icon)?.component || FaStethoscope;
+                  
+                  return (
+                    <tr key={specialty._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-16 w-16 rounded-md overflow-hidden bg-gray-100">
+                          <img 
+                            src={specialty.imageUrl || '/avatars/default-avatar.png'} 
+                            alt={specialty.name} 
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              e.target.src = '/avatars/default-avatar.png';
+                              e.target.onerror = null;
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <IconComponent className="text-blue-600 text-lg" />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{specialty.name}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-600 max-w-xs truncate">{specialty.description || 'Không có mô tả'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          specialty.status === 'active' || specialty.isActive === true
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {specialty.status === 'active' || specialty.isActive === true
+                            ? 'Đang hoạt động' 
+                            : 'Tạm ngưng'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            className="p-1.5 text-blue-600 hover:text-blue-900 rounded-full hover:bg-blue-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openModal('addImage', specialty);
+                            }}
+                            title="Cập nhật ảnh"
+                          >
+                            <FaImage className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="p-1.5 text-blue-600 hover:text-blue-900 rounded-full hover:bg-blue-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openModal('edit', specialty);
+                            }}
+                            title="Chỉnh sửa"
+                          >
+                            <FaEdit className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="p-1.5 text-red-600 hover:text-red-900 rounded-full hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openModal('delete', specialty);
+                            }}
+                            title="Xóa"
+                          >
+                            <FaTrash className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan="7" className="px-6 py-10 text-center text-gray-500">

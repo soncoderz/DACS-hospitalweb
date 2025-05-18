@@ -1,8 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
-import { FaStethoscope, FaUserMd, FaCalendarAlt, FaInfoCircle, FaArrowRight, FaSearch, FaFilter, FaChevronDown, FaTimes, FaSortAmountDown } from 'react-icons/fa';
+import { FaStethoscope, FaUserMd, FaCalendarAlt, FaInfoCircle, FaArrowRight, FaSearch, FaFilter, FaChevronDown, FaTimes, FaSortAmountDown, FaHeartbeat, FaLungs, FaBrain, FaAmbulance, FaBaby, FaTooth, FaEye, FaFileMedicalAlt, FaNotesMedical, FaXRay, FaBone, FaAllergies, FaWheelchair, FaPills, FaProcedures, FaHandHoldingMedical, FaVial, FaHospital, FaDna } from 'react-icons/fa';
+import { GiMedicines, GiDna1, GiMedicalPack, GiHealthNormal, GiHumanEar, GiHeartOrgan, GiChemicalDrop } from 'react-icons/gi';
+import { MdLocalHospital, MdMedicalServices, MdBloodtype, MdOutlineVaccines } from 'react-icons/md';
+import { IoNutritionOutline } from 'react-icons/io5';
 import { SpecialtyCard } from '../../components/user';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+
+// Hàm giúp lấy đúng icon component dựa trên tên icon
+export const getIconComponent = (iconName) => {
+  const iconMap = {
+    'stethoscope': FaStethoscope,
+    'heartbeat': FaHeartbeat,
+    'lungs': FaLungs,
+    'brain': FaBrain,
+    'ambulance': FaAmbulance,
+    'baby': FaBaby,
+    'tooth': FaTooth,
+    'eye': FaEye,
+    'file-medical-alt': FaFileMedicalAlt,
+    'notes-medical': FaNotesMedical,
+    'x-ray': FaXRay,
+    'bone': FaBone,
+    'allergies': FaAllergies,
+    'wheelchair': FaWheelchair,
+    'pills': FaPills,
+    'procedures': FaProcedures,
+    'hand-holding-medical': FaHandHoldingMedical,
+    'vial': FaVial,
+    'user-md': FaUserMd,
+    'hospital': FaHospital,
+    'dna': FaDna,
+    'gi-medicines': GiMedicines,
+    'gi-dna': GiDna1,
+    'gi-medical-pack': GiMedicalPack,
+    'gi-health': GiHealthNormal,
+    'gi-ear': GiHumanEar,
+    'gi-heart': GiHeartOrgan,
+    'gi-chemical': GiChemicalDrop,
+    'md-hospital': MdLocalHospital,
+    'md-medical': MdMedicalServices,
+    'md-blood': MdBloodtype,
+    'md-vaccines': MdOutlineVaccines,
+    'io-nutrition': IoNutritionOutline
+  };
+  
+  // Return the component if it exists in the map, otherwise return a default
+  return iconMap[iconName?.toLowerCase()] || FaStethoscope;
+};
 
 const Specialties = () => {
   // State for data
@@ -20,6 +67,15 @@ const Specialties = () => {
   const [activeFilters, setActiveFilters] = useState(0);
   
   const navigate = useNavigate();
+
+  // Initialize AOS animation library
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: 'ease-out-cubic'
+    });
+  }, []);
 
   useEffect(() => {
     const fetchSpecialties = async () => {
@@ -65,12 +121,12 @@ const Specialties = () => {
           } catch (error) {
             console.error(`Error fetching counts for specialty ${specialty._id}:`, error);
             // Return with fallback counts if API calls fail
-          return {
-            ...specialty,
-            doctorCount: specialty.doctorCount || specialty.doctors?.length || 0,
+            return {
+              ...specialty,
+              doctorCount: specialty.doctorCount || specialty.doctors?.length || 0,
               serviceCount: specialty.serviceCount || specialty.services?.length || 0,
-            commonServices: specialty.commonServices || specialty.services?.slice(0, 5)?.map(s => s.name) || []
-          };
+              commonServices: specialty.commonServices || specialty.services?.slice(0, 5)?.map(s => s.name) || []
+            };
           }
         }));
         
@@ -229,11 +285,11 @@ const Specialties = () => {
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">Chuyên Khoa</h1>
-            <p className="text-xl opacity-90 mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white" data-aos="fade-up">Chuyên Khoa</h1>
+            <p className="text-xl opacity-90 mb-8" data-aos="fade-up" data-aos-delay="100">
               Khám phá các chuyên khoa y tế của chúng tôi và tìm hiểu thêm về các dịch vụ chăm sóc sức khỏe
             </p>
-            <div className="relative max-w-xl mx-auto">
+            <div className="relative max-w-xl mx-auto" data-aos="fade-up" data-aos-delay="200">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaSearch className="h-5 w-5 text-gray-400" />
               </div>
@@ -263,7 +319,7 @@ const Specialties = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="mb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <FaUserMd />
               </div>
@@ -273,7 +329,7 @@ const Specialties = () => {
               </p>
             </div>
             
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up" data-aos-delay="100">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <FaStethoscope />
               </div>
@@ -283,7 +339,7 @@ const Specialties = () => {
               </p>
             </div>
             
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up" data-aos-delay="200">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <FaCalendarAlt />
               </div>
@@ -296,7 +352,7 @@ const Specialties = () => {
         </div>
 
         {/* Mobile Filter Toggle */}
-        <div className="md:hidden mb-4">
+        <div className="md:hidden mb-4" data-aos="fade-up">
           <button 
             onClick={toggleFilters}
             className="w-full py-3 px-4 bg-white rounded-lg shadow-sm border border-gray-200 flex justify-between items-center"
@@ -315,7 +371,7 @@ const Specialties = () => {
         </div>
 
         {/* Filters Section */}
-        <div className={`${showFilters ? 'block' : 'hidden'} md:block mb-10`}>
+        <div className={`${showFilters ? 'block' : 'hidden'} md:block mb-10`} data-aos="fade-up">
           <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center">
@@ -445,7 +501,7 @@ const Specialties = () => {
         </div>
 
         <div className="mb-10">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6" data-aos="fade-up">
             <h2 className="text-2xl font-bold text-gray-800 flex items-center">
               <FaStethoscope className="text-primary mr-2" />
               Danh Sách Chuyên Khoa
@@ -459,10 +515,12 @@ const Specialties = () => {
 
         {filteredSpecialties.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {filteredSpecialties.map(specialty => (
-                <SpecialtyCard key={specialty._id} specialty={specialty} />
-              ))}
-            </div>
+            {filteredSpecialties.map((specialty, index) => (
+              <div key={specialty._id} data-aos="fade-up" data-aos-delay={index % 3 * 100}>
+                <SpecialtyCard specialty={specialty} />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center mb-16">
             <h3 className="text-2xl text-gray-700 mb-4">Không tìm thấy chuyên khoa</h3>
@@ -483,7 +541,7 @@ const Specialties = () => {
         )}
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden" data-aos="fade-up" data-aos-delay="100">
           <div className="absolute inset-0 opacity-10">
             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
               <defs>

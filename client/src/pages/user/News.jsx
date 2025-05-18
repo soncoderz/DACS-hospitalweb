@@ -4,6 +4,8 @@ import { Row, Col, Card, Pagination, Tag, Input, Spin, Empty, Select } from 'ant
 import { SearchOutlined, ClockCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -19,6 +21,15 @@ const News = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('');
   
+  // Initialize AOS animation library
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: 'ease-out-cubic'
+    });
+  }, []);
+  
   useEffect(() => {
     fetchNews();
   }, [pagination.current, searchTerm, category]);
@@ -26,7 +37,7 @@ const News = () => {
   const fetchNews = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/news', {
+      const response = await api.get('/news/all', {
         params: {
           page: pagination.current,
           limit: pagination.pageSize,
@@ -94,11 +105,11 @@ const News = () => {
   return (
     <div className="bg-white py-10">
       <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">
+        <h1 className="text-3xl font-bold text-center mb-8" data-aos="fade-up">
           Tin tức & Sự kiện
         </h1>
         
-        <div className="mb-8">
+        <div className="mb-8" data-aos="fade-up" data-aos-delay="100">
           <Row gutter={[16, 16]} className="mb-4">
             <Col xs={24} sm={16} md={18}>
               <Search
@@ -129,14 +140,14 @@ const News = () => {
         </div>
         
         {loading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex justify-center py-20" data-aos="fade-up">
             <Spin size="large" />
           </div>
         ) : news.length > 0 ? (
           <>
             <Row gutter={[24, 24]}>
-              {news.map((item) => (
-                <Col xs={24} sm={12} md={8} key={item._id}>
+              {news.map((item, index) => (
+                <Col xs={24} sm={12} md={8} key={item._id} data-aos="fade-up" data-aos-delay={index % 3 * 100}>
                   <Link to={`/tin-tuc/${item.slug}`}>
                     <Card 
                       hoverable 
@@ -195,7 +206,7 @@ const News = () => {
               ))}
             </Row>
             
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center mt-8" data-aos="fade-up" data-aos-delay="200">
               <Pagination
                 current={pagination.current}
                 pageSize={pagination.pageSize}
@@ -206,10 +217,12 @@ const News = () => {
             </div>
           </>
         ) : (
-          <Empty 
-            description="Không tìm thấy tin tức nào" 
-            className="py-20"
-          />
+          <div data-aos="fade-up">
+            <Empty 
+              description="Không tìm thấy tin tức nào" 
+              className="py-20"
+            />
+          </div>
         )}
       </div>
     </div>

@@ -183,7 +183,9 @@ function AppContent() {
                 <Route path="/facilities/surgery" element={<FacilitySurgery />} />
                 
                 {/* News routes */}
-                <Route path="/tin-tuc" element={<News />} />
+                <Route path="/news" element={<News />} />
+                <Route path="/news/:slug" element={<NewsDetail />} />
+                <Route path="/tin-tuc" element={<Navigate to="/news" />} /> 
                 <Route path="/tin-tuc/:slug" element={<NewsDetail />} />
                 
                 {/* Catch All */}

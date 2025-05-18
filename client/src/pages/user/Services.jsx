@@ -5,6 +5,8 @@ import { FaSearch, FaStethoscope, FaUserMd, FaMoneyBillWave, FaClock, FaCalendar
 import { MdLocalHospital } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
 import { ServiceCard } from '../../components/user';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 
 const Services = () => {
@@ -24,6 +26,15 @@ const Services = () => {
   const [selectedDuration, setSelectedDuration] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState(0);
+  
+  // Initialize AOS animation library
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: 'ease-out-cubic'
+    });
+  }, []);
   
   // Get specialty from URL if available
   useEffect(() => {
@@ -228,11 +239,11 @@ const Services = () => {
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">Dịch Vụ Y Tế</h1>
-            <p className="text-xl opacity-90 mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white" data-aos="fade-up">Dịch Vụ Y Tế</h1>
+            <p className="text-xl opacity-90 mb-8" data-aos="fade-up" data-aos-delay="100">
               Khám phá các dịch vụ y tế chất lượng cao của chúng tôi, được thiết kế để đáp ứng mọi nhu cầu
             </p>
-            <div className="relative max-w-xl mx-auto">
+            <div className="relative max-w-xl mx-auto" data-aos="fade-up" data-aos-delay="200">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaSearch className="h-5 w-5 text-gray-400" />
               </div>
@@ -262,7 +273,7 @@ const Services = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="mb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <FaUserMd />
               </div>
@@ -272,7 +283,7 @@ const Services = () => {
               </p>
             </div>
             
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up" data-aos-delay="100">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <MdLocalHospital />
               </div>
@@ -282,7 +293,7 @@ const Services = () => {
               </p>
             </div>
             
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up" data-aos-delay="200">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <FaMoneyBillWave />
               </div>
@@ -295,7 +306,7 @@ const Services = () => {
         </div>
         
         {/* Mobile Filter Toggle */}
-        <div className="md:hidden mb-4">
+        <div className="md:hidden mb-4" data-aos="fade-up">
           <button 
             onClick={toggleFilters}
             className="w-full py-3 px-4 bg-white rounded-lg shadow-sm border border-gray-200 flex justify-between items-center"
@@ -314,7 +325,7 @@ const Services = () => {
         </div>
         
         {/* Filters Section */}
-        <div className={`${showFilters ? 'block' : 'hidden'} md:block mb-10`}>
+        <div className={`${showFilters ? 'block' : 'hidden'} md:block mb-10`} data-aos="fade-up">
           <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center">
@@ -444,7 +455,7 @@ const Services = () => {
         </div>
         
         <div className="mb-10">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4" data-aos="fade-up">
             <h2 className="text-2xl font-bold text-gray-800 flex items-center">
               <FaStethoscope className="text-primary mr-2" />
               Danh Sách Dịch Vụ
@@ -459,8 +470,10 @@ const Services = () => {
         {/* Services Grid */}
         {filteredServices.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {filteredServices.map(service => (
-              <ServiceCard key={service._id} service={service} />
+            {filteredServices.map((service, index) => (
+              <div key={service._id} data-aos="fade-up" data-aos-delay={index % 3 * 100}>
+                <ServiceCard service={service} />
+              </div>
             ))}
           </div>
         ) : (
@@ -483,7 +496,7 @@ const Services = () => {
         )}
         
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden" data-aos="fade-up" data-aos-delay="100">
           <div className="absolute top-0 right-0 w-64 h-64 -mt-10 -mr-20 opacity-20">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
               <path d="M19.906 9c.382 0 .749.057 1.094.162V9a3 3 0 00-3-3h-3.879a.75.75 0 01-.53-.22L11.47 3.66A2.25 2.25 0 009.879 3H6a3 3 0 00-3 3v3.162A3.756 3.756 0 014.094 9h15.812zM4.094 10.5a2.25 2.25 0 00-2.227 2.568l.857 6A2.25 2.25 0 004.951 21H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-2.227-2.568H4.094z" />

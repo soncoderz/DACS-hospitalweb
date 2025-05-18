@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
-import { FaStethoscope, FaUserMd, FaHospital, FaCalendarAlt, FaClock, FaMoneyBillWave, FaInfoCircle, FaArrowRight, FaStar, FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
-
-import ReactDOM from 'react-dom';
+import { FaStethoscope, FaUserMd, FaHospital, FaCalendarAlt, FaClock, FaMoneyBillWave, FaInfoCircle, FaArrowRight, FaStar, FaPhoneAlt, FaEnvelope, FaHeartbeat, FaLungs, FaBrain, FaAmbulance, FaBaby, FaTooth, FaEye, FaFileMedicalAlt, FaNotesMedical, FaXRay, FaBone, FaAllergies, FaWheelchair, FaPills, FaProcedures, FaHandHoldingMedical, FaVial, FaDna, FaFirstAid, FaBandAid, FaMicroscope, FaBed, FaVirus, FaTemperatureLow, FaHeadSideMask, FaCapsules, FaSyringe, FaPrescriptionBottle, FaFlask, FaBookMedical, FaIdCard, FaThermometer, FaHospitalUser, FaHospitalAlt, FaClinicMedical, FaHeartBroken } from 'react-icons/fa';
+import { GiMedicines, GiDna1, GiMedicalPack, GiHealthNormal, GiHumanEar, GiHeartOrgan, GiChemicalDrop } from 'react-icons/gi';
+import { MdLocalHospital, MdMedicalServices, MdBloodtype, MdOutlineVaccines } from 'react-icons/md';
+import { IoNutritionOutline } from 'react-icons/io5';
 
 const getSpecialtyColor = (name) => {
   // Use consistent blue color for all specialties
@@ -14,38 +15,106 @@ const getSpecialtyColor = (name) => {
 const getSpecialtyIcon = (specialty) => {
   if (!specialty) return <FaStethoscope style={{ fontSize: '3rem' }} />;
   
-  // Nếu có icon trong dữ liệu API, ưu tiên sử dụng
-  if (specialty.icon) {
-    return <i className={`fa ${specialty.icon}`} style={{ fontSize: '3rem', color: 'white' }}></i>;
-  }
-  
-  // Nếu không có icon, sử dụng mapping theo tên
+  // Define the icon mapping
   const iconMap = {
-    'da': <FaUserMd style={{ fontSize: '3rem' }} />,
-    'ngoại': <FaStethoscope style={{ fontSize: '3rem' }} />,
-    'nhi': <FaUserMd style={{ fontSize: '3rem' }} />,
-    'nội': <FaStethoscope style={{ fontSize: '3rem' }} />,
-    'sản': <FaUserMd style={{ fontSize: '3rem' }} />,
-    'tai': <FaStethoscope style={{ fontSize: '3rem' }} />,
-    'mắt': <FaUserMd style={{ fontSize: '3rem' }} />,
-    'răng': <FaStethoscope style={{ fontSize: '3rem' }} />,
-    'tâm': <FaUserMd style={{ fontSize: '3rem' }} />,
-    'tiêu': <FaStethoscope style={{ fontSize: '3rem' }} />,
-    'tim': <FaUserMd style={{ fontSize: '3rem' }} />,
-    'thần': <FaStethoscope style={{ fontSize: '3rem' }} />,
-    'thanh': <FaUserMd style={{ fontSize: '3rem' }} />,
-    'phục': <FaStethoscope style={{ fontSize: '3rem' }} />,
-    'đình': <FaUserMd style={{ fontSize: '3rem' }} />,
+    'stethoscope': FaStethoscope,
+    'heartbeat': FaHeartbeat,
+    'lungs': FaLungs,
+    'brain': FaBrain,
+    'ambulance': FaAmbulance,
+    'baby': FaBaby,
+    'tooth': FaTooth,
+    'eye': FaEye,
+    'file-medical-alt': FaFileMedicalAlt,
+    'notes-medical': FaNotesMedical,
+    'x-ray': FaXRay,
+    'bone': FaBone,
+    'allergies': FaAllergies,
+    'wheelchair': FaWheelchair,
+    'pills': FaPills,
+    'procedures': FaProcedures,
+    'hand-holding-medical': FaHandHoldingMedical,
+    'vial': FaVial,
+    'user-md': FaUserMd,
+    'hospital': FaHospital,
+    'dna': FaDna,
+    'first-aid': FaFirstAid,
+    'band-aid': FaBandAid,
+    'microscope': FaMicroscope,
+    'bed': FaBed,
+    'virus': FaVirus,
+    'temperature-low': FaTemperatureLow,
+    'head-side-mask': FaHeadSideMask,
+    'capsules': FaCapsules,
+    'syringe': FaSyringe,
+    'prescription-bottle': FaPrescriptionBottle,
+    'flask': FaFlask,
+    'book-medical': FaBookMedical,
+    'id-card': FaIdCard,
+    'thermometer': FaThermometer,
+    'hospital-user': FaHospitalUser,
+    'hospital-alt': FaHospitalAlt,
+    'clinic-medical': FaClinicMedical,
+    'heart-broken': FaHeartBroken,
+    'gi-medicines': GiMedicines,
+    'gi-dna': GiDna1,
+    'gi-medical-pack': GiMedicalPack,
+    'gi-health': GiHealthNormal,
+    'gi-ear': GiHumanEar,
+    'gi-heart': GiHeartOrgan,
+    'gi-chemical': GiChemicalDrop,
+    'md-hospital': MdLocalHospital,
+    'md-medical': MdMedicalServices,
+    'md-blood': MdBloodtype,
+    'md-vaccines': MdOutlineVaccines,
+    'io-nutrition': IoNutritionOutline,
   };
   
+  // If specialty has an icon property, use it
+  if (specialty.icon && iconMap[specialty.icon]) {
+    const IconComponent = iconMap[specialty.icon];
+    return <IconComponent style={{ fontSize: '3rem' }} />;
+  }
+  
+  // Fallback to matching by name if no icon property exists
   const lowerName = specialty.name?.toLowerCase() || '';
-  for (const [key, value] of Object.entries(iconMap)) {
+  const iconKeys = {
+    'da': 'allergies',
+    'ngoại': 'procedures',
+    'nhi': 'baby',
+    'nội': 'stethoscope',
+    'sản': 'baby',
+    'tai': 'gi-ear',
+    'mắt': 'eye',
+    'răng': 'tooth',
+    'tâm': 'brain',
+    'tiêu': 'gi-medicines',
+    'tim': 'heartbeat',
+    'thần': 'brain',
+    'thanh': 'lungs',
+    'phục': 'wheelchair',
+    'đình': 'hospital-user',
+    'truyền': 'vial',
+    'phổi': 'lungs',
+    'xương': 'bone',
+    'hô hấp': 'lungs',
+    'thể dục': 'wheelchair',
+    'dinh dưỡng': 'io-nutrition',
+    'chẩn đoán': 'microscope',
+    'thẩm mỹ': 'procedures',
+    'ung': 'flask',
+    'cấp cứu': 'ambulance',
+    'lão': 'hospital-user'
+  };
+  
+  for (const [key, value] of Object.entries(iconKeys)) {
     if (lowerName.includes(key)) {
-      return value;
+      const IconComponent = iconMap[value];
+      return IconComponent ? <IconComponent style={{ fontSize: '3rem' }} /> : <FaStethoscope style={{ fontSize: '3rem' }} />;
     }
   }
   
-  // Mặc định trả về FaStethoscope
+  // Default to stethoscope if no match
   return <FaStethoscope style={{ fontSize: '3rem' }} />;
 };
 
@@ -59,6 +128,36 @@ const SpecialtyDetail = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Get the appropriate icon component for service display
+  const getServiceIcon = (service, specialty) => {
+    // If service has its own icon, use it
+    if (service.icon) {
+      const iconMap = {
+        'stethoscope': FaStethoscope,
+        'heartbeat': FaHeartbeat,
+        'lungs': FaLungs,
+        'brain': FaBrain,
+        // Add other mappings as needed
+      };
+      const IconComponent = iconMap[service.icon] || FaStethoscope;
+      return <IconComponent className="text-primary text-xl" />;
+    }
+    
+    // Otherwise use the specialty's icon if available
+    if (specialty && specialty.icon) {
+      const iconMap = {
+        'stethoscope': FaStethoscope,
+        'heartbeat': FaHeartbeat,
+        // Add relevant mappings
+      };
+      const IconComponent = iconMap[specialty.icon] || FaStethoscope;
+      return <IconComponent className="text-primary text-xl" />;
+    }
+    
+    // Default to stethoscope
+    return <FaStethoscope className="text-primary text-xl" />;
+  };
   
   useEffect(() => {
     const fetchSpecialtyData = async () => {
@@ -157,17 +256,31 @@ const SpecialtyDetail = () => {
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.target.onerror = null;
-                      // Fallback to icon when image fails to load
-                      e.target.style.display = 'none';
-                      e.target.parentNode.style.backgroundColor = getSpecialtyColor(specialty.name);
-                      e.target.parentNode.style.display = 'flex';
-                      e.target.parentNode.style.alignItems = 'center';
-                      e.target.parentNode.style.justifyContent = 'center';
-                      const iconElement = document.createElement('div');
-                      iconElement.style.color = 'white';
-                      // Add icon to the parent node
-                      e.target.parentNode.appendChild(iconElement);
-                      ReactDOM.render(getSpecialtyIcon(specialty), iconElement);
+                      // Change to use a div with background and icon
+                      const container = e.target.parentNode;
+                      container.innerHTML = '';
+                      container.style.backgroundColor = getSpecialtyColor(specialty.name);
+                      container.style.display = 'flex';
+                      container.style.alignItems = 'center';
+                      container.style.justifyContent = 'center';
+                      
+                      // Create icon element
+                      const iconWrapper = document.createElement('div');
+                      iconWrapper.style.color = 'white';
+                      container.appendChild(iconWrapper);
+                      
+                      // Use React to render the icon
+                      const icon = getSpecialtyIcon(specialty);
+                      // We need to use a non-React way to add content since we can't use ReactDOM.render in this context
+                      iconWrapper.innerHTML = '<div style="font-size: 3rem;"></div>';
+                      const iconContainer = iconWrapper.querySelector('div');
+                      
+                      // Set a class name based on icon type for styling
+                      if (specialty.icon) {
+                        iconContainer.className = `icon-${specialty.icon}`;
+                      } else {
+                        iconContainer.className = 'icon-stethoscope';
+                      }
                     }}
                   />
                 </div>
@@ -184,7 +297,14 @@ const SpecialtyDetail = () => {
             </div>
             
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-800 mb-3 text-center md:text-left">{specialty.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-800 mb-3 text-center md:text-left flex items-center justify-center md:justify-start">
+                {getSpecialtyIcon(specialty).type && (
+                  <span className="inline-block mr-3 text-primary" style={{fontSize: "1.75rem"}}>
+                    {React.createElement(getSpecialtyIcon(specialty).type, { style: { fontSize: "1.75rem" } })}
+                  </span>
+                )}
+                {specialty.name}
+              </h1>
               <p className="text-gray-600 mb-6 text-center md:text-left leading-relaxed">{specialty.description || 'Không có mô tả chi tiết cho chuyên khoa này.'}</p>
               
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
@@ -297,7 +417,10 @@ const SpecialtyDetail = () => {
                   <div className="p-5 border-b border-gray-100">
                     <div className="flex items-center">
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mr-4">
-                        <FaStethoscope className="text-primary text-xl" />
+                        {React.createElement(
+                          getSpecialtyIcon(specialty).type || FaStethoscope,
+                          { className: "text-primary text-xl" }
+                        )}
                       </div>
                       <h3 className="text-lg font-semibold text-gray-800">{service.name}</h3>
                     </div>

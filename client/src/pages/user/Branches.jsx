@@ -4,6 +4,8 @@ import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { HospitalCard } from '../../components/user';
 import { FaHospital, FaSearch, FaMapMarkerAlt, FaPhone, FaCalendarAlt, FaFilter, FaChevronDown, FaTimes, FaBuilding, FaStar } from 'react-icons/fa';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 const Branches = () => {
   // Filter states
@@ -25,6 +27,15 @@ const Branches = () => {
   
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+
+  // Initialize AOS animation library
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: 'ease-out-cubic'
+    });
+  }, []);
 
   // Fetch branches data
   useEffect(() => {
@@ -227,11 +238,11 @@ const Branches = () => {
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">Các Chi Nhánh</h1>
-            <p className="text-xl opacity-90 mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white" data-aos="fade-up">Các Chi Nhánh</h1>
+            <p className="text-xl opacity-90 mb-8" data-aos="fade-up" data-aos-delay="100">
               Tìm chi nhánh gần nhất để được chăm sóc sức khỏe chất lượng cao
             </p>
-            <div className="relative max-w-xl mx-auto">
+            <div className="relative max-w-xl mx-auto" data-aos="fade-up" data-aos-delay="200">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaSearch className="h-5 w-5 text-gray-400" />
               </div>
@@ -262,7 +273,7 @@ const Branches = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           {/* Mobile Filter Toggle */}
-          <div className="md:hidden mb-4">
+          <div className="md:hidden mb-4" data-aos="fade-up">
             <button 
               onClick={toggleFilters}
               className="w-full py-3 px-4 bg-white rounded-lg shadow-sm border border-gray-200 flex justify-between items-center"
@@ -281,7 +292,7 @@ const Branches = () => {
           </div>
 
           {/* Filters */}
-          <div className={`${showFilters ? 'block' : 'hidden'} md:block mb-8`}>
+          <div className={`${showFilters ? 'block' : 'hidden'} md:block mb-8`} data-aos="fade-up">
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center">
@@ -434,7 +445,7 @@ const Branches = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-8" data-aos="fade-up">
             <h2 className="text-3xl font-bold text-gray-800 flex items-center">
               <FaHospital className="text-primary mr-3" />
               Danh sách chi nhánh
@@ -469,8 +480,10 @@ const Branches = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredBranches.map(branch => (
-                <HospitalCard key={branch._id} hospital={branch} />
+              {filteredBranches.map((branch, index) => (
+                <div key={branch._id} data-aos="fade-up" data-aos-delay={index % 3 * 100}>
+                  <HospitalCard hospital={branch} />
+                </div>
               ))}
             </div>
           )}
@@ -478,7 +491,7 @@ const Branches = () => {
       </section>
 
       {/* Call to Action Section */}
-      <section className="py-16 bg-gradient-to-r from-primary to-blue-700 relative overflow-hidden">
+      <section className="py-16 bg-gradient-to-r from-primary to-blue-700 relative overflow-hidden" data-aos="fade-up">
         <div className="absolute inset-0 opacity-10">
           <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
             <defs>

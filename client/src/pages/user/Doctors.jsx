@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import api from '../../utils/api';
 import { DoctorCard } from '../../components/user';
 import { FaSearch, FaUserMd, FaHospital, FaStethoscope, FaStar, FaFilter, FaCalendarCheck, FaChevronDown, FaTimes } from 'react-icons/fa';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 const Doctors = () => {
   // Filter states
@@ -25,6 +27,15 @@ const Doctors = () => {
 
   // Add state for debug panel
   const [showDebug, setShowDebug] = useState(false);
+
+  // Initialize AOS animation library
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: 'ease-out-cubic'
+    });
+  }, []);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -371,11 +382,11 @@ const Doctors = () => {
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">Đội Ngũ Bác Sĩ</h1>
-            <p className="text-xl opacity-90 mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white" data-aos="fade-up">Đội Ngũ Bác Sĩ</h1>
+            <p className="text-xl opacity-90 mb-8" data-aos="fade-up" data-aos-delay="100">
               Đội ngũ bác sĩ chuyên nghiệp, giàu kinh nghiệm của chúng tôi luôn sẵn sàng phục vụ quý khách
             </p>
-            <div className="relative max-w-xl mx-auto">
+            <div className="relative max-w-xl mx-auto" data-aos="fade-up" data-aos-delay="200">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaSearch className="h-5 w-5 text-gray-400" />
               </div>
@@ -404,7 +415,7 @@ const Doctors = () => {
 
       <div className="container mx-auto px-4 py-12">
         {/* Mobile Filter Toggle */}
-        <div className="md:hidden mb-4">
+        <div className="md:hidden mb-4" data-aos="fade-up">
           <button 
             onClick={toggleFilters}
             className="w-full py-3 px-4 bg-white rounded-lg shadow-sm border border-gray-200 flex justify-between items-center"
@@ -423,7 +434,7 @@ const Doctors = () => {
         </div>
 
         {/* Filters */}
-        <div className={`${showFilters ? 'block' : 'hidden'} md:block`}>
+        <div className={`${showFilters ? 'block' : 'hidden'} md:block`} data-aos="fade-up">
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center">
@@ -636,7 +647,7 @@ const Doctors = () => {
           </div>
         </div>
 
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between" data-aos="fade-up">
           <h2 className="text-2xl font-bold text-gray-800 flex items-center">
             <FaUserMd className="text-primary mr-2" />
             Danh Sách Bác Sĩ
@@ -650,8 +661,10 @@ const Doctors = () => {
         {/* Doctors Grid */}
         {Array.isArray(filteredDoctors) && filteredDoctors.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {filteredDoctors.map(doctor => (
-              <DoctorCard key={doctor._id} doctor={doctor} />
+            {filteredDoctors.map((doctor, index) => (
+              <div key={doctor._id} data-aos="fade-up" data-aos-delay={index % 3 * 100}>
+                <DoctorCard doctor={doctor} />
+              </div>
             ))}
           </div>
         ) : (
@@ -671,7 +684,7 @@ const Doctors = () => {
         )}
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden" data-aos="fade-up" data-aos-delay="100">
           <div className="absolute top-0 right-0 w-64 h-64 -mt-10 -mr-20 opacity-20">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm-3.707 6.293a1 1 0 011.414 0L10 10.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />

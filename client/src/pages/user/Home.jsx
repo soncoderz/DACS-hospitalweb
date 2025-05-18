@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
-import { FaHospitalAlt, FaUserMd, FaStar, FaCalendarCheck, FaMapMarkerAlt, FaPhone, FaAngleRight, FaChevronLeft, FaChevronRight, FaRegClock, FaHospital, FaStethoscope, FaHeartbeat, FaAmbulance, FaBrain, FaLungs, FaFileMedicalAlt, FaBaby, FaTooth, FaEye } from 'react-icons/fa';
+import { FaHospitalAlt, FaUserMd, FaStar, FaCalendarCheck, FaMapMarkerAlt, FaPhone, FaAngleRight, FaChevronLeft, FaChevronRight, FaRegClock, FaHospital, FaStethoscope, FaHeartbeat, FaAmbulance, FaBrain, FaLungs, FaFileMedicalAlt, FaBaby, FaTooth, FaEye, FaNotesMedical, FaXRay, FaBone, FaAllergies, FaWheelchair, FaPills, FaProcedures, FaHandHoldingMedical, FaVial, FaDna, FaFirstAid, FaBandAid, FaMicroscope, FaBed, FaVirus, FaTemperatureLow, FaHeadSideMask, FaCapsules, FaSyringe, FaPrescriptionBottle, FaFlask, FaBookMedical, FaIdCard, FaThermometer, FaHospitalUser, FaClinicMedical, FaHeartBroken } from 'react-icons/fa';
+import { GiMedicines, GiDna1, GiMedicalPack, GiHealthNormal, GiHumanEar, GiHeartOrgan, GiChemicalDrop } from 'react-icons/gi';
+import { MdLocalHospital, MdMedicalServices, MdBloodtype, MdOutlineVaccines } from 'react-icons/md';
+import { IoNutritionOutline } from 'react-icons/io5';
 import { Splide, SplideSlide, SplideTrack } from '@splidejs/react-splide';
 import '@splidejs/splide/dist/css/splide.min.css';
 import AOS from 'aos';
@@ -14,12 +17,19 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [featuredDoctors, setFeaturedDoctors] = useState([]);
   const [branches, setBranches] = useState([]);
+  const [specialties, setSpecialties] = useState([]);
   const [stats, setStats] = useState({
     reviewsCount: 0,
     doctorsCount: 0,
     branchesCount: 0,
     appointmentsCount: 0
   });
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [newsError, setNewsError] = useState(null);
+  const [topReviews, setTopReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState(null);
   
   // Initialize AOS animation library
   useEffect(() => {
@@ -51,6 +61,14 @@ const Home = () => {
             limit: 6
           }
         });
+
+        // Fetch specialties - limit to 5 featured specialties
+        const specialtiesResponse = await api.get('/specialties', {
+          params: {
+            limit: 5,
+            featured: true
+          }
+        });
         
         // Fetch statistics
         const statsResponse = await api.get('/reviews/all');
@@ -59,6 +77,7 @@ const Home = () => {
         
         console.log('Doctors response:', doctorsResponse.data);
         console.log('Branches response:', branchesResponse.data);
+        console.log('Specialties response:', specialtiesResponse.data);
         
         // Xử lý dữ liệu bác sĩ
         let doctorsData = [];
@@ -105,6 +124,25 @@ const Home = () => {
           });
         }
         
+        // Xử lý dữ liệu chuyên khoa
+        let specialtiesData = [];
+        if (specialtiesResponse.data) {
+          if (Array.isArray(specialtiesResponse.data.data)) {
+            specialtiesData = specialtiesResponse.data.data;
+          } else if (specialtiesResponse.data.data && specialtiesResponse.data.data.specialties) {
+            // Trường hợp cấu trúc mới: { data: { specialties: [...] } }
+            specialtiesData = specialtiesResponse.data.data.specialties;
+          }
+        }
+        
+        // Lọc chỉ hiển thị các chuyên khoa đang hoạt động (isActive=true)
+        specialtiesData = specialtiesData.filter(specialty => specialty.isActive === true);
+        
+        // Giới hạn số lượng hiển thị
+        specialtiesData = specialtiesData.slice(0, 5);
+        
+        setSpecialties(specialtiesData);
+        
         setError(null);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -115,6 +153,87 @@ const Home = () => {
     };
 
     fetchHomeData();
+  }, []);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      setNewsLoading(true);
+      try {
+        const response = await api.get('/news/all');
+        console.log('News response:', response.data);
+        
+        // Get news data - handle different API response formats
+        let newsData = [];
+        if (response.data) {
+          if (Array.isArray(response.data.news)) {
+            newsData = response.data.news.slice(0, 3); // Get first 3 news items
+          } else if (response.data.news && Array.isArray(response.data.news)) {
+            newsData = response.data.news.slice(0, 3);
+          }
+        }
+        
+        setNews(newsData);
+        setNewsError(null);
+      } catch (error) {
+        console.error('Error fetching news:', error);
+        setNewsError('Không thể tải tin tức. Vui lòng thử lại sau.');
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, []);
+
+  useEffect(() => {
+    const fetchTopReviews = async () => {
+      setReviewsLoading(true);
+      try {
+        const response = await api.get('/reviews/all', {
+          params: {
+            limit: 4,
+            sort: '-rating', // Sort by highest rating
+            page: 1
+          }
+        });
+        
+        console.log('Top reviews response:', response.data);
+        
+        // Get reviews data - handle different API response formats
+        let reviewsData = [];
+        if (response.data && response.data.success) {
+          // Check the actual response structure
+          if (response.data.data && Array.isArray(response.data.data.docs)) {
+            reviewsData = response.data.data.docs;
+          } else if (Array.isArray(response.data.data)) {
+            reviewsData = response.data.data;
+          } else if (response.data.data && Array.isArray(response.data.data.reviews)) {
+            reviewsData = response.data.data.reviews;
+          } else if (Array.isArray(response.data.reviews)) {
+            reviewsData = response.data.reviews;
+          }
+        }
+        
+        // Filter to get only 5-star reviews if possible, otherwise get top rated
+        let fiveStarReviews = reviewsData.filter(review => review.rating === 5);
+        if (fiveStarReviews.length >= 2) {
+          // Use top 2 five-star reviews 
+          setTopReviews(fiveStarReviews.slice(0, 2));
+        } else {
+          // Just use top 2 reviews sorted by rating
+          setTopReviews(reviewsData.slice(0, 2));
+        }
+        
+        setReviewsError(null);
+      } catch (error) {
+        console.error('Error fetching top reviews:', error);
+        setReviewsError('Không thể tải đánh giá. Vui lòng thử lại sau.');
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchTopReviews();
   }, []);
 
   if (loading) {
@@ -212,6 +331,66 @@ const Home = () => {
     );
   };
 
+  // Helper function to map icon strings to FA components
+  const getIconComponent = (iconName) => {
+    const iconMap = {
+      'stethoscope': FaStethoscope,
+      'heartbeat': FaHeartbeat,
+      'lungs': FaLungs,
+      'brain': FaBrain,
+      'ambulance': FaAmbulance,
+      'baby': FaBaby,
+      'tooth': FaTooth,
+      'eye': FaEye,
+      'file-medical-alt': FaFileMedicalAlt,
+      'notes-medical': FaNotesMedical,
+      'x-ray': FaXRay,
+      'bone': FaBone,
+      'allergies': FaAllergies,
+      'wheelchair': FaWheelchair,
+      'pills': FaPills,
+      'procedures': FaProcedures,
+      'hand-holding-medical': FaHandHoldingMedical,
+      'vial': FaVial,
+      'user-md': FaUserMd,
+      'hospital': FaHospitalAlt,
+      'dna': FaDna,
+      'first-aid': FaFirstAid,
+      'band-aid': FaBandAid,
+      'microscope': FaMicroscope,
+      'bed': FaBed,
+      'virus': FaVirus,
+      'temperature-low': FaTemperatureLow,
+      'head-side-mask': FaHeadSideMask,
+      'capsules': FaCapsules,
+      'syringe': FaSyringe,
+      'prescription-bottle': FaPrescriptionBottle,
+      'flask': FaFlask,
+      'book-medical': FaBookMedical,
+      'id-card': FaIdCard,
+      'thermometer': FaThermometer,
+      'hospital-user': FaHospitalUser,
+      'hospital-alt': FaHospitalAlt,
+      'clinic-medical': FaClinicMedical,
+      'heart-broken': FaHeartBroken,
+      'gi-medicines': GiMedicines,
+      'gi-dna': GiDna1,
+      'gi-medical-pack': GiMedicalPack,
+      'gi-health': GiHealthNormal,
+      'gi-ear': GiHumanEar,
+      'gi-heart': GiHeartOrgan,
+      'gi-chemical': GiChemicalDrop,
+      'md-hospital': MdLocalHospital,
+      'md-medical': MdMedicalServices,
+      'md-blood': MdBloodtype,
+      'md-vaccines': MdOutlineVaccines,
+      'io-nutrition': IoNutritionOutline
+    };
+    
+    // Return the component if it exists in the map, otherwise return a default
+    return iconMap[iconName?.toLowerCase()] || FaStethoscope;
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Banner */}
@@ -240,7 +419,7 @@ const Home = () => {
               <div className="inline-block bg-blue-500/50 backdrop-blur-md px-5 py-2.5 rounded-full text-sm font-medium mb-2 shadow-lg animate-slide-in-left">
                 <span className="flex items-center text-white">
                   <FaHospitalAlt className="mr-2 text-white" /> 
-                  Hệ thống y tế chất lượng hàng đầu Việt Nam
+                  Hệ thống y tế chất lượng 
                 </span>
               </div>
               
@@ -274,13 +453,13 @@ const Home = () => {
             {/* Right Image/Card Area - Updated with doctor in white coat */}
             <div className="w-full lg:w-1/2 flex justify-center animate-fade-in-up animation-delay-600">
               <div className="relative z-10">
-                {/* Floating Working Hours Card */}
+                {/* Floating Working Hours Card - Changed to Featured Doctor */}
                 <div className="absolute -top-8 -left-10 bg-blue-600 rounded-xl shadow-2xl p-4 animate-float z-20">
                   <div className="flex items-center text-white">
-                    <FaRegClock className="mr-2 text-xl text-white" />
-                    <span className="font-medium">Giờ làm việc: 7:00 - 20:00</span>
-          </div>
-        </div>
+                    <FaUserMd className="mr-2 text-xl text-white" />
+                    <span className="font-medium">Bác sĩ tiêu biểu</span>
+                  </div>
+                </div>
                 
                 {/* Main Doctor Image */}
                 <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-5 rounded-3xl shadow-2xl rotate-2 transition-transform hover:rotate-0 duration-500 z-10 relative">
@@ -357,27 +536,9 @@ const Home = () => {
                   </div>
                 </div>
                 
-                {/* Floating Hotline Card */}
-                <div className="absolute -bottom-10 -right-8 bg-blue-600 rounded-xl shadow-2xl p-4 animate-float-delay z-20">
-                  <div className="flex items-center text-white">
-                    <FaPhone className="mr-2 text-xl text-white" />
-                    <span className="font-medium">Hotline: 1900 1008</span>
-                  </div>
-                </div>
-                
                 {/* Decorative elements */}
                 <div className="absolute -z-10 -top-12 -right-12 w-32 h-32 rounded-full border-4 border-dashed border-white/30 animate-spin-slow"></div>
                 <div className="absolute -z-10 -bottom-12 -left-12 w-24 h-24 rounded-full border-4 border-dotted border-yellow-300/30 animate-spin-reverse"></div>
-                
-                {/* Added trust badge */}
-                <div className="absolute top-1/2 -right-16 transform -translate-y-1/2 bg-blue-700 text-white py-2 px-4 rounded-lg shadow-xl rotate-90 font-semibold animate-float-delay2">
-                  <span className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Chất lượng
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -544,115 +705,231 @@ const Home = () => {
 
           {/* Bento Grid Layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Feature Box 1 - Large Box */}
-            <div className="col-span-1 md:col-span-2 md:row-span-2 bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up">
-              <div className="relative h-64 overflow-hidden">
-                <img 
-                  src="https://img.freepik.com/free-photo/doctor-with-stethoscope-hands-hospital-background_1423-1.jpg" 
-                  alt="Nội khoa" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent"></div>
-                <div className="absolute bottom-4 left-6">
-                  <h3 className="text-white text-2xl font-bold mb-2 flex items-center">
-                    <FaStethoscope className="mr-2" /> Nội Khoa
-                  </h3>
-                  <p className="text-white/90 line-clamp-2">Chẩn đoán và điều trị các bệnh lý nội khoa với đội ngũ chuyên gia hàng đầu</p>
-                </div>
-              </div>
-              <div className="p-6">
-                <ul className="space-y-2">
-                  <li className="flex items-start">
-                    <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
-                      <FaHeartbeat className="w-4 h-4" />
-                    </span>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Nội Tim Mạch</h4>
-                      <p className="text-sm text-gray-600">Chẩn đoán và điều trị các bệnh tim mạch</p>
+            {specialties.length > 0 ? (
+              <>
+                {/* Feature Box 1 - Large Box */}
+                {specialties[0] && (
+                  <div className="col-span-1 md:col-span-2 md:row-span-2 bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up">
+                    <div className="relative h-64 overflow-hidden">
+                      <img 
+                        src={specialties[0].imageUrl || "https://img.freepik.com/free-photo/doctor-with-stethoscope-hands-hospital-background_1423-1.jpg"} 
+                        alt={specialties[0].name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://img.freepik.com/free-photo/doctor-with-stethoscope-hands-hospital-background_1423-1.jpg";
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent"></div>
+                      <div className="absolute bottom-4 left-6">
+                        <h3 className="text-white text-2xl font-bold mb-2 flex items-center">
+                          {React.createElement(getIconComponent(specialties[0].icon), { className: "mr-2" })} {specialties[0].name}
+                        </h3>
+                        <p className="text-white/90 line-clamp-2">{specialties[0].description || `Chẩn đoán và điều trị các bệnh lý ${specialties[0].name.toLowerCase()} với đội ngũ chuyên gia hàng đầu`}</p>
+                      </div>
                     </div>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
-                      <FaLungs className="w-4 h-4" />
-                    </span>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Nội Hô Hấp</h4>
-                      <p className="text-sm text-gray-600">Điều trị các bệnh lý về đường hô hấp</p>
+                    <div className="p-6">
+                      <ul className="space-y-2">
+                        {specialties[0].commonServices && specialties[0].commonServices.slice(0, 3).map((service, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
+                              {React.createElement(getIconComponent(specialties[0].icon), { className: "w-4 h-4" })}
+                            </span>
+                            <div>
+                              <h4 className="font-medium text-gray-900">{service}</h4>
+                              <p className="text-sm text-gray-600">Điều trị chuyên sâu</p>
+                            </div>
+                          </li>
+                        ))}
+                        {(!specialties[0].commonServices || specialties[0].commonServices.length === 0) && (
+                          <>
+                            <li className="flex items-start">
+                              <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
+                                {React.createElement(getIconComponent(specialties[0].icon), { className: "w-4 h-4" })}
+                              </span>
+                              <div>
+                                <h4 className="font-medium text-gray-900">Khám bệnh</h4>
+                                <p className="text-sm text-gray-600">Khám và chẩn đoán</p>
+                              </div>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
+                                {React.createElement(getIconComponent(specialties[0].icon), { className: "w-4 h-4" })}
+                              </span>
+                              <div>
+                                <h4 className="font-medium text-gray-900">Điều trị</h4>
+                                <p className="text-sm text-gray-600">Điều trị các bệnh lý</p>
+                              </div>
+                            </li>
+                            <li className="flex items-start">
+                              <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
+                                {React.createElement(getIconComponent(specialties[0].icon), { className: "w-4 h-4" })}
+                              </span>
+                              <div>
+                                <h4 className="font-medium text-gray-900">Tư vấn</h4>
+                                <p className="text-sm text-gray-600">Tư vấn sức khỏe</p>
+                              </div>
+                            </li>
+                          </>
+                        )}
+                      </ul>
+                      <div className="mt-4 text-right">
+                        <Link to={`/specialties/${specialties[0]._id}`} className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
+                          Xem thêm <FaAngleRight className="ml-1" />
+                        </Link>
+                      </div>
                     </div>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
-                      <FaBrain className="w-4 h-4" />
-                    </span>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Nội Thần Kinh</h4>
-                      <p className="text-sm text-gray-600">Chẩn đoán và điều trị các bệnh lý thần kinh</p>
+                  </div>
+                )}
+
+                {/* Feature Box 2 */}
+                {specialties[1] && (
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="100">
+                    <div className="p-6">
+                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                        {React.createElement(getIconComponent(specialties[1].icon), { className: "text-green-600 text-xl" })}
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{specialties[1].name}</h3>
+                      <p className="text-gray-600 mb-4">{specialties[1].description || `Điều trị các bệnh lý ${specialties[1].name.toLowerCase()} với đội ngũ y bác sĩ giàu kinh nghiệm`}</p>
+                      <Link to={`/specialties/${specialties[1]._id}`} className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
+                        Tìm hiểu thêm <FaAngleRight className="ml-1" />
+                      </Link>
                     </div>
-                  </li>
-                </ul>
-                <div className="mt-4 text-right">
-                  <Link to="/specialties" className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
-                    Xem thêm <FaAngleRight className="ml-1" />
-              </Link>
-            </div>
-              </div>
-            </div>
+                  </div>
+                )}
 
-            {/* Feature Box 2 */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="100">
-              <div className="p-6">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                  <FaUserMd className="text-green-600 text-xl" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Ngoại Khoa</h3>
-                <p className="text-gray-600 mb-4">Phẫu thuật an toàn với các bác sĩ phẫu thuật hàng đầu</p>
-                <Link to="/specialties/surgery" className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
-                  Tìm hiểu thêm <FaAngleRight className="ml-1" />
-                </Link>
-              </div>
-            </div>
+                {/* Feature Box 3 */}
+                {specialties[2] && (
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="200">
+                    <div className="p-6">
+                      <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                        {React.createElement(getIconComponent(specialties[2].icon), { className: "text-red-600 text-xl" })}
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{specialties[2].name}</h3>
+                      <p className="text-gray-600 mb-4">{specialties[2].description || `Dịch vụ ${specialties[2].name.toLowerCase()} chất lượng cao với trang thiết bị hiện đại`}</p>
+                      <Link to={`/specialties/${specialties[2]._id}`} className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
+                        Tìm hiểu thêm <FaAngleRight className="ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
-            {/* Feature Box 3 */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="200">
-              <div className="p-6">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                  <FaAmbulance className="text-red-600 text-xl" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Cấp Cứu</h3>
-                <p className="text-gray-600 mb-4">Dịch vụ cấp cứu 24/7 với thiết bị hiện đại</p>
-                <Link to="/specialties/emergency" className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
-                  Tìm hiểu thêm <FaAngleRight className="ml-1" />
-                </Link>
-              </div>
-            </div>
+                {/* Feature Box 4 */}
+                {specialties[3] && (
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="100">
+                    <div className="p-6">
+                      <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-4">
+                        {React.createElement(getIconComponent(specialties[3].icon), { className: "text-purple-600 text-xl" })}
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{specialties[3].name}</h3>
+                      <p className="text-gray-600 mb-4">{specialties[3].description || `Chăm sóc toàn diện các bệnh lý ${specialties[3].name.toLowerCase()}`}</p>
+                      <Link to={`/specialties/${specialties[3]._id}`} className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
+                        Tìm hiểu thêm <FaAngleRight className="ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
-            {/* Feature Box 4 */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="100">
-              <div className="p-6">
-                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-4">
-                  <FaBaby className="text-purple-600 text-xl" />
+                {/* Feature Box 5 */}
+                {specialties[4] && (
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="200">
+                    <div className="p-6">
+                      <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mb-4">
+                        {React.createElement(getIconComponent(specialties[4].icon), { className: "text-yellow-600 text-xl" })}
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{specialties[4].name}</h3>
+                      <p className="text-gray-600 mb-4">{specialties[4].description || `Dịch vụ ${specialties[4].name.toLowerCase()} chất lượng cao với công nghệ tiên tiến`}</p>
+                      <Link to={`/specialties/${specialties[4]._id}`} className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
+                        Tìm hiểu thêm <FaAngleRight className="ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Fallback content if no specialties are found */}
+                <div className="col-span-1 md:col-span-2 md:row-span-2 bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up">
+                  <div className="relative h-64 overflow-hidden">
+                    <img 
+                      src="https://img.freepik.com/free-photo/doctor-with-stethoscope-hands-hospital-background_1423-1.jpg" 
+                      alt="Nội khoa" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent"></div>
+                    <div className="absolute bottom-4 left-6">
+                      <h3 className="text-white text-2xl font-bold mb-2 flex items-center">
+                        <FaStethoscope className="mr-2" /> Nội Khoa
+                      </h3>
+                      <p className="text-white/90 line-clamp-2">Chẩn đoán và điều trị các bệnh lý nội khoa với đội ngũ chuyên gia hàng đầu</p>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <ul className="space-y-2">
+                      <li className="flex items-start">
+                        <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
+                          <FaHeartbeat className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Nội Tim Mạch</h4>
+                          <p className="text-sm text-gray-600">Chẩn đoán và điều trị các bệnh tim mạch</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
+                          <FaLungs className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Nội Hô Hấp</h4>
+                          <p className="text-sm text-gray-600">Điều trị các bệnh lý về đường hô hấp</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="bg-blue-100 p-1 rounded text-blue-700 mr-3 mt-0.5">
+                          <FaBrain className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Nội Thần Kinh</h4>
+                          <p className="text-sm text-gray-600">Chẩn đoán và điều trị các bệnh lý thần kinh</p>
+                        </div>
+                      </li>
+                    </ul>
+                    <div className="mt-4 text-right">
+                      <Link to="/specialties" className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
+                        Xem thêm <FaAngleRight className="ml-1" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Sản - Nhi</h3>
-                <p className="text-gray-600 mb-4">Chăm sóc toàn diện cho mẹ và bé</p>
-                <Link to="/specialties/obstetrics-pediatrics" className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
-                  Tìm hiểu thêm <FaAngleRight className="ml-1" />
-                </Link>
-              </div>
-            </div>
 
-            {/* Feature Box 5 */}
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="200">
-              <div className="p-6">
-                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mb-4">
-                  <FaTooth className="text-yellow-600 text-xl" />
+                {/* Default boxes for when API data is not available */}
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="100">
+                  <div className="p-6">
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                      <FaUserMd className="text-green-600 text-xl" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Ngoại Khoa</h3>
+                    <p className="text-gray-600 mb-4">Phẫu thuật an toàn với các bác sĩ phẫu thuật hàng đầu</p>
+                    <Link to="/specialties" className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
+                      Tìm hiểu thêm <FaAngleRight className="ml-1" />
+                    </Link>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Răng Hàm Mặt</h3>
-                <p className="text-gray-600 mb-4">Dịch vụ nha khoa cao cấp với công nghệ tiên tiến</p>
-                <Link to="/specialties/dental" className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
-                  Tìm hiểu thêm <FaAngleRight className="ml-1" />
-                </Link>
-              </div>
-            </div>
+
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden group" data-aos="fade-up" data-aos-delay="200">
+                  <div className="p-6">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                      <FaAmbulance className="text-red-600 text-xl" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Cấp Cứu</h3>
+                    <p className="text-gray-600 mb-4">Dịch vụ cấp cứu 24/7 với thiết bị hiện đại</p>
+                    <Link to="/specialties" className="text-primary hover:text-primary-dark inline-flex items-center font-medium">
+                      Tìm hiểu thêm <FaAngleRight className="ml-1" />
+                    </Link>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="text-center mt-12">
@@ -996,99 +1273,75 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12" data-aos="fade-up">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
-              <span className="inline-block border-b-4 border-primary pb-2">Kiến Thức Y Tế</span>
+              <span className="inline-block border-b-4 border-primary pb-2">Kiến Thức Y Tế và Tin Tức</span>
             </h2>
             <p className="text-gray-600 max-w-3xl mx-auto mt-4 text-lg">
               Cập nhật những thông tin y tế hữu ích và kiến thức chăm sóc sức khỏe cho bạn và gia đình
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Health Tip 1 */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="0">
-              <div className="relative h-48 overflow-hidden">
-                <img 
-                  src="https://img.freepik.com/free-photo/doctor-offering-medical-advice-patient-clinic_1170-2176.jpg" 
-                  alt="Kiểm tra sức khỏe định kỳ" 
-                  className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
-                />
-                <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs py-1 px-2 rounded">Sức khỏe tổng quát</div>
-              </div>
-              <div className="p-6">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Tầm quan trọng của việc kiểm tra sức khỏe định kỳ</h3>
-                <p className="text-gray-600 mb-4 line-clamp-2">
-                  Khám sức khỏe định kỳ giúp phát hiện sớm các bệnh lý tiềm ẩn và có biện pháp điều trị kịp thời...
-                </p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">12/08/2023</span>
-                  <Link 
-                    to="/blog/health-checkup" 
-                    className="text-primary hover:text-primary-dark font-medium flex items-center"
-                  >
-                    Đọc thêm <FaAngleRight className="ml-1" />
-                  </Link>
-                </div>
-              </div>
+          {newsLoading ? (
+            <div className="flex justify-center items-center">
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <span className="ml-3 text-gray-600">Đang tải tin tức...</span>
             </div>
-
-            {/* Health Tip 2 */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="100">
-              <div className="relative h-48 overflow-hidden">
-                <img 
-                  src="https://img.freepik.com/free-photo/balanced-nutrition-healthy-diet-food-concept_53876-138863.jpg" 
-                  alt="Dinh dưỡng" 
-                  className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
-                />
-                <div className="absolute top-3 left-3 bg-green-600 text-white text-xs py-1 px-2 rounded">Dinh dưỡng</div>
-              </div>
-              <div className="p-6">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Chế độ dinh dưỡng hợp lý cho bệnh nhân tiểu đường</h3>
-                <p className="text-gray-600 mb-4 line-clamp-2">
-                  Người bệnh tiểu đường cần lưu ý những thực phẩm nào nên và không nên sử dụng để kiểm soát đường huyết...
-                </p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">05/08/2023</span>
-                  <Link 
-                    to="/blog/diabetes-diet" 
-                    className="text-primary hover:text-primary-dark font-medium flex items-center"
-                  >
-                    Đọc thêm <FaAngleRight className="ml-1" />
-                  </Link>
-                </div>
-              </div>
+          ) : newsError ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mb-8">
+              <p className="text-red-600">{newsError}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-3 bg-primary text-white py-2 px-4 rounded hover:bg-primary-dark transition-colors"
+              >
+                Thử lại
+              </button>
             </div>
-
-            {/* Health Tip 3 */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="200">
-              <div className="relative h-48 overflow-hidden">
-                <img 
-                  src="https://img.freepik.com/free-photo/elderly-woman-doing-physical-therapy-exercises-rehabilitation-center_1170-2345.jpg" 
-                  alt="Phục hồi chức năng" 
-                  className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
-                />
-                <div className="absolute top-3 left-3 bg-purple-600 text-white text-xs py-1 px-2 rounded">Phục hồi chức năng</div>
-              </div>
-              <div className="p-6">
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Bài tập phục hồi chức năng sau tai biến mạch máu não</h3>
-                <p className="text-gray-600 mb-4 line-clamp-2">
-                  Những bài tập đơn giản giúp người bệnh tai biến mạch máu não phục hồi vận động và ngôn ngữ nhanh chóng...
-                </p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">28/07/2023</span>
-                  <Link 
-                    to="/blog/stroke-rehabilitation" 
-                    className="text-primary hover:text-primary-dark font-medium flex items-center"
-                  >
-                    Đọc thêm <FaAngleRight className="ml-1" />
-                  </Link>
-                </div>
-              </div>
+          ) : news.length === 0 ? (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center mb-8">
+              <p className="text-gray-600">Hiện tại chưa có tin tức nào.</p>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {news.map((item) => (
+                <div key={item._id} className="bg-white rounded-xl shadow-md overflow-hidden" data-aos="fade-up" data-aos-delay="0">
+                  <div className="relative h-48 overflow-hidden">
+                    <img 
+                      src={item.image?.url || "https://img.freepik.com/free-photo/doctor-offering-medical-advice-patient-clinic_1170-2176.jpg"} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://img.freepik.com/free-photo/doctor-offering-medical-advice-patient-clinic_1170-2176.jpg";
+                      }}
+                    />
+                    <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs py-1 px-2 rounded">
+                      {item.category || 'Sức khỏe tổng quát'}
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="font-bold text-lg text-gray-900 mb-2">{item.title}</h3>
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      {item.summary || 'Không có mô tả.'}
+                    </p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">
+                        {new Date(item.publishDate).toLocaleDateString('vi-VN')}
+                      </span>
+                      <Link 
+                        to={`/news/${item.slug || item._id}`} 
+                        className="text-primary hover:text-primary-dark font-medium flex items-center"
+                      >
+                        Đọc thêm <FaAngleRight className="ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-10">
             <Link 
-              to="/blog" 
+              to="/news" 
               className="inline-flex items-center border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-lg font-medium transition-colors duration-300"
             >
               Xem tất cả bài viết <FaAngleRight className="ml-2" />
@@ -1105,75 +1358,124 @@ const Home = () => {
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
-              <span className="inline-block border-b-4 border-primary pb-2">Câu Chuyện Từ Bệnh Nhân</span>
+              <span className="inline-block border-b-4 border-primary pb-2">Đánh Giá Từ Bệnh Nhân</span>
             </h2>
             <p className="text-gray-600 max-w-3xl mx-auto mt-4 text-lg">
               Những trải nghiệm và cảm nhận thực tế từ bệnh nhân đã điều trị tại bệnh viện
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Testimonial 1 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg relative" data-aos="fade-up" data-aos-delay="100">
-              <div className="absolute -top-5 left-8 text-6xl text-blue-200">"</div>
-              <div className="relative z-10">
-                <p className="text-gray-700 italic mb-6 text-lg">
-                  "Tôi đã điều trị tại đây với một ca phẫu thuật tim khá phức tạp. Đội ngũ y bác sĩ rất chuyên nghiệp, tận tâm và chu đáo. Tôi đặc biệt cảm kích bác sĩ Nguyễn Văn A đã theo dõi sức khỏe của tôi rất sát sao trong thời gian hậu phẫu. Giờ đây sức khỏe của tôi đã ổn định."
-                </p>
-                <div className="flex items-center">
-                  <img 
-                    src="https://randomuser.me/api/portraits/men/32.jpg" 
-                    alt="Ông Trần Văn B" 
-                    className="w-14 h-14 rounded-full object-cover mr-4"
-                  />
-                  <div>
-                    <h4 className="font-bold text-gray-900">Ông Trần Văn B</h4>
-                    <p className="text-gray-600 text-sm">Bệnh nhân phẫu thuật tim, 58 tuổi</p>
-                    <div className="flex items-center mt-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <FaStar key={star} className="w-4 h-4 text-yellow-400" />
-                      ))}
+          {reviewsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <span className="ml-3 text-gray-600">Đang tải đánh giá...</span>
+            </div>
+          ) : reviewsError ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mb-8 max-w-2xl mx-auto">
+              <p className="text-red-600 mb-2">{reviewsError}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-2 bg-primary text-white py-2 px-4 rounded hover:bg-primary-dark transition-colors"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : topReviews.length === 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Fallback Testimonial 1 */}
+              <div className="bg-white p-8 rounded-xl shadow-lg relative" data-aos="fade-up" data-aos-delay="100">
+                <div className="absolute -top-5 left-8 text-6xl text-blue-200">"</div>
+                <div className="relative z-10">
+                  <p className="text-gray-700 italic mb-6 text-lg">
+                    "Tôi đã điều trị tại đây với một ca phẫu thuật tim khá phức tạp. Đội ngũ y bác sĩ rất chuyên nghiệp, tận tâm và chu đáo. Tôi đặc biệt cảm kích bác sĩ Nguyễn Văn A đã theo dõi sức khỏe của tôi rất sát sao trong thời gian hậu phẫu. Giờ đây sức khỏe của tôi đã ổn định."
+                  </p>
+                  <div className="flex items-center">
+                    <img 
+                      src="https://randomuser.me/api/portraits/men/32.jpg" 
+                      alt="Ông Trần Văn B" 
+                      className="w-14 h-14 rounded-full object-cover mr-4"
+                    />
+                    <div>
+                      <h4 className="font-bold text-gray-900">Ông Trần Văn B</h4>
+                      <p className="text-gray-600 text-sm">Bệnh nhân phẫu thuật tim, 58 tuổi</p>
+                      <div className="flex items-center mt-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <FaStar key={star} className="w-4 h-4 text-yellow-400" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fallback Testimonial 2 */}
+              <div className="bg-white p-8 rounded-xl shadow-lg relative" data-aos="fade-up" data-aos-delay="200">
+                <div className="absolute -top-5 left-8 text-6xl text-blue-200">"</div>
+                <div className="relative z-10">
+                  <p className="text-gray-700 italic mb-6 text-lg">
+                    "Tôi đã sinh con tại bệnh viện và rất hài lòng với dịch vụ. Đội ngũ y tá và bác sĩ sản khoa luôn bên cạnh hỗ trợ tôi, giúp tôi vượt cạn thành công. Phòng dịch vụ sạch sẽ, tiện nghi và thái độ phục vụ rất tốt. Tôi sẽ tiếp tục khám thai và sinh con tại đây nếu có bầu lần sau."
+                  </p>
+                  <div className="flex items-center">
+                    <img 
+                      src="https://randomuser.me/api/portraits/women/65.jpg" 
+                      alt="Chị Phạm Thị T" 
+                      className="w-14 h-14 rounded-full object-cover mr-4"
+                    />
+                    <div>
+                      <h4 className="font-bold text-gray-900">Chị Phạm Thị T</h4>
+                      <p className="text-gray-600 text-sm">Bệnh nhân khoa Sản, 32 tuổi</p>
+                      <div className="flex items-center mt-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <FaStar key={star} className="w-4 h-4 text-yellow-400" />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Testimonial 2 */}
-            <div className="bg-white p-8 rounded-xl shadow-lg relative" data-aos="fade-up" data-aos-delay="200">
-              <div className="absolute -top-5 left-8 text-6xl text-blue-200">"</div>
-              <div className="relative z-10">
-                <p className="text-gray-700 italic mb-6 text-lg">
-                  "Tôi đã sinh con tại bệnh viện và rất hài lòng với dịch vụ. Đội ngũ y tá và bác sĩ sản khoa luôn bên cạnh hỗ trợ tôi, giúp tôi vượt cạn thành công. Phòng dịch vụ sạch sẽ, tiện nghi và thái độ phục vụ rất tốt. Tôi sẽ tiếp tục khám thai và sinh con tại đây nếu có bầu lần sau."
-                </p>
-                <div className="flex items-center">
-                  <img 
-                    src="https://randomuser.me/api/portraits/women/65.jpg" 
-                    alt="Chị Phạm Thị T" 
-                    className="w-14 h-14 rounded-full object-cover mr-4"
-                  />
-                  <div>
-                    <h4 className="font-bold text-gray-900">Chị Phạm Thị T</h4>
-                    <p className="text-gray-600 text-sm">Bệnh nhân khoa Sản, 32 tuổi</p>
-                    <div className="flex items-center mt-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <FaStar key={star} className="w-4 h-4 text-yellow-400" />
-                      ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {topReviews.map((review, index) => (
+                <div key={review._id || index} className="bg-white p-8 rounded-xl shadow-lg relative" data-aos="fade-up" data-aos-delay={index * 100}>
+                  <div className="absolute -top-5 left-8 text-6xl text-blue-200">"</div>
+                  <div className="relative z-10">
+                    <p className="text-gray-700 italic mb-6 text-lg line-clamp-4">
+                      "{review.comment}"
+                    </p>
+                    <div className="flex items-center">
+                      <img 
+                        src={review.userId?.avatarUrl || review.userId?.avatar?.secureUrl || `https://randomuser.me/api/portraits/${index % 2 === 0 ? 'men' : 'women'}/${20 + index}.jpg`} 
+                        alt={review.userId?.fullName || 'Bệnh nhân'}
+                        className="w-14 h-14 rounded-full object-cover mr-4"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `https://randomuser.me/api/portraits/${index % 2 === 0 ? 'men' : 'women'}/${20 + index}.jpg`;
+                        }}
+                      />
+                      <div>
+                        <h4 className="font-bold text-gray-900">{review.userId?.fullName || 'Bệnh nhân'}</h4>
+                        <p className="text-gray-600 text-sm">
+                          {review.doctorId ? `Bệnh nhân của ${review.doctorId.user?.fullName || 'bác sĩ'}` : 
+                            (review.hospitalId ? `Bệnh nhân tại ${review.hospitalId.name || 'bệnh viện'}` : 'Bệnh nhân')}
+                        </p>
+                        <div className="flex items-center mt-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <FaStar 
+                              key={star} 
+                              className={`w-4 h-4 ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
-
-          <div className="mt-12 text-center">
-            <Link 
-              to="/testimonials" 
-              className="inline-block bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              Xem thêm đánh giá
-            </Link>
-          </div>
+          )}
+          
+          {/* Remove "Xem thêm đánh giá" link as requested */}
         </div>
       </section>
 

@@ -30,6 +30,7 @@ router.get('/', reviewController.getReviews);
 router.get('/all', reviewController.getAllReviews);
 
 
+
 // GET /api/reviews/doctor/:id - Lấy đánh giá của một bác sĩ cụ thể
 router.get('/doctor/:id', reviewController.getDoctorReviews);
 

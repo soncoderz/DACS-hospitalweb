@@ -78,7 +78,7 @@ const News = () => {
   const fetchNews = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/news', {
+      const response = await api.get('/news/all', {
         params: {
           page: pagination.current,
           limit: pagination.pageSize
