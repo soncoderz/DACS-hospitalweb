@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 const medicalRecordSchema = new mongoose.Schema({
   patientId: {
@@ -15,7 +16,19 @@ const medicalRecordSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Appointment'
   },
+  specialty: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Specialty'
+  },
+  specialtyName: {
+    type: String,
+    trim: true
+  },
   diagnosis: {
+    type: String,
+    trim: true
+  },
+  symptoms: {
     type: String,
     trim: true
   },
@@ -28,7 +41,10 @@ const medicalRecordSchema = new mongoose.Schema({
     dosage: { type: String },                        // Liều lượng
     usage: { type: String },                         // Cách dùng
     duration: { type: String },                      // Thời gian dùng
-    notes: { type: String }                          // Ghi chú (nếu có)
+    notes: { type: String },                         // Ghi chú (nếu có)
+    quantity: { type: Number, default: 1 },          // Số lượng
+    medicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Medication' }, // ID thuốc
+    frequency: { type: String }                      // Tần suất
   }],
   notes: {
     type: String,
@@ -44,6 +60,14 @@ const medicalRecordSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  followUpDate: {
+    type: Date,
+  },
+  status: {
+    type: String,
+    enum: ['scheduled', 'in_progress', 'completed', 'cancelled'],
+    default: 'completed'
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -56,6 +80,12 @@ const medicalRecordSchema = new mongoose.Schema({
 medicalRecordSchema.index({ patientId: 1 });
 medicalRecordSchema.index({ doctorId: 1 });
 medicalRecordSchema.index({ appointmentId: 1 });
+medicalRecordSchema.index({ specialty: 1 });
+medicalRecordSchema.index({ status: 1 });
+medicalRecordSchema.index({ createdAt: 1 });
+
+// Add pagination plugin
+medicalRecordSchema.plugin(mongoosePaginate);
 
 const MedicalRecord = mongoose.model('MedicalRecord', medicalRecordSchema);
 

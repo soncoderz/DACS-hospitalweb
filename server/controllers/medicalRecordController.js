@@ -272,202 +272,425 @@ exports.getPatientInfo = async (req, res) => {
   }
 };
 
-// POST /api/medical-records - Tạo hồ sơ bệnh án mới
-exports.createMedicalRecord = async (req, res) => {
+// Get medical history for the logged-in user
+exports.getMedicalHistory = async (req, res) => {
   try {
-    const { patientId, appointmentId, diagnosis, treatment, prescription, notes } = req.body;
     const userId = req.user.id;
-    
-    // Validate các trường bắt buộc
-    if (!patientId) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID bệnh nhân là bắt buộc'
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get total count for pagination
+    const total = await MedicalRecord.countDocuments({ patientId: userId });
+
+    // Find all medical records for this user with pagination
+    const medicalRecords = await MedicalRecord.find({ patientId: userId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .populate({
+        path: 'doctorId',
+        select: 'user title specialtyId',
+        populate: [
+          {
+            path: 'user',
+            select: 'fullName email phoneNumber avatarUrl'
+          },
+          {
+            path: 'specialtyId',
+            select: 'name'
+          }
+        ]
+      })
+      .populate({
+        path: 'appointmentId',
+        select: 'appointmentDate appointmentTime status specialtyName serviceId serviceName',
+        populate: [
+          {
+            path: 'serviceId',
+            select: 'name price description'
+          }
+        ]
+      })
+      .populate({
+        path: 'specialty',
+        select: 'name'
       });
-    }
-    
-    // Xác thực prescription là mảng nếu được cung cấp
-    if (prescription && !Array.isArray(prescription)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Đơn thuốc phải là một mảng các loại thuốc'
-      });
-    }
-    
-    // Validate dữ liệu đơn thuốc
-    if (prescription && Array.isArray(prescription)) {
-      for (const med of prescription) {
-        if (!med.medicine) {
-          return res.status(400).json({
-            success: false,
-            message: 'Mỗi thuốc trong đơn thuốc phải có tên thuốc'
-          });
+
+    // Transform the data to ensure doctor information is formatted correctly
+    const formattedRecords = medicalRecords.map(record => {
+      const formattedRecord = record.toObject();
+      
+      // Check if doctorId exists and has user data
+      if (formattedRecord.doctorId && formattedRecord.doctorId.user) {
+        // Create a flattened doctor object with needed fields
+        formattedRecord.doctor = {
+          fullName: formattedRecord.doctorId.user.fullName,
+          email: formattedRecord.doctorId.user.email,
+          phoneNumber: formattedRecord.doctorId.user.phoneNumber,
+          avatarUrl: formattedRecord.doctorId.user.avatarUrl,
+          title: formattedRecord.doctorId.title
+        };
+
+        // Add specialty information
+        if (formattedRecord.doctorId.specialtyId) {
+          formattedRecord.specialtyName = formattedRecord.doctorId.specialtyId.name;
+        } else if (formattedRecord.specialty) {
+          formattedRecord.specialtyName = formattedRecord.specialty.name;
         }
       }
-    }
-    
-    // Validate patientId
-    if (!mongoose.Types.ObjectId.isValid(patientId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID bệnh nhân không hợp lệ'
-      });
-    }
-    
-    // Tìm bệnh nhân
-    const patient = await User.findById(patientId);
-    if (!patient) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy bệnh nhân'
-      });
-    }
-    
-    // Tìm doctor record dựa vào user id
-    const doctor = await Doctor.findOne({ user: userId });
-    if (!doctor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy thông tin bác sĩ'
-      });
-    }
-    
-    // Nếu có appointmentId, kiểm tra và cập nhật trạng thái
-    let appointment;
-    if (appointmentId) {
-      if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'ID lịch hẹn không hợp lệ'
-        });
+      
+      // Add service information
+      if (formattedRecord.appointmentId) {
+        if (formattedRecord.appointmentId.serviceId) {
+          formattedRecord.serviceName = formattedRecord.appointmentId.serviceId.name;
+          formattedRecord.servicePrice = formattedRecord.appointmentId.serviceId.price;
+        } else if (formattedRecord.appointmentId.serviceName) {
+          formattedRecord.serviceName = formattedRecord.appointmentId.serviceName;
+        }
       }
       
-      appointment = await Appointment.findById(appointmentId);
-      if (!appointment) {
-        return res.status(404).json({
-          success: false,
-          message: 'Không tìm thấy lịch hẹn'
-        });
+      // Ensure status is present for filtering
+      if (!formattedRecord.status && formattedRecord.appointmentId) {
+        formattedRecord.status = formattedRecord.appointmentId.status;
       }
       
-      // Kiểm tra lịch hẹn có phải của bác sĩ này không
-      if (appointment.doctorId.toString() !== doctor._id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Bạn không có quyền tạo hồ sơ bệnh án cho lịch hẹn này'
-        });
-      }
-      
-      // Kiểm tra lịch hẹn có phải của bệnh nhân này không
-      if (appointment.patientId.toString() !== patientId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Lịch hẹn không phải của bệnh nhân này'
-        });
-      }
-      
-      // Kiểm tra trạng thái lịch hẹn
-      if (appointment.status !== 'confirmed' && appointment.status !== 'completed') {
-        return res.status(400).json({
-          success: false,
-          message: `Không thể tạo hồ sơ bệnh án cho lịch hẹn có trạng thái ${appointment.status}`
-        });
-      }
-      
-      // Cập nhật trạng thái lịch hẹn thành completed nếu chưa
-      if (appointment.status !== 'completed') {
-        appointment.status = 'completed';
-        appointment.completionDate = new Date();
-        appointment.medicalRecord = {
-          diagnosis: diagnosis || '',
-          treatment: treatment || '',
-          prescription: prescription || [],
-          notes: notes || '',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        await appointment.save();
-      }
-    } else {
-      // Kiểm tra xem bệnh nhân đã từng khám với bác sĩ này chưa
-      const hasAppointment = await Appointment.findOne({
-        patientId: patientId,
-        doctorId: doctor._id
-      });
-      
-      if (!hasAppointment && req.user.roleType !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Bệnh nhân chưa từng khám với bác sĩ này'
-        });
-      }
-    }
-    
-    // Tạo hồ sơ bệnh án mới
-    const medicalRecord = new MedicalRecord({
-      patientId,
-      doctorId: doctor._id,
-      appointmentId: appointmentId || null,
-      diagnosis: diagnosis || '',
-      treatment: treatment || '',
-      prescription: prescription || [],
-      notes: notes || ''
+      return formattedRecord;
     });
-    
-    await medicalRecord.save();
-    
-    return res.status(201).json({
-      success: true,
-      data: medicalRecord,
-      message: 'Tạo hồ sơ bệnh án thành công'
+
+    res.status(200).json({
+      records: formattedRecords,
+      pagination: {
+        total,
+        totalPages: Math.ceil(total / limitNum),
+        currentPage: pageNum,
+        pageSize: limitNum
+      }
     });
   } catch (error) {
-    console.error('Create medical record error:', error);
-    return res.status(500).json({
+    console.error('Error fetching medical history:', error);
+    res.status(500).json({
       success: false,
-      message: 'Lỗi khi tạo hồ sơ bệnh án',
+      message: 'Không thể lấy lịch sử khám bệnh',
       error: error.message
     });
   }
 };
 
-// PUT /api/medical-records/:id - Cập nhật hồ sơ bệnh án
-exports.updateMedicalRecord = async (req, res) => {
+// Get specific medical record by ID
+exports.getMedicalRecordById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { diagnosis, treatment, prescription, notes } = req.body;
+    const recordId = req.params.id;
     const userId = req.user.id;
-    
-    // Validate id
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
+    const userRole = req.user.role;
+
+    const medicalRecord = await MedicalRecord.findById(recordId)
+      .populate({
+        path: 'doctorId',
+        select: 'user title specialtyId hospitalId',
+        populate: [
+          {
+            path: 'user',
+            select: 'fullName email phoneNumber avatarUrl'
+          },
+          {
+            path: 'specialtyId',
+            select: 'name'
+          },
+          {
+            path: 'hospitalId',
+            select: 'name address contactInfo'
+          }
+        ]
+      })
+      .populate({
+        path: 'patientId',
+        select: 'fullName email phoneNumber gender dateOfBirth address'
+      })
+      .populate({
+        path: 'appointmentId',
+        select: 'appointmentDate appointmentTime status hospitalId specialtyId serviceId serviceName fee',
+        populate: [
+          {
+            path: 'hospitalId',
+            select: 'name address contactInfo'
+          },
+          {
+            path: 'specialtyId',
+            select: 'name'
+          },
+          {
+            path: 'serviceId',
+            select: 'name price description'
+          }
+        ]
+      })
+      .populate({
+        path: 'specialty',
+        select: 'name'
+      });
+
+    if (!medicalRecord) {
+      return res.status(404).json({
         success: false,
-        message: 'ID hồ sơ bệnh án không hợp lệ'
+        message: 'Không tìm thấy hồ sơ bệnh án'
       });
     }
-    
-    // Xác thực prescription là mảng nếu được cung cấp
-    if (prescription && !Array.isArray(prescription)) {
-      return res.status(400).json({
+
+    // Check if user has permission to view this record
+    if (userRole !== 'admin' && userRole !== 'doctor' && 
+        medicalRecord.patientId._id.toString() !== userId) {
+      return res.status(403).json({
         success: false,
-        message: 'Đơn thuốc phải là một mảng các loại thuốc'
+        message: 'Bạn không có quyền xem hồ sơ bệnh án này'
       });
     }
+
+    // Transform the record to include flattened doctor and hospital information
+    const recordObj = medicalRecord.toObject();
     
-    // Validate dữ liệu đơn thuốc
-    if (prescription && Array.isArray(prescription)) {
-      for (const med of prescription) {
-        if (!med.medicine) {
-          return res.status(400).json({
-            success: false,
-            message: 'Mỗi thuốc trong đơn thuốc phải có tên thuốc'
-          });
-        }
+    // Process doctor information
+    if (recordObj.doctorId && recordObj.doctorId.user) {
+      recordObj.doctor = {
+        fullName: recordObj.doctorId.user.fullName,
+        email: recordObj.doctorId.user.email,
+        phoneNumber: recordObj.doctorId.user.phoneNumber,
+        avatarUrl: recordObj.doctorId.user.avatarUrl,
+        title: recordObj.doctorId.title
+      };
+
+      // Add specialty information
+      if (recordObj.doctorId.specialtyId) {
+        recordObj.specialtyName = recordObj.doctorId.specialtyId.name;
+      } else if (recordObj.specialty) {
+        recordObj.specialtyName = recordObj.specialty.name;
       }
     }
     
-    // Tìm hồ sơ bệnh án
-    const medicalRecord = await MedicalRecord.findById(id);
+    // Process hospital information
+    if (recordObj.doctorId && recordObj.doctorId.hospitalId) {
+      recordObj.hospital = recordObj.doctorId.hospitalId;
+    } else if (recordObj.appointmentId && recordObj.appointmentId.hospitalId) {
+      recordObj.hospital = recordObj.appointmentId.hospitalId;
+    }
+    
+    // Process service information
+    if (recordObj.appointmentId) {
+      if (recordObj.appointmentId.serviceId) {
+        recordObj.service = {
+          name: recordObj.appointmentId.serviceId.name,
+          price: recordObj.appointmentId.serviceId.price,
+          description: recordObj.appointmentId.serviceId.description
+        };
+      } else if (recordObj.appointmentId.serviceName) {
+        recordObj.service = {
+          name: recordObj.appointmentId.serviceName,
+          price: recordObj.appointmentId.fee?.totalAmount
+        };
+      }
+    }
+
+    res.status(200).json(recordObj);
+  } catch (error) {
+    console.error('Error fetching medical record:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể lấy thông tin hồ sơ bệnh án',
+      error: error.message
+    });
+  }
+};
+
+// Create new medical record (doctor/admin only)
+exports.createMedicalRecord = async (req, res) => {
+  try {
+    const {
+      patientId,
+      appointmentId,
+      diagnosis,
+      symptoms,
+      treatment,
+      notes,
+      prescription,
+      followUpDate,
+      specialtyId
+    } = req.body;
+
+    // Xử lý dữ liệu prescription
+    let prescriptionData = [];
+    if (prescription && Array.isArray(prescription)) {
+      prescriptionData = prescription.map(item => ({
+        medicine: item.medicine,
+        dosage: item.dosage || '',
+        usage: item.usage || '',
+        duration: item.duration || '',
+        notes: item.notes || '',
+        quantity: item.quantity || 1,
+        medicationId: item.medicationId || null,
+        frequency: item.frequency || ''
+      }));
+    }
+
+    const newMedicalRecord = new MedicalRecord({
+      patientId,
+      doctorId: req.user.id,
+      appointmentId,
+      diagnosis,
+      symptoms,
+      treatment,
+      notes,
+      prescription: prescriptionData,
+      followUpDate,
+      specialty: specialtyId
+    });
+
+    const savedRecord = await newMedicalRecord.save();
+
+    // Update the appointment status if needed
+    if (appointmentId) {
+      await Appointment.findByIdAndUpdate(appointmentId, {
+        status: 'completed',
+        medicalRecord: savedRecord._id
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Tạo hồ sơ bệnh án thành công',
+      medicalRecord: savedRecord
+    });
+  } catch (error) {
+    console.error('Error creating medical record:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể tạo hồ sơ bệnh án',
+      error: error.message
+    });
+  }
+};
+
+// Update medical record (doctor/admin only)
+exports.updateMedicalRecord = async (req, res) => {
+  try {
+    const recordId = req.params.id;
+    const updatedData = req.body;
+    const userRole = req.user.role;
+    const userId = req.user.id;
+
+    // Find record first to check permissions
+    const existingRecord = await MedicalRecord.findById(recordId);
+
+    if (!existingRecord) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy hồ sơ bệnh án'
+      });
+    }
+
+    // Handle prescription field
+    if (updatedData.prescription && Array.isArray(updatedData.prescription)) {
+      // Ensure all required fields are properly formatted
+      updatedData.prescription = updatedData.prescription.map(item => ({
+        medicine: item.medicine,
+        dosage: item.dosage || '',
+        usage: item.usage || '',
+        duration: item.duration || '',
+        notes: item.notes || '',
+        quantity: item.quantity || 1,
+        medicationId: item.medicationId || null,
+        frequency: item.frequency || ''
+      }));
+    }
+
+    // Xóa trường prescriptions nếu có
+    if (updatedData.prescriptions) {
+      delete updatedData.prescriptions;
+    }
+
+    // Update the record
+    const updatedRecord = await MedicalRecord.findByIdAndUpdate(
+      recordId,
+      { $set: updatedData },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật hồ sơ bệnh án thành công',
+      medicalRecord: updatedRecord
+    });
+  } catch (error) {
+    console.error('Error updating medical record:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể cập nhật hồ sơ bệnh án',
+      error: error.message
+    });
+  }
+};
+
+// Get all medical records (admin only)
+exports.getAllMedicalRecords = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, patientId, doctorId, startDate, endDate } = req.query;
+    
+    const query = {};
+    
+    // Add filters if provided
+    if (patientId) query.patientId = patientId;
+    if (doctorId) query.doctorId = doctorId;
+    
+    // Date range filter
+    if (startDate && endDate) {
+      query.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+    
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { createdAt: -1 },
+      populate: [
+        { path: 'patientId', select: 'fullName' },
+        { path: 'doctorId', select: 'fullName specialtyName' },
+        { path: 'specialty', select: 'name' }
+      ]
+    };
+    
+    const records = await MedicalRecord.paginate(query, options);
+    
+    res.status(200).json({
+      success: true,
+      data: records.docs,
+      pagination: {
+        total: records.totalDocs,
+        limit: records.limit,
+        page: records.page,
+        pages: records.totalPages,
+        hasNextPage: records.hasNextPage,
+        hasPrevPage: records.hasPrevPage
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching medical records:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể lấy danh sách hồ sơ bệnh án',
+      error: error.message
+    });
+  }
+};
+
+// Delete medical record (admin only)
+exports.deleteMedicalRecord = async (req, res) => {
+  try {
+    const recordId = req.params.id;
+    
+    const medicalRecord = await MedicalRecord.findById(recordId);
+    
     if (!medicalRecord) {
       return res.status(404).json({
         success: false,
@@ -475,63 +698,24 @@ exports.updateMedicalRecord = async (req, res) => {
       });
     }
     
-    // Tìm doctor record dựa vào user id
-    const doctor = await Doctor.findOne({ user: userId });
-    if (!doctor) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy thông tin bác sĩ'
-      });
-    }
-    
-    // Kiểm tra hồ sơ có phải do bác sĩ này tạo không
-    if (medicalRecord.doctorId.toString() !== doctor._id.toString() && req.user.roleType !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Bạn không có quyền cập nhật hồ sơ bệnh án này'
-      });
-    }
-    
-    // Cập nhật hồ sơ bệnh án
-    if (diagnosis !== undefined) medicalRecord.diagnosis = diagnosis;
-    if (treatment !== undefined) medicalRecord.treatment = treatment;
-    if (prescription !== undefined) medicalRecord.prescription = prescription;
-    if (notes !== undefined) medicalRecord.notes = notes;
-    
-    await medicalRecord.save();
-    
-    // Nếu có liên kết với một lịch hẹn, cập nhật thông tin trong lịch hẹn đó
+    // If record is linked to an appointment, remove the reference
     if (medicalRecord.appointmentId) {
-      const appointment = await Appointment.findById(medicalRecord.appointmentId);
-      if (appointment) {
-        appointment.medicalRecord = {
-          diagnosis: medicalRecord.diagnosis,
-          treatment: medicalRecord.treatment,
-          prescription: medicalRecord.prescription,
-          notes: medicalRecord.notes,
-          updatedAt: new Date()
-        };
-        
-        // Nếu chưa đánh dấu hoàn thành, cập nhật
-        if (appointment.status !== 'completed') {
-          appointment.status = 'completed';
-          appointment.completionDate = new Date();
-        }
-        
-        await appointment.save();
-      }
+      await Appointment.findByIdAndUpdate(medicalRecord.appointmentId, {
+        $unset: { medicalRecord: "" }
+      });
     }
     
-    return res.status(200).json({
+    await MedicalRecord.findByIdAndDelete(recordId);
+    
+    res.status(200).json({
       success: true,
-      data: medicalRecord,
-      message: 'Cập nhật hồ sơ bệnh án thành công'
+      message: 'Xóa hồ sơ bệnh án thành công'
     });
   } catch (error) {
-    console.error('Update medical record error:', error);
-    return res.status(500).json({
+    console.error('Error deleting medical record:', error);
+    res.status(500).json({
       success: false,
-      message: 'Lỗi khi cập nhật hồ sơ bệnh án',
+      message: 'Không thể xóa hồ sơ bệnh án',
       error: error.message
     });
   }

@@ -10,6 +10,7 @@ router.get('/medications', medicationController.getMedications);
 // Routes for authenticated users
 router.get('/:id', protect, medicationController.getMedicationById);
 router.post('/reduce-stock', protect, authorize('doctor', 'admin'), medicationController.reduceStock);
+router.post('/add-stock', protect, authorize('doctor', 'admin'), medicationController.addStock);
 
 // Admin-only routes
 router.post('/', protect, authorize('admin'), medicationController.createMedication);

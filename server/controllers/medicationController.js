@@ -367,4 +367,78 @@ exports.reduceStock = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// Add stock for multiple medications (when medications are removed from a prescription)
+exports.addStock = async (req, res) => {
+  try {
+    const { medications } = req.body;
+    
+    if (!medications || !Array.isArray(medications)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp danh sách thuốc hợp lệ'
+      });
+    }
+    
+    const results = [];
+    
+    for (const item of medications) {
+      try {
+        const { medicationId, quantity } = item;
+        
+        if (!medicationId || !quantity || quantity <= 0) {
+          results.push({
+            success: false,
+            medicationId,
+            message: 'ID thuốc hoặc số lượng không hợp lệ'
+          });
+          continue;
+        }
+        
+        const medication = await Medication.findById(medicationId);
+        
+        if (!medication) {
+          results.push({
+            success: false,
+            medicationId,
+            message: 'Không tìm thấy thuốc'
+          });
+          continue;
+        }
+        
+        // Add to stock
+        medication.stockQuantity += quantity;
+        await medication.save();
+        
+        results.push({
+          success: true,
+          medicationId,
+          name: medication.name,
+          newQuantity: medication.stockQuantity,
+          message: 'Cập nhật tồn kho thành công'
+        });
+      } catch (error) {
+        console.error(`Error processing medication ${item.medicationId}:`, error);
+        results.push({
+          success: false,
+          medicationId: item.medicationId,
+          message: 'Lỗi khi xử lý thuốc: ' + error.message
+        });
+      }
+    }
+    
+    return res.status(200).json({
+      success: true,
+      data: results,
+      message: 'Cập nhật tồn kho thành công'
+    });
+  } catch (error) {
+    console.error('Add stock error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật tồn kho thuốc',
+      error: error.message
+    });
+  }
 }; 

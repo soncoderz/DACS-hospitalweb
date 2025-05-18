@@ -398,10 +398,14 @@ const Appointments = () => {
   const handleCompleteAppointment = async () => {
     if (!selectedAppointment) return;
     
-    // Validate that all prescriptions have quantities
-    const invalidMeds = completionData.prescription.filter(med => 
-      !med.quantity || med.quantity <= 0 || !med.medicationId
+    // Validate prescriptions
+    const validPrescriptions = completionData.prescription.filter(med => 
+      med.medicine && med.medicine.trim() !== ''
     );
+    
+    const invalidMeds = validPrescriptions.filter(med => 
+      !med.quantity || med.quantity <= 0 || !med.medicationId
+    );  
     
     if (invalidMeds.length > 0) {
       toast.error('Vui lòng nhập số lượng hợp lệ cho tất cả các thuốc');
@@ -411,36 +415,63 @@ const Appointments = () => {
     setIsUpdating(true);
     try {
       // First reduce medication stock
-      if (completionData.prescription.length > 0) {
+      if (validPrescriptions.length > 0) {
         const stockReductionData = {
-          medications: completionData.prescription.map(med => ({
-            medicationId: med.medicationId,
-            quantity: parseInt(med.quantity)
-          }))
+          medications: validPrescriptions
+            .filter(med => med.medicationId) 
+            .map(med => ({
+              medicationId: med.medicationId,
+              quantity: parseInt(med.quantity)
+            }))
         };
         
-        const stockResponse = await api.post('/medications/reduce-stock', stockReductionData);
-        
-        if (!stockResponse.data.success) {
-          toast.error('Không thể cập nhật kho thuốc: ' + stockResponse.data.message);
-          setIsUpdating(false);
-          return;
-        }
-        
-        // Check if any medications failed to update
-        const failedMeds = stockResponse.data.data.filter(result => !result.success);
-        
-        if (failedMeds.length > 0) {
-          toast.error(
-            `Không thể cập nhật kho cho ${failedMeds.length} loại thuốc. Vui lòng kiểm tra số lượng tồn.`
-          );
-          setIsUpdating(false);
-          return;
+        if (stockReductionData.medications.length > 0) {
+          const stockResponse = await api.post('/medications/reduce-stock', stockReductionData);
+          
+          if (!stockResponse.data.success) {
+            toast.error('Không thể cập nhật kho thuốc: ' + stockResponse.data.message);
+            setIsUpdating(false);
+            return;
+          }
+          
+          // Check if any medications failed to update
+          const failedMeds = stockResponse.data.data.filter(result => !result.success);
+          
+          if (failedMeds.length > 0) {
+            toast.error(
+              `Không thể cập nhật kho cho ${failedMeds.length} loại thuốc. Vui lòng kiểm tra số lượng tồn.`
+            );
+            setIsUpdating(false);
+            return;
+          }
         }
       }
       
+      // Format prescription data for backend
+      const formattedMedications = validPrescriptions.map(item => ({
+        medicine: item.medicine,
+        dosage: item.dosage || '',
+        usage: item.usage || '',
+        duration: item.duration || '',
+        notes: item.notes || '',
+        quantity: parseInt(item.quantity) || 1,
+        medicationId: item.medicationId || null,
+        frequency: item.frequency || ''
+      }));
+      
+      // Đúng cấu trúc dữ liệu cho backend
+      const requestData = {
+        diagnosis: completionData.diagnosis || '',
+        treatment: completionData.treatment || '',
+        notes: completionData.notes || '',
+        patientId: selectedAppointment.patientId._id,
+        prescription: formattedMedications // Sử dụng prescription
+      };
+      
+      console.log('Sending data to complete appointment:', requestData);
+      
       // Then complete the appointment
-      const response = await api.put(`/appointments/${selectedAppointment._id}/complete`, completionData);
+      const response = await api.put(`/appointments/${selectedAppointment._id}/complete`, requestData);
       
       if (response.data.success) {
         toast.success('Lịch hẹn đã hoàn thành và hồ sơ y tế đã được tạo');

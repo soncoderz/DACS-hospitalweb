@@ -135,12 +135,17 @@ const MedicalRecords = () => {
   };
 
   const populateFormData = (record) => {
-    // Map prescription items to include stock info if medicationId exists
+    // Map prescription items from backend prescription field
     const prescriptionItems = record.prescription && record.prescription.length > 0 
       ? record.prescription.map(item => ({
-          ...item,
+          medicine: item.medicine || '',
+          dosage: item.dosage || '',
+          usage: item.usage || '',
+          duration: item.duration || '',
+          notes: item.notes || '',
           quantity: item.quantity || 1,
-          medicationId: item.medicationId || null
+          medicationId: item.medicationId || null,
+          frequency: item.frequency || ''
         }))
       : [{ 
           medicine: '', 
@@ -253,6 +258,59 @@ const MedicalRecords = () => {
       return;
     }
     
+    // Compare with original prescription to track changes
+    const originalPrescription = currentRecord.prescription || [];
+    
+    // Track medication stock changes
+    const stockChanges = [];
+    
+    // Find new or increased quantities
+    filteredPrescription.forEach(newMed => {
+      if (newMed.medicationId) {
+        const originalMed = originalPrescription.find(med => 
+          med.medicationId && med.medicationId === newMed.medicationId
+        );
+        
+        const originalQuantity = originalMed?.quantity || 0;
+        const newQuantity = parseInt(newMed.quantity) || 0;
+        
+        // If quantity increased, reduce stock by the difference
+        if (newQuantity > originalQuantity) {
+          stockChanges.push({
+            medicationId: newMed.medicationId,
+            quantity: newQuantity - originalQuantity,
+            action: 'reduce'
+          });
+        }
+        // If quantity decreased, increase stock by the difference
+        else if (newQuantity < originalQuantity) {
+          stockChanges.push({
+            medicationId: newMed.medicationId,
+            quantity: originalQuantity - newQuantity,
+            action: 'add'
+          });
+        }
+      }
+    });
+    
+    // Find removed medications to return to stock
+    originalPrescription.forEach(oldMed => {
+      if (oldMed.medicationId) {
+        const stillExists = filteredPrescription.some(
+          med => med.medicationId === oldMed.medicationId
+        );
+        
+        // If medication was removed completely, return to stock
+        if (!stillExists) {
+          stockChanges.push({
+            medicationId: oldMed.medicationId,
+            quantity: parseInt(oldMed.quantity) || 0,
+            action: 'add'
+          });
+        }
+      }
+    });
+    
     const recordData = {
       ...formData,
       patientId,
@@ -262,42 +320,71 @@ const MedicalRecords = () => {
     try {
       toast.info('Đang lưu hồ sơ y tế...', { autoClose: 2000 });
       
-      // Reduce medication stock if there are medications with IDs
-      const medsWithIds = filteredPrescription.filter(med => med.medicationId);
-      if (medsWithIds.length > 0) {
-        const stockReductionData = {
-          medications: medsWithIds.map(med => ({
-            medicationId: med.medicationId,
-            quantity: parseInt(med.quantity)
-          }))
-        };
+      // Process stock changes
+      if (stockChanges.length > 0) {
+        // Group by action (reduce or add)
+        const reduceStockItems = stockChanges
+          .filter(item => item.action === 'reduce' && item.quantity > 0)
+          .map(item => ({
+            medicationId: item.medicationId,
+            quantity: item.quantity
+          }));
+          
+        const addStockItems = stockChanges
+          .filter(item => item.action === 'add' && item.quantity > 0)
+          .map(item => ({
+            medicationId: item.medicationId,
+            quantity: item.quantity
+          }));
         
-        try {
-          const stockResponse = await api.post('/medications/reduce-stock', stockReductionData);
-          
-          if (!stockResponse.data.success) {
-            toast.error('Không thể cập nhật kho thuốc: ' + stockResponse.data.message);
+        // Reduce stock for new/increased medications
+        if (reduceStockItems.length > 0) {
+          try {
+            const reduceStockResponse = await api.post('/medications/reduce-stock', {
+              medications: reduceStockItems
+            });
+            
+            if (!reduceStockResponse.data.success) {
+              toast.error('Không thể cập nhật kho thuốc: ' + reduceStockResponse.data.message);
+              return;
+            }
+            
+            // Check if any medications failed to update
+            const failedMeds = reduceStockResponse.data.data.filter(result => !result.success);
+            
+            if (failedMeds.length > 0) {
+              toast.error(
+                `Không thể cập nhật kho cho ${failedMeds.length} loại thuốc. Vui lòng kiểm tra số lượng tồn.`
+              );
+              return;
+            }
+          } catch (error) {
+            console.error('Error reducing medication stock:', error);
+            toast.error('Lỗi khi cập nhật kho thuốc');
             return;
           }
-          
-          // Check if any medications failed to update
-          const failedMeds = stockResponse.data.data.filter(result => !result.success);
-          
-          if (failedMeds.length > 0) {
-            toast.error(
-              `Không thể cập nhật kho cho ${failedMeds.length} loại thuốc. Vui lòng kiểm tra số lượng tồn.`
-            );
-            return;
+        }
+        
+        // Add stock back for removed/decreased medications
+        if (addStockItems.length > 0) {
+          try {
+            const addStockResponse = await api.post('/medications/add-stock', {
+              medications: addStockItems
+            });
+            
+            if (!addStockResponse.data.success) {
+              console.warn('Warning: Could not add medication back to stock:', addStockResponse.data.message);
+              // Don't block the save operation if adding back stock fails
+            }
+          } catch (error) {
+            console.warn('Warning: Error adding medication back to stock:', error);
+            // Don't block the save operation if adding back stock fails
           }
-        } catch (error) {
-          console.error('Error reducing medication stock:', error);
-          toast.error('Lỗi khi cập nhật kho thuốc');
-          return;
         }
       }
       
       // Update medical record
-      const response = await api.put(`/doctors/medical-records/${currentRecord._id}`, recordData);
+      const response = await api.put(`/medical-records/${currentRecord._id}`, recordData);
       
       console.log("Save medical record response:", response.data);
       
@@ -308,14 +395,25 @@ const MedicalRecords = () => {
         // If the record is connected to an appointment, mark the appointment as completed
         if (formData.appointmentId) {
           try {
-            const completeResponse = await api.put(`/appointments/${formData.appointmentId}/complete`);
-            if (completeResponse.data.success) {
-              console.log('Appointment marked as completed');
-              toast.success('Lịch hẹn đã được đánh dấu hoàn thành');
+            // First check the appointment status
+            const appointmentResponse = await api.get(`/appointments/${formData.appointmentId}`);
+            const appointmentStatus = appointmentResponse.data?.data?.status;
+            
+            // Only try to update status if it's not already completed
+            if (appointmentStatus && appointmentStatus !== 'completed') {
+              const completeResponse = await api.put(`/appointments/${formData.appointmentId}/complete`);
+              if (completeResponse.data.success) {
+                console.log('Appointment marked as completed');
+                toast.success('Lịch hẹn đã được đánh dấu hoàn thành');
+              }
+            } else if (appointmentStatus === 'completed') {
+              console.log('Appointment already marked as completed');
             }
           } catch (err) {
             console.error('Error completing appointment:', err);
-            toast.error('Lưu ý: Không thể cập nhật trạng thái lịch hẹn');
+            // Show more informative error
+            const errorMsg = err.response?.data?.message || 'Không thể cập nhật trạng thái lịch hẹn';
+            toast.warning(`Lưu ý: ${errorMsg}`);
           }
         }
         
@@ -782,7 +880,7 @@ const MedicalRecords = () => {
                                   <div className="font-medium text-gray-800">{medication.name}</div>
                                   <div className="text-sm text-gray-500">{medication.description}</div>
                                 </div>
-                                <button className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                <button type="button" className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                                   Thêm
                                 </button>
                               </li>

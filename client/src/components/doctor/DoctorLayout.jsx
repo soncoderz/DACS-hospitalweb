@@ -85,11 +85,6 @@ const DoctorLayout = ({ children }) => {
                 >
                   <span className={`text-lg ${location.pathname === item.path ? 'text-white' : 'text-white/80 group-hover:text-white'}`}>{item.icon}</span>
                   <span>{item.label}</span>
-                  {item.label === 'Lịch hẹn' && (
-                    <span className="flex-shrink-0 ml-auto bg-red-500 text-white text-xs font-medium px-2 py-0.5 rounded-full animate-pulse">
-                      3
-                    </span>
-                  )}
                 </Link>
               </li>
             ))}

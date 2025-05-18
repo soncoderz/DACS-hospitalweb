@@ -13,6 +13,9 @@ const Appointment = require('../models/Appointment');
 // User routes - Access only by authenticated users
 router.get('/user', protect, paymentController.getUserPayments);
 
+// Payment history route
+router.get('/payments/history', protect, paymentController.getPaymentHistory);
+
 // Get payment by ID - Admin only
 router.get('/payment/:id', protect, authorize('admin'), paymentController.getPaymentById);
 

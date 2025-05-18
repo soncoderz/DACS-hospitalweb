@@ -18,6 +18,9 @@ import Profile from './pages/user/Profile.jsx';
 import Appointments from './pages/user/Appointments.jsx';
 import Appointment from './pages/user/Appointment.jsx';
 import AppointmentDetail from './pages/user/AppointmentDetail.jsx';
+import PaymentHistory from './pages/PaymentHistory.jsx';
+import MedicalHistory from './pages/MedicalHistory.jsx';
+import MedicalRecordDetail from './pages/MedicalRecordDetail.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import ForgotPassword from './pages/user/ForgotPassword';
 import OtpVerification from './pages/user/OtpVerification';
@@ -167,6 +170,9 @@ function AppContent() {
                   <Route path="/appointments/:id/reschedule" element={<RescheduleAppointment />} />
                   <Route path="/appointments/:id/review" element={<ReviewChoice />} />
                   <Route path="/appointments/:id/review/:type" element={<ReviewForm />} />
+                  <Route path="/payment-history" element={<PaymentHistory />} />
+                  <Route path="/medical-history" element={<MedicalHistory />} />
+                  <Route path="/medical-record/:id" element={<MedicalRecordDetail />} />
                 </Route>
                 
                 {/* New routes */}

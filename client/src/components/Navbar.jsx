@@ -181,6 +181,20 @@ const Navbar = () => {
                           </svg>
                         Lịch hẹn của tôi
                         </Link>
+
+                        <Link to="/medical-history" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors" onClick={() => setIsUserMenuOpen(false)}>
+                          <svg className="w-4 h-4 text-gray-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m-6-8h6M9 1v2M15 1v2M3 5h18M4 19h16c.6 0 1-.4 1-1V7c0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1v11c0 .6.4 1 1 1z" />
+                          </svg>
+                        Lịch sử khám bệnh
+                        </Link>
+
+                        <Link to="/payment-history" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors" onClick={() => setIsUserMenuOpen(false)}>
+                          <svg className="w-4 h-4 text-gray-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                          </svg>
+                        Lịch sử thanh toán
+                        </Link>
                       
                         {user.role === 'admin' && (
                           <Link to="/admin/dashboard" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors" onClick={() => setIsUserMenuOpen(false)}>
@@ -324,6 +338,22 @@ const Navbar = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Lịch hẹn của tôi
+                    </Link>
+                    
+                    <Link 
+                      to="/medical-history"
+                      className="block px-4 py-3 text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Lịch sử khám bệnh
+                    </Link>
+                    
+                    <Link 
+                      to="/payment-history"
+                      className="block px-4 py-3 text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Lịch sử thanh toán
                     </Link>
                     
                     {user.role === 'admin' && (

@@ -661,3 +661,84 @@ exports.paypalSuccess = async (req, res) => {
     // ... existing error handling ...
   }
 };
+
+// Get payment history for logged-in user
+exports.getPaymentHistory = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Get total count for pagination
+    const total = await Payment.countDocuments({ userId: req.user.id });
+    
+    // Fetch paginated payments
+    const payments = await Payment.find({ userId: req.user.id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .populate({
+        path: 'appointmentId',
+        select: 'appointmentDate appointmentTime serviceName _id',
+      })
+      .populate({
+        path: 'doctorId',
+        select: 'user',
+        populate: {
+          path: 'user',
+          select: 'fullName'
+        }
+      })
+      .populate({
+        path: 'serviceId',
+        select: 'name price',
+      });
+
+    // Transform data to include service name and standardize status
+    const formattedPayments = payments.map(payment => {
+      const paymentObj = payment.toObject();
+      
+      // Add service name from appointment or service
+      if (payment.appointmentId && payment.appointmentId.serviceName) {
+        paymentObj.serviceName = payment.appointmentId.serviceName;
+      } else if (payment.serviceId && payment.serviceId.name) {
+        paymentObj.serviceName = payment.serviceId.name;
+      }
+      
+      // Ensure appointmentId is available for navigation
+      if (payment.appointmentId && payment.appointmentId._id) {
+        paymentObj.appointmentId = payment.appointmentId._id;
+      }
+      
+      // Standardize doctor name format
+      if (payment.doctorId && payment.doctorId.user) {
+        paymentObj.doctorName = payment.doctorId.user.fullName;
+      }
+      
+      // Ensure status exists and is standardized for filtering
+      if (!paymentObj.status && paymentObj.paymentStatus) {
+        paymentObj.status = paymentObj.paymentStatus;
+      }
+      
+      return paymentObj;
+    });
+
+    res.status(200).json({
+      payments: formattedPayments,
+      pagination: {
+        total,
+        totalPages: Math.ceil(total / limitNum),
+        currentPage: pageNum,
+        pageSize: limitNum
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể lấy lịch sử thanh toán',
+      error: error.message
+    });
+  }
+};
