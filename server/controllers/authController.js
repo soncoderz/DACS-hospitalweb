@@ -25,7 +25,7 @@ const generateToken = async (userId) => {
       id: userId, 
       role: user.roleType, // Sử dụng roleType từ database thay vì 'user'
     }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
+      expiresIn: '15m' // Changed from 30d to 15m - 15 minutes
     });
     
     // Test decode token để xác nhận thông tin
@@ -37,7 +37,7 @@ const generateToken = async (userId) => {
     console.error('Error generating token:', error);
     // Return a basic token in case of error
     return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
+      expiresIn: '15m' // Changed from 30d to 15m - 15 minutes
     });
   }
 };
@@ -239,7 +239,7 @@ exports.login = async (req, res) => {
         id: user._id, 
         role: 'doctor' 
       }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
+        expiresIn: '15m'
       });
       userRole = 'doctor';
       
@@ -254,7 +254,7 @@ exports.login = async (req, res) => {
         id: user._id, 
         role: userRole 
       }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
+        expiresIn: '15m'
       });
       
       console.log('Generating token for user:', {

@@ -302,6 +302,7 @@ const PaymentHistory = () => {
                           {payment.paymentMethod === 'credit_card' ? 'Thẻ tín dụng' : 
                            payment.paymentMethod === 'bank_transfer' ? 'Chuyển khoản' : 
                            payment.paymentMethod === 'cash' ? 'Tiền mặt' : 
+                           payment.paymentMethod === 'momo' ? 'MoMo' :
                            payment.paymentMethod}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

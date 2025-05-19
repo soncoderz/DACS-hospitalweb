@@ -43,7 +43,7 @@ const paymentSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     required: true,
-    enum: [ 'cash', 'paypal']
+    enum: [ 'cash', 'paypal', 'momo']
   },
   paymentStatus: {
     type: String,

@@ -13,7 +13,7 @@ const generateDoctorToken = async (doctorId, userId) => {
       doctorId: doctorId,
       role: 'doctor' // Gán vai trò doctor
     }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
+      expiresIn: '15m'
     });
     
     return token;
@@ -21,7 +21,7 @@ const generateDoctorToken = async (doctorId, userId) => {
     console.error('Error generating doctor token:', error);
     // Return a basic token in case of error
     return jwt.sign({ id: userId, doctorId: doctorId, role: 'doctor' }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
+      expiresIn: '15m'
     });
   }
 };

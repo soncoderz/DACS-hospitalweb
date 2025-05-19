@@ -27,6 +27,7 @@ import OtpVerification from './pages/user/OtpVerification';
 import ResetPassword from './pages/user/ResetPassword';
 import VerifyEmail from './pages/user/VerifyEmail';
 import NeedVerification from './pages/user/NeedVerification';
+import PaymentResult from './pages/user/PaymentResult.jsx';
 
 // Routes protectors
 import UserRoute from './components/UserRoute';
@@ -150,9 +151,10 @@ function AppContent() {
                 <Route path="/appointment" element={<Appointment />} />
                 <Route path="/contact" element={<Contact />} />
                 
-                {/* PayPal Payment Status Routes */}
+                {/* Payment Status Routes */}
                 <Route path="/payment/paypal/success" element={<PaymentStatus />} />
                 <Route path="/payment/paypal/cancel" element={<PaymentStatus />} />
+                <Route path="/payment/result" element={<PaymentResult />} />
                 
                 {/* Redirect old routes to new auth page */}
                 <Route path="/login" element={

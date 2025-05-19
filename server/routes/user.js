@@ -18,7 +18,8 @@ const {
   socialLoginSuccess,
   socialLoginFailure,
   googleTokenVerification,
-  facebookTokenVerification
+  facebookTokenVerification,
+  refreshToken
 } = require('../controllers/authController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { validateUserRegistration, validateUserUpdate, validatePasswordChange } = require('../middlewares/validationMiddleware');
@@ -49,6 +50,9 @@ router.post('/profile/avatar', protect, uploadToMemory.single('avatar'), userCon
 
 // GET /api/auth/:id/avatar - Get user avatar
 router.get('/:id/avatar', protect, userController.getUserAvatar);
+
+// POST /api/auth/refresh-token - Refresh authentication token
+router.post('/refresh-token', protect, refreshToken);
 
 // ===== Password Reset Routes ===== (PUBLIC ROUTES)
 // POST /api/auth/forgot-password - Request password reset

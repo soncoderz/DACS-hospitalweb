@@ -131,7 +131,7 @@ const AppointmentDetail = () => {
     if (status === 'completed' || status === 'paid') {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          <FaCheckCircle className="mr-1" /> Đã thanh toán {method && `(${method === 'paypal' ? 'PayPal' : 'Tiền mặt'})`}
+          <FaCheckCircle className="mr-1" /> Đã thanh toán {method && `(${method === 'paypal' ? 'PayPal' : 'Tiền mặt' || method === 'momo' ? 'MoMo' : 'Chưa thanh toán'})`}
         </span>
       );
     }
@@ -472,6 +472,7 @@ const AppointmentDetail = () => {
                       <div className="font-medium">
                         {appointment.paymentMethod === 'cash' ? 'Tiền mặt' : 
                          appointment.paymentMethod === 'paypal' ? 'PayPal' : 
+                         appointment.paymentMethod === 'momo' ? 'MoMo' :
                          appointment.paymentMethod}
                       </div>
                     </div>

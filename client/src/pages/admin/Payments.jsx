@@ -347,6 +347,7 @@ const Payments = () => {
                 <option value="all">Tất cả phương thức</option>
                 <option value="cash">Tiền mặt</option>
                 <option value="paypal">PayPal</option>
+                <option value="momo">MoMo</option>
                 <option value="credit_card">Thẻ tín dụng</option>
               </select>
             </div>
@@ -453,7 +454,8 @@ const Payments = () => {
                       <div className="text-sm text-gray-900">
                         {payment.paymentMethod === 'cash' && 'Tiền mặt'}
                         {payment.paymentMethod === 'paypal' && 'PayPal'}
-                        {payment.paymentMethod && !['cash', 'paypal'].includes(payment.paymentMethod) && payment.paymentMethod}
+                        {payment.paymentMethod === 'momo' && 'MoMo'}
+                        {payment.paymentMethod && !['cash', 'paypal', 'momo'].includes(payment.paymentMethod) && payment.paymentMethod}
                         {!payment.paymentMethod && 'N/A'}
                       </div>
                     </td>
@@ -610,8 +612,9 @@ const Payments = () => {
                   <span className="font-medium">
                     {selectedPayment.paymentMethod === 'cash' && 'Tiền mặt'}
                     {selectedPayment.paymentMethod === 'paypal' && 'PayPal'}
+                    {selectedPayment.paymentMethod === 'momo' && 'MoMo'}
                     {selectedPayment.paymentMethod === 'credit_card' && 'Thẻ tín dụng'}
-                    {selectedPayment.paymentMethod && !['cash', 'paypal', 'credit_card'].includes(selectedPayment.paymentMethod) && selectedPayment.paymentMethod}
+                    {selectedPayment.paymentMethod && !['cash', 'paypal', 'credit_card', 'momo'].includes(selectedPayment.paymentMethod) && selectedPayment.paymentMethod}
                     {!selectedPayment.paymentMethod && 'N/A'}
                   </span>
                 </div>

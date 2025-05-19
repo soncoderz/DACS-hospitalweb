@@ -218,10 +218,10 @@ const News = () => {
           </>
         ) : (
           <div data-aos="fade-up">
-            <Empty 
-              description="Không tìm thấy tin tức nào" 
-              className="py-20"
-            />
+          <Empty 
+            description="Không tìm thấy tin tức nào" 
+            className="py-20"
+          />
           </div>
         )}
       </div>

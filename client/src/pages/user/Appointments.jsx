@@ -26,6 +26,35 @@ const paypalStyles = `
   }
 `;
 
+// Add MoMo button styles
+const momoStyles = `
+  .momo-button {
+    background-color: #ae2070;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+    transition: background-color 0.3s;
+  }
+  
+  .momo-button:hover {
+    background-color: #8e1a5c;
+  }
+  
+  .momo-icon {
+    margin-right: 8px;
+    width: 24px;
+    height: 24px;
+  }
+`;
+
 const Appointments = () => {
   const { user } = useAuth();
   const location = useLocation();
@@ -40,6 +69,7 @@ const Appointments = () => {
   const [cancellationReason, setCancellationReason] = useState('');
   const [cancelingAppointment, setCancelingAppointment] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [processingMomoPayment, setProcessingMomoPayment] = useState(false);
   const paypalRef = React.useRef(null);
   const [paypalContainerRefs, setPaypalContainerRefs] = useState({});
   const [upcomingFilter, setUpcomingFilter] = useState('all');
@@ -93,10 +123,37 @@ const Appointments = () => {
       
       // Add styles for PayPal buttons
       const style = document.createElement('style');
-      style.textContent = paypalStyles;
+      style.textContent = paypalStyles + momoStyles;
       document.head.appendChild(style);
     }
   }, []);
+
+  // Function to handle MoMo payment
+  const handleMomoPayment = async (appointmentId, { totalAmount }) => {
+    try {
+      setProcessingMomoPayment(true);
+      
+      // Call backend to create MoMo payment URL
+      const response = await api.post('/payments/momo/create', {
+        appointmentId,
+        amount: totalAmount,
+        orderInfo: `Thanh toán lịch hẹn khám bệnh #${appointmentId.substring(0, 8)}`,
+        redirectUrl: `${window.location.origin}/payment/result`, // Frontend URL to handle redirect after payment
+      });
+      
+      if (response.data.success && response.data.payUrl) {
+        // Open the MoMo payment URL in a new tab
+        window.open(response.data.payUrl, '_blank');
+      } else {
+        toast.error('Không thể khởi tạo thanh toán MoMo. Vui lòng thử lại sau.');
+      }
+    } catch (error) {
+      console.error('Error creating MoMo payment:', error);
+      toast.error('Đã xảy ra lỗi khi xử lý thanh toán qua MoMo.');
+    } finally {
+      setProcessingMomoPayment(false);
+    }
+  };
 
   const fetchAppointments = async () => {
     try {
@@ -589,6 +646,11 @@ const Appointments = () => {
     }
   };
 
+  // Add a manual payment trigger function for MoMo
+  const manualInitiateMomoPayment = (appointmentId, totalAmount) => {
+    handleMomoPayment(appointmentId, { totalAmount });
+  };
+
   // Add a manual payment trigger function
   const manualInitiatePayment = (appointmentId, totalAmount) => {
     if (!window.paypal) {
@@ -740,7 +802,7 @@ const Appointments = () => {
                       Đã thanh toán
                       {appointment.paymentMethod && (
                         <span className="ml-1 text-gray-600">
-                          ({appointment.paymentMethod === 'paypal' ? 'PayPal' : 'Tiền mặt'})
+                          ({appointment.paymentMethod === 'paypal' ? 'PayPal' : appointment.paymentMethod === 'momo' ? 'MoMo' : 'Tiền mặt'})
                         </span>
                       )}
                     </span>
@@ -752,14 +814,15 @@ const Appointments = () => {
                   )}
                 </div>
                 
-                {/* Display PayPal button only if not paid */}
+                {/* Display payment buttons only if not paid */}
                 {(appointment.paymentStatus === 'unpaid' || !appointment.paymentStatus || appointment.paymentStatus === 'pending') && 
                   (appointment.status === 'confirmed' || appointment.status === 'pending' || appointment.status === 'rescheduled') && (
                   <div className="mt-2">
+                    {/* PayPal button */}
                     <button 
                       onClick={() => manualInitiatePayment(appointment._id, totalAmount)}
                       className="w-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center mb-2"
-                      disabled={processingPayment}
+                      disabled={processingPayment || processingMomoPayment}
                     >
                       {processingPayment ? (
                         <>
@@ -776,6 +839,29 @@ const Appointments = () => {
                       id={`paypal-button-${appointment._id}`} 
                       className="paypal-button-container"
                     ></div>
+                    
+                    {/* MoMo button */}
+                    <button
+                      onClick={() => manualInitiateMomoPayment(appointment._id, totalAmount)}
+                      className="momo-button mt-2"
+                      disabled={processingPayment || processingMomoPayment}
+                    >
+                      {processingMomoPayment ? (
+                        <>
+                          <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Đang xử lý...
+                        </>
+                      ) : (
+                        <>
+                          <img 
+                            src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" 
+                            alt="MoMo Logo" 
+                            className="momo-icon" 
+                          />
+                          Thanh toán qua MoMo
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
               </div>

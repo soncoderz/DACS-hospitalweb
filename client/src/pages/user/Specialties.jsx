@@ -121,12 +121,12 @@ const Specialties = () => {
           } catch (error) {
             console.error(`Error fetching counts for specialty ${specialty._id}:`, error);
             // Return with fallback counts if API calls fail
-            return {
-              ...specialty,
-              doctorCount: specialty.doctorCount || specialty.doctors?.length || 0,
+          return {
+            ...specialty,
+            doctorCount: specialty.doctorCount || specialty.doctors?.length || 0,
               serviceCount: specialty.serviceCount || specialty.services?.length || 0,
-              commonServices: specialty.commonServices || specialty.services?.slice(0, 5)?.map(s => s.name) || []
-            };
+            commonServices: specialty.commonServices || specialty.services?.slice(0, 5)?.map(s => s.name) || []
+          };
           }
         }));
         
@@ -519,8 +519,8 @@ const Specialties = () => {
               <div key={specialty._id} data-aos="fade-up" data-aos-delay={index % 3 * 100}>
                 <SpecialtyCard specialty={specialty} />
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center mb-16">
             <h3 className="text-2xl text-gray-700 mb-4">Không tìm thấy chuyên khoa</h3>

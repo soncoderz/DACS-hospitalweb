@@ -4,10 +4,14 @@ const { check } = require('express-validator');
 const paymentController = require('../controllers/paymentController');
 const { protect, admin, authorize } = require('../middlewares/authMiddleware');
 const paypalController = require('../controllers/paypalController');
+const momoController = require('../controllers/momoController');
 const Payment = require('../models/Payment');
 const Appointment = require('../models/Appointment');
 
 // PUBLIC ROUTES
+// Public endpoints for payment callbacks
+router.post('/momo/ipn', momoController.momoIPN);
+router.get('/momo/result', momoController.momoPaymentResult);
 
 // PROTECTED ROUTES
 // User routes - Access only by authenticated users
@@ -54,7 +58,7 @@ router.post(
     check('serviceId').notEmpty().withMessage('ID dịch vụ là bắt buộc'),
     check('amount').isNumeric().withMessage('Số tiền phải là số'),
     check('originalAmount').isNumeric().withMessage('Số tiền gốc phải là số'),
-    check('paymentMethod').isIn([ 'cash', 'paypal']).withMessage('Phương thức thanh toán không hợp lệ')
+    check('paymentMethod').isIn([ 'cash', 'paypal', 'momo']).withMessage('Phương thức thanh toán không hợp lệ')
   ],
   paymentController.createPayment
 );
@@ -66,6 +70,10 @@ router.get('/paypal/:paymentId', protect, paypalController.getPaypalPayment);
 router.post('/paypal/confirmed', paymentController.confirmPayPalPayment);
 router.post('/paypal/confirm', paymentController.confirmPayPalPayment);
 router.post('/paypal/cancel', paymentController.cancelPayPalPayment);
+
+// MoMo Payment Routes
+router.post('/momo/create', protect, momoController.createMomoPayment);
+router.get('/momo/status/:orderId', protect, momoController.checkMomoPaymentStatus);
 
 // Reset payment route
 router.delete('/reset/:appointmentId', protect, async (req, res) => {
