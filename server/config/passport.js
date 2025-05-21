@@ -102,12 +102,12 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
 // Only setup Facebook Strategy if credentials exist
 if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
-  console.log('Initializing Facebook Strategy with callback URL:', `${process.env.BASE_URL || 'http://localhost:5000'}/`);
+  console.log('Initializing Facebook Strategy with callback URL:', `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/facebook/callback`);
   
   passport.use(new FacebookStrategy({
       clientID: process.env.FACEBOOK_APP_ID,
       clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL: `${process.env.BASE_URL || 'http://localhost:5000'}/`,
+      callbackURL: `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/facebook/callback`,
       profileFields: ['id', 'displayName', 'email', 'photos']
     },
     async (accessToken, refreshToken, profile, done) => {

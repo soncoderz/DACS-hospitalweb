@@ -924,3 +924,46 @@
 [2025-05-16T16:57:07.809Z] [ERROR] GET /api/coupons/validate?code=WELCOME2023&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2&totalAmount=650000 Error: Mã giảm giá này không áp dụng cho dịch vụ đã chọn
     at C:\DACS-hospitalweb\server\controllers\couponController.js:554:19
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[2025-05-21T15:41:59.318Z] [ERROR] GET /api/auth/google/callback?code=AQANS9bkKYbgRMxdvuX-iOQJnSTFWH8xbVeXLr_j9kGoERxttEKFsntziCQDt9RqjJvyIKZWvyVx475sxSkiQJigbk9SLudRV2YPRZCpUU4aGyhU0H0kC2NPuOuimCcFLkJtRjxjW0Qrlz0fz6Pv3UaRixa-6d-Qa1E0XAdvCuRDa4eUkgzAfUB5-HopcySNSUaNtGfjjdl1KtaYqrxPq_wi7sQoF3rBusMi6wm-p26TyySUMx2J68zEQi4wPPTzZz5Nzm1L8tzInbpN-5FW4lE2lkoH4ke8xA6EuBZ9PtmGHSb0-yTz3V7LAnJOPldwqS72X3cX5cpYB0QZWXwfqR9S-wrsl0om5vFz2rQ4axlQ_iLfsbIQKR9rS3Eggmo_k6g&scope= TokenError: Malformed auth code.
+    at OAuth2Strategy.parseErrorResponse (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:373:12)
+    at OAuth2Strategy._createOAuthError (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:420:16)
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:177:45
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:196:18
+    at passBackControl (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:132:9)
+    at IncomingMessage.<anonymous> (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:157:7)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-05-21T15:43:32.800Z] [ERROR] GET /api/auth/google/callback?code=AQDMX22MOQyZLAdF3xtjnwAhBmEwIB8kj3Ayagjro8F9gnP29ir_5y2vFMxMM0fEnDAUi-HZQCWDplkOOIocKk0cNzTbbq4nMAMxnejQLsKeJj314NgYjl2m3BXx9M_KGuuw7sLGBmM5vSFM4lijYb051wtbLwJH0JDFEimxawldu7M9n8yC3PanYtfEvHfZjeBFUtD7StwO_AOrKueW-3O3VXBYmAZmPkBatXG3Un0fem2Yp0QBrtTI--nS-v8j8c1ZoqLaB6KdFAeG26ZTM_C6U1ztNy6XQ1p0tNhlM4ccbB64AamNu-JacE06D388fG2lBMSBecRjkKQRAtjbMIfnLAFE_LeBK2PJiRM2_SPJr17qj-Mkg32Iv0lpMHP9uvk&scope= TokenError: Malformed auth code.
+    at OAuth2Strategy.parseErrorResponse (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:373:12)
+    at OAuth2Strategy._createOAuthError (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:420:16)
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:177:45
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:196:18
+    at passBackControl (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:132:9)
+    at IncomingMessage.<anonymous> (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:157:7)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-05-21T15:44:02.459Z] [ERROR] GET /api/auth/google/callback?code=AQA06-TV-kbRmxbn5F8qeqlMq0p0pZri2VahqAGPYqVheC4OYMwBMmySutYegA3Qz6OomnJE2rGpfSwVOJQCb410T29WST2nMCY_TNJyypeCVc59iyhgfBMA7dZ9kWvmy-yemL0sylamaDnV5WCaseLowVIf-xW8ENQHCYOtkJ0MNdWOwI2V-DSKLYlasOELpkMWO8dID_mos4clGzbeRHUK_vZRTPyX8bcuNFwQBi6BWqG33eWzs6Ag3rWEyAuV9PWy-zxsu_mVvalUVpzfeNdNskBGBsJxAEW-aRPh3s0VQZz2PEM8ATwVHShGJUHy-HZLAY__X3CqdtnB4Cc7m8FptVN8vcjihbXWEu1DJ3pVR_FnU5vaJXWGIt7-YrzA3CE&scope= TokenError: Malformed auth code.
+    at OAuth2Strategy.parseErrorResponse (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:373:12)
+    at OAuth2Strategy._createOAuthError (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:420:16)
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:177:45
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:196:18
+    at passBackControl (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:132:9)
+    at IncomingMessage.<anonymous> (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:157:7)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-05-21T15:45:27.963Z] [ERROR] GET /api/auth/google/callback?code=AQAybSrlvyX7_akSCvQPwmoZm_IIw0CKzkdt0X05uvPaSE7LsSPEZq-WaCCyvHjq4sUbnvU5v-0oOO850BTOq2cbtNNLFmzIYxbm-47BavFl9OHU2wgg7Y-yT3pDdNnp_w40oFKV8LE4cQOCzUExFHOcLO_GHsWYKjJdIeVxT6XnXV4OKYBjd0Wf2GpffL8U4t_3XGXckNvj3P3WnWsmcAZCeT5IRib6aBTh0a6lo2dukJvV5EI-95NoIJPlbPE85mVyY4su9Lsb9Dz3GOZtlILM-qz-c_ehuIB1Ton2gmKkX8maJGsHTpZkQ7QHzY1ZownrkbCzodhG-u91jfz7TkodYAO92GTX1Z9O3lae-TpYP0GvOvYwJ2JdElPb4_q4qgA&scope= TokenError: Malformed auth code.
+    at OAuth2Strategy.parseErrorResponse (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:373:12)
+    at OAuth2Strategy._createOAuthError (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:420:16)
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\passport-oauth2\lib\strategy.js:177:45
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:196:18
+    at passBackControl (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:132:9)
+    at IncomingMessage.<anonymous> (D:\icon\New folder (2)\DACS-hospitalweb\server\node_modules\oauth\lib\oauth2.js:157:7)
+    at IncomingMessage.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2025-05-21T15:49:01.669Z] [ERROR] GET /api/coupons/validate?code=SONDZ&serviceId=680b201e78b7aadb0a7af5dc&specialtyId=680b201e78b7aadb0a7af5d2&totalAmount=650000 Error: Mã giảm giá không hợp lệ hoặc không tồn tại
+    at D:\icon\New folder (2)\DACS-hospitalweb\server\controllers\couponController.js:534:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

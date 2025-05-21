@@ -2195,7 +2195,7 @@ const Appointment = () => {
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-start border border-blue-100">
                   <FaInfoCircle className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
                   <span className="text-sm text-gray-700">
-                    Bạn có thể thanh toán trực tuyến bằng PayPal sau khi đặt lịch trong phần lịch sử đặt lịch hoặc thanh toán tiền mặt tại bệnh viện.
+                    Bạn có thể thanh toán trực tuyến bằng PayPal , MOMO sau khi đặt lịch trong phần lịch sử đặt lịch hoặc thanh toán tiền mặt tại bệnh viện.
                   </span>
                 </div>
               </div>

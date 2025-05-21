@@ -303,16 +303,29 @@ exports.momoIPN = async (req, res) => {
     // Update payment status based on resultCode
     if (resultCode === 0) {
       // Payment successful
-      payment.paymentStatus = 'completed';
+      payment.paymentStatus = 'paid';
       payment.paidAt = Date.now();
       payment.transactionId = transId;
       payment.paymentDetails = { ...payment.paymentDetails, ...req.body };
       
       // Update appointment status
-      await Appointment.findByIdAndUpdate(payment.appointmentId, {
-        paymentStatus: 'completed',
-        paymentMethod: 'momo'
-      });
+      const appointment = await Appointment.findById(payment.appointmentId);
+      if (appointment) {
+        appointment.paymentStatus = 'paid';
+        appointment.paymentMethod = 'momo';
+        
+        // Automatically confirm appointment if it's pending, like PayPal
+        if (appointment.status === 'pending') {
+          appointment.status = 'confirmed';
+        }
+        
+        await appointment.save();
+      } else {
+        await Appointment.findByIdAndUpdate(payment.appointmentId, {
+          paymentStatus: 'paid',
+          paymentMethod: 'momo'
+        });
+      }
     } else {
       // Payment failed
       payment.paymentStatus = 'failed';
@@ -339,34 +352,106 @@ exports.momoPaymentResult = async (req, res) => {
   try {
     const { orderId, resultCode } = req.query;
     
+    // Log the incoming data for debugging
+    console.log('MoMo result received:', { 
+      orderId, 
+      resultCode, 
+      resultCodeType: typeof resultCode,
+      allParams: req.query 
+    });
+    
     // Find payment in database
     const payment = await Payment.findOne({ 'paymentDetails.orderId': orderId });
     
     if (!payment) {
+      console.error('Payment not found for orderId:', orderId);
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy thông tin thanh toán'
       });
     }
+
+    console.log('Found payment:', { 
+      id: payment._id, 
+      status: payment.paymentStatus,
+      appointmentId: payment.appointmentId
+    });
     
     // Update payment status if not already updated by IPN
     if (payment.paymentStatus === 'pending') {
-      if (resultCode === '0') {
-        payment.paymentStatus = 'completed';
+      // Check resultCode as string or number (MoMo returns as string in URL param)
+      if (resultCode === '0' || resultCode === 0) {
+        payment.paymentStatus = 'paid';
         payment.paidAt = Date.now();
-        payment.paymentDetails = { ...payment.paymentDetails, ...req.query };
+        payment.paymentDetails = { 
+          ...payment.paymentDetails, 
+          ...req.query,
+          processedAt: new Date().toISOString() 
+        };
         
-        // Update appointment status
-        await Appointment.findByIdAndUpdate(payment.appointmentId, {
-          paymentStatus: 'completed',
-          paymentMethod: 'momo'
-        });
+        try {
+          // Save payment first
+          await payment.save();
+          console.log('Payment updated successfully');
+          
+          // Find appointment
+          const appointmentId = payment.appointmentId;
+          console.log('Looking for appointment with ID:', appointmentId);
+          
+          // Update appointment status - with better error handling
+          try {
+            const appointment = await Appointment.findById(appointmentId);
+            
+            if (appointment) {
+              console.log('Found appointment:', { 
+                id: appointment._id, 
+                status: appointment.status,
+                paymentStatus: appointment.paymentStatus
+              });
+              
+              appointment.paymentStatus = 'paid';
+              appointment.paymentMethod = 'momo';
+              
+              // Automatically confirm appointment if it's pending, like PayPal
+              if (appointment.status === 'pending') {
+                appointment.status = 'confirmed';
+              }
+              
+              await appointment.save();
+              console.log('Appointment updated successfully');
+            } else {
+              console.error('Appointment not found for ID:', appointmentId);
+            }
+          } catch (appointmentError) {
+            console.error('Error updating appointment:', appointmentError);
+            // Continue execution even if appointment update fails
+          }
+        } catch (saveError) {
+          console.error('Error saving payment:', saveError);
+          return res.status(500).json({
+            success: false,
+            message: 'Lỗi khi cập nhật trạng thái thanh toán',
+            error: saveError.message
+          });
+        }
       } else {
         payment.paymentStatus = 'failed';
         payment.paymentDetails = { ...payment.paymentDetails, ...req.query };
+        
+        try {
+          await payment.save();
+          console.log('Payment marked as failed');
+        } catch (saveError) {
+          console.error('Error saving failed payment:', saveError);
+          return res.status(500).json({
+            success: false,
+            message: 'Lỗi khi cập nhật trạng thái thanh toán thất bại',
+            error: saveError.message
+          });
+        }
       }
-      
-      await payment.save();
+    } else {
+      console.log('Payment already processed, status:', payment.paymentStatus);
     }
     
     // Return payment status
@@ -374,7 +459,7 @@ exports.momoPaymentResult = async (req, res) => {
       success: true,
       paymentStatus: payment.paymentStatus,
       appointmentId: payment.appointmentId,
-      message: resultCode === '0' ? 'Thanh toán thành công' : 'Thanh toán thất bại'
+      message: (resultCode === '0' || resultCode === 0) ? 'Thanh toán thành công' : 'Thanh toán thất bại'
     });
   } catch (error) {
     console.error('MoMo payment result processing error:', error);

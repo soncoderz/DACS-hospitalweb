@@ -39,7 +39,7 @@ const SocialCallback = () => {
           console.log('Đang xử lý Facebook OAuth callback với code:', code);
           
           // Lấy redirectUri giống với redirectUri đã sử dụng khi gọi FB login
-          const redirectUri = `${window.location.origin}/facebook-callback`;
+          const redirectUri = `${window.location.origin}/api/auth/facebook/callback`;
           
           // Gọi API để đổi code lấy token và thông tin người dùng
           const response = await api.post('/auth/facebook-code', {
