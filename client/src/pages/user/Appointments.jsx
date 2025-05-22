@@ -969,7 +969,7 @@ const Appointments = () => {
               setCurrentPage(1);
             }}
           >
-            Sắp tới
+            Tất cả
           </button>
           <button
             className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${

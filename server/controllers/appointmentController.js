@@ -1597,13 +1597,39 @@ exports.rescheduleAppointment = async (req, res) => {
           roomName: oldRoomId ? 'Phòng cũ' : 'Không có phòng',
         };
         
+        // Gửi email thông báo đổi lịch cho bệnh nhân
         await sendAppointmentRescheduleEmail(
           appointment.patientId.email,
           appointment.patientId.fullName,
           emailData,
           oldAppointmentData
         );
-        console.log('Đã gửi email thông báo đổi lịch thành công');
+        console.log('Đã gửi email thông báo đổi lịch thành công đến bệnh nhân');
+        
+        // Gửi email thông báo đổi lịch cho bác sĩ
+        if (appointment.doctorId && appointment.doctorId.user && appointment.doctorId.user.email) {
+          // Thông tin bệnh nhân cho email gửi bác sĩ
+          const patient = await User.findById(appointment.patientId);
+          const patientInfo = {
+            name: patient.fullName,
+            email: patient.email,
+            phone: patient.phoneNumber || patient.phone || 'Không có'
+          };
+          
+          // Thêm thông tin đổi lịch vào dữ liệu email
+          emailData.isRescheduled = true;
+          emailData.oldAppointmentDate = oldAppointmentData.appointmentDate;
+          emailData.oldStartTime = oldAppointmentData.startTime;
+          emailData.oldEndTime = oldAppointmentData.endTime;
+          
+          await sendDoctorAppointmentNotificationEmail(
+            appointment.doctorId.user.email,
+            appointment.doctorId.user.fullName,
+            emailData,
+            patientInfo
+          );
+          console.log('Đã gửi email thông báo đổi lịch thành công đến bác sĩ:', appointment.doctorId.user.email);
+        }
       } else {
         console.log('Bỏ qua gửi email vì hàm sendAppointmentRescheduleEmail chưa được triển khai');
       }
@@ -3148,68 +3174,115 @@ exports.confirmAppointment = async (req, res) => {
     }
     
     // Cập nhật trạng thái lịch hẹn
-      appointment.status = 'confirmed';
-  appointment.confirmationDate = new Date();
+    appointment.status = 'confirmed';
+    appointment.confirmationDate = new Date();
   
-  await appointment.save();
+    console.log(`[INFO] Updating appointment ${id} status to confirmed`);
+    await appointment.save();
+    console.log(`[INFO] Appointment ${id} confirmed successfully`);
   
-  // Gửi email thông báo cho bệnh nhân (nếu có)
-  try {
-    const patient = await User.findById(appointment.patientId);
-    if (patient && patient.email) {
-      // Tạo đối tượng thông tin lịch hẹn cho email
-      const doctorUser = await User.findById(doctor.user);
-      const hospitalData = await Hospital.findById(appointment.hospitalId);
+    // Gửi email thông báo cho bệnh nhân
+    try {
+      const patient = await User.findById(appointment.patientId);
+      if (!patient) {
+        console.error(`[ERROR] Patient not found for appointment ${id}`);
+        throw new Error('Không tìm thấy thông tin bệnh nhân');
+      }
+      
+      console.log(`[INFO] Preparing confirmation email for patient: ${patient.email || 'Email not available'}`);
+      
+      if (!patient.email) {
+        console.warn(`[WARN] Patient ${patient._id} has no email address for confirmation`);
+      } else {
+        // Tạo đối tượng thông tin lịch hẹn cho email
+        const doctorUser = await User.findById(doctor.user);
+        if (!doctorUser) {
+          console.error(`[ERROR] Doctor user not found: ${doctor.user}`);
+          throw new Error('Không tìm thấy thông tin tài khoản bác sĩ');
+        }
 
-      // Kiểm tra và định dạng giờ từ khung giờ
-      let startTime = '';
-      let endTime = '';
+        const hospitalData = await Hospital.findById(appointment.hospitalId);
+        if (!hospitalData) {
+          console.error(`[ERROR] Hospital not found: ${appointment.hospitalId}`);
+          throw new Error('Không tìm thấy thông tin bệnh viện');
+        }
 
-      // Kiểm tra nếu có timeSlot từ appointment
-      if (appointment.timeSlot && appointment.timeSlot.startTime && appointment.timeSlot.endTime) {
-        startTime = appointment.timeSlot.startTime;
-        endTime = appointment.timeSlot.endTime;
-      } 
-      // Nếu có appointmentTime, thử tách
-      else if (appointment.appointmentTime && typeof appointment.appointmentTime === 'string') {
-        const timeParts = appointment.appointmentTime.split('-');
-        if (timeParts.length === 2) {
-          startTime = timeParts[0].trim();
-          endTime = timeParts[1].trim();
+        // Kiểm tra và định dạng giờ từ khung giờ
+        let startTime = '';
+        let endTime = '';
+
+        // Kiểm tra nếu có timeSlot từ appointment
+        if (appointment.timeSlot && appointment.timeSlot.startTime && appointment.timeSlot.endTime) {
+          startTime = appointment.timeSlot.startTime;
+          endTime = appointment.timeSlot.endTime;
+        } 
+        // Nếu có appointmentTime, thử tách
+        else if (appointment.appointmentTime && typeof appointment.appointmentTime === 'string') {
+          const timeParts = appointment.appointmentTime.split('-');
+          if (timeParts.length === 2) {
+            startTime = timeParts[0].trim();
+            endTime = timeParts[1].trim();
+          }
+        }
+
+        // Lấy thông tin chuyên khoa
+        let specialtyName = '';
+        if (doctor.specialtyId) {
+          try {
+            const specialty = await Specialty.findById(doctor.specialtyId);
+            specialtyName = specialty ? specialty.name : '';
+          } catch (err) {
+            console.warn(`[WARN] Error fetching specialty: ${err.message}`);
+          }
+        }
+
+        // Lấy thông tin dịch vụ
+        let serviceName = '';
+        if (appointment.serviceId) {
+          try {
+            serviceName = await getServiceName(appointment.serviceId);
+          } catch (err) {
+            console.warn(`[WARN] Error fetching service: ${err.message}`);
+          }
+        }
+
+        const appointmentInfo = {
+          bookingCode: appointment.bookingCode || appointment.appointmentCode || id.substring(0, 8).toUpperCase(),
+          doctorName: doctor.title + ' ' + doctorUser.fullName,
+          hospitalName: hospitalData.name,
+          appointmentDate: new Date(appointment.appointmentDate).toLocaleDateString('vi-VN'),
+          startTime: startTime,
+          endTime: endTime,
+          roomName: appointment.roomName || (appointment.roomId ? 'Phòng ' + appointment.roomId.toString() : 'Chưa xác định'),
+          specialtyName: specialtyName,
+          serviceName: serviceName
+        };
+        
+        console.log(`[INFO] Sending confirmation email to ${patient.email}`);
+        const emailResult = await sendAppointmentConfirmationEmail(
+          patient.email,
+          patient.fullName,
+          appointmentInfo
+        );
+        
+        if (emailResult) {
+          console.log(`[INFO] Confirmation email sent successfully to patient ${patient._id}`);
+        } else {
+          console.warn(`[WARN] Confirmation email may not have been sent correctly to ${patient.email}`);
         }
       }
-
-      const appointmentInfo = {
-        bookingCode: appointment.bookingCode || appointment.appointmentCode,
-        doctorName: doctor.title + ' ' + doctorUser.fullName,
-        hospitalName: hospitalData.name,
-        appointmentDate: new Date(appointment.appointmentDate).toLocaleDateString('vi-VN'),
-        startTime: startTime,
-        endTime: endTime,
-        roomName: appointment.roomName || 'Chưa xác định',
-        specialtyName: (await Specialty.findById(doctor.specialtyId))?.name || '',
-        serviceName: appointment.serviceId ? await getServiceName(appointment.serviceId) : ''
-      };
-      
-      await sendAppointmentConfirmationEmail(
-        patient.email,
-        patient.fullName,
-        appointmentInfo
-      );
+    } catch (emailError) {
+      console.error(`[ERROR] Error sending confirmation email:`, emailError);
+      // Không trả về lỗi cho client vì đây chỉ là email thông báo phụ
     }
-  } catch (emailError) {
-    console.error('Error sending confirmation email:', emailError);
-  }
   
-
-  
-  return res.status(200).json({
-    success: true,
-    data: appointment,
-    message: 'Xác nhận lịch hẹn thành công'
-  });
+    return res.status(200).json({
+      success: true,
+      data: appointment,
+      message: 'Xác nhận lịch hẹn thành công'
+    });
   } catch (error) {
-    console.error('Confirm appointment error:', error);
+    console.error('[ERROR] Confirm appointment error:', error);
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi xác nhận lịch hẹn',

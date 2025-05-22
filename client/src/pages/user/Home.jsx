@@ -1497,7 +1497,7 @@ const Home = () => {
                 <FaMapMarkerAlt size={24} className="text-primary" />
               </div>
               <h4 className="text-xl font-semibold mb-3 text-gray-800">Địa Chỉ</h4>
-              <p className="text-gray-600">123 Đường Nguyễn Huệ, Quận 1, TP.HCM</p>
+              <p className="text-gray-600">xxxxxxxxxxxxxxxxxxxxxxxxxxx</p>
             </div>
             
             <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl" data-aos="fade-up" data-aos-delay="100">
@@ -1507,7 +1507,7 @@ const Home = () => {
                 </svg>
               </div>
               <h4 className="text-xl font-semibold mb-3 text-gray-800">Email</h4>
-              <p className="text-gray-600">info@hospital.com</p>
+              <p className="text-gray-600">xxxxxxxx@xxxxxxx.com</p>
             </div>
             
             <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-xl" data-aos="fade-up" data-aos-delay="200">
@@ -1515,7 +1515,7 @@ const Home = () => {
                 <FaPhone size={24} className="text-primary" />
               </div>
               <h4 className="text-xl font-semibold mb-3 text-gray-800">Số Điện Thoại</h4>
-              <p className="text-gray-600">(028) 3822 1234</p>
+              <p className="text-gray-600">xxxxxxxxx</p>
             </div>
           </div>
         </div>
@@ -1783,10 +1783,10 @@ const Home = () => {
         <Link to="/appointment" className="fab-main" title="Đặt lịch khám">
           <FaCalendarCheck size={24} />
         </Link>
-        <a href="tel:18001008" className="fab-secondary text-blue-600" title="Hotline: 1800 1008">
+        <a href="tel:0379747517" className="fab-secondary text-blue-600" title="Hotline: 1800 1008">
           <FaPhone size={24} />
         </a>
-        <a href="https://zalo.me/your-account" className="fab-secondary text-green-600" title="Chat Zalo">
+        <a href="https://zalo.me/0379747517" className="fab-secondary text-green-600" title="Chat Zalo">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 26" width="24" height="24">
             <path d="M13.5,1C6.6,1,1,5.9,1,12c0,3.8,2,7.2,5.1,9.1c0.2,0.1,0.3,0.4,0.2,0.6c-0.3,0.9-0.7,2.1-0.8,2.4c-0.2,0.7,0.2,0.7,0.7,0.4 c0.9-0.5,3-1.8,3-1.8c0.2-0.1,0.4-0.1,0.6-0.1c1.2,0.3,2.4,0.5,3.7,0.5c6.9,0,12.5-4.9,12.5-11C26,5.9,20.4,1,13.5,1z" fill="currentColor"/>
             <g fill="#FFF">

@@ -405,15 +405,6 @@ const AppointmentDetail = () => {
                   </>
                 )}
                 
-                {appointment.status === 'confirmed' && (
-                  <button 
-                    className="inline-flex items-center bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                    onClick={() => setShowCancelModal(true)}
-                  >
-                    <FaTimesCircle className="mr-2" /> Hủy lịch
-                  </button>
-                )}
-                
                 {appointment.status === 'completed' && !appointment.isReviewed && (
                   <Link 
                     to={`/appointments/${appointment._id}/review`}

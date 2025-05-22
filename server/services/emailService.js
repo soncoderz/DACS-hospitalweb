@@ -262,7 +262,7 @@ const sendAppointmentConfirmationEmail = async (email, patientName, appointmentI
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
           <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #0066cc;">Xác nhận đặt lịch khám</h2>
+            <h2 style="color: #0066cc;">Lịch hẹn đã được xác nhận</h2>
           </div>
           
           <p>Xin chào ${patientName},</p>
@@ -291,10 +291,6 @@ const sendAppointmentConfirmationEmail = async (email, patientName, appointmentI
             <tr>
               <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Giờ khám:</td>
               <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${startTime} - ${endTime}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Phòng khám:</td>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${roomName}</td>
             </tr>
           </table>
           
@@ -560,148 +556,156 @@ const sendAppointmentRescheduleEmail = async (email, patientName, appointmentInf
 const sendDoctorAppointmentNotificationEmail = async (email, doctorName, appointmentInfo, patientInfo) => {
   if (!transporter) {
     console.error('Email transporter chưa được khởi tạo');
-    throw new Error('Email transporter chưa được khởi tạo');
+    // Attempt to re-initialize
+    try {
+      console.log('Attempting to re-initialize email transporter...');
+      await initializeEmailTransport(false);
+      if (!transporter) {
+        throw new Error('Không thể khởi tạo lại email transporter');
+      }
+    } catch (initError) {
+      console.error('Re-initialization failed:', initError);
+      throw new Error('Email transporter chưa được khởi tạo và không thể khởi tạo lại');
+    }
   }
 
   try {
-    const {
-      bookingCode,
-      hospitalName,
-      appointmentDate,
-      startTime,
-      endTime,
-      roomName,
-      specialtyName,
-      serviceName,
-      appointmentType,
-      symptoms,
-      medicalHistory,
-      notes
-    } = appointmentInfo;
+    console.log(`Preparing to send doctor notification email to ${email}`);
     
-    const {
-      patientName,
-      patientGender,
-      patientAge,
-      patientPhone,
-      patientEmail
-    } = patientInfo;
+    // Determine if this is a new appointment or a rescheduled one
+    const isRescheduled = appointmentInfo.isRescheduled;
     
-    // Tạo các thông tin bổ sung nếu có
-    const specialtyInfo = specialtyName ? `<tr>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Chuyên khoa:</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${specialtyName}</td>
-      </tr>` : '';
-      
-    const serviceInfo = serviceName ? `<tr>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Dịch vụ:</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${serviceName}</td>
-      </tr>` : '';
+    // Adjust subject based on appointment type
+    const subject = isRescheduled 
+      ? `Thông báo: Bệnh nhân đã đổi lịch hẹn khám - Mã ${appointmentInfo.bookingCode}` 
+      : `Thông báo: Có lịch hẹn khám mới - Mã ${appointmentInfo.bookingCode}`;
     
-    const symptomsInfo = symptoms ? `<tr>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Triệu chứng:</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${symptoms}</td>
-      </tr>` : '';
+    // Adjust content based on appointment type
+    let rescheduledInfoContent = '';
+    if (isRescheduled) {
+      rescheduledInfoContent = `
+        <tr>
+          <td style="padding: 10px 0;">
+            <p style="font-size: 16px; color: #d32f2f; font-weight: bold;">Thông tin thay đổi:</p>
+            <p>Lịch hẹn đã được đổi từ <strong>${appointmentInfo.oldAppointmentDate}</strong> lúc <strong>${appointmentInfo.oldStartTime}</strong> sang <strong>${appointmentInfo.appointmentDate}</strong> lúc <strong>${appointmentInfo.startTime}</strong>.</p>
+          </td>
+        </tr>
+      `;
+    }
     
-    const medicalHistoryInfo = medicalHistory ? `<tr>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Tiền sử bệnh:</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${medicalHistory}</td>
-      </tr>` : '';
-    
-    const notesInfo = notes ? `<tr>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Ghi chú:</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${notes}</td>
-      </tr>` : '';
-    
-    const mailOptions = {
-      from: `"Hệ thống Bệnh viện" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Thông báo có lịch hẹn mới',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #0066cc;">Thông báo lịch hẹn mới</h2>
+    // Email HTML content
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #3f51b5; color: white; padding: 15px; text-align: center; }
+          .content { padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #777; }
+          .info-table { width: 100%; border-collapse: collapse; }
+          .info-table td { padding: 8px 0; border-bottom: 1px solid #eee; }
+          .highlight { color: #3f51b5; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${isRescheduled ? 'Thông Báo Đổi Lịch Hẹn' : 'Thông Báo Lịch Hẹn Mới'}</h1>
           </div>
-          
-          <p>Kính gửi Bác sĩ ${doctorName},</p>
-          
-          <p>Bạn có một lịch hẹn mới được đặt. Dưới đây là chi tiết lịch hẹn:</p>
-          
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Mã đặt lịch:</td>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${bookingCode}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Bệnh viện/Chi nhánh:</td>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${hospitalName}</td>
-            </tr>
-            ${specialtyInfo}
-            ${serviceInfo}
-            <tr>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Ngày khám:</td>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${appointmentDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Giờ khám:</td>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${startTime} - ${endTime}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Phòng khám:</td>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${roomName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Loại khám:</td>
-              <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${
-                appointmentType === 'first-visit' ? 'Khám lần đầu' : 
-                appointmentType === 'follow-up' ? 'Tái khám' : 
-                appointmentType === 'consultation' ? 'Tư vấn' : appointmentType
-              }</td>
-            </tr>
-          </table>
-          
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 0; color: #333;"><strong>Thông tin bệnh nhân:</strong></p>
-            <p style="margin: 10px 0 0 0; color: #333;">- Họ tên: ${patientName}</p>
-            ${patientGender ? `<p style="margin: 5px 0 0 0; color: #333;">- Giới tính: ${patientGender}</p>` : ''}
-            ${patientAge ? `<p style="margin: 5px 0 0 0; color: #333;">- Tuổi: ${patientAge}</p>` : ''}
-            ${patientPhone ? `<p style="margin: 5px 0 0 0; color: #333;">- Số điện thoại: ${patientPhone}</p>` : ''}
-            ${patientEmail ? `<p style="margin: 5px 0 0 0; color: #333;">- Email: ${patientEmail}</p>` : ''}
+          <div class="content">
+            <p>Kính gửi <strong>BS. ${doctorName}</strong>,</p>
+            
+            ${isRescheduled 
+              ? `<p>Bệnh nhân <strong>${patientInfo.name}</strong> đã thay đổi lịch hẹn khám với bạn. Dưới đây là thông tin chi tiết về lịch hẹn đã được cập nhật:</p>` 
+              : `<p>Bạn vừa nhận được một lịch hẹn khám mới từ bệnh nhân <strong>${patientInfo.name}</strong>. Dưới đây là thông tin chi tiết về lịch hẹn:</p>`}
+            
+            <table class="info-table">
+              <tr>
+                <td><strong>Mã đặt lịch:</strong></td>
+                <td><span class="highlight">${appointmentInfo.bookingCode || 'N/A'}</span></td>
+              </tr>
+              <tr>
+                <td><strong>Tên bệnh nhân:</strong></td>
+                <td>${patientInfo.name}</td>
+              </tr>
+              <tr>
+                <td><strong>Email bệnh nhân:</strong></td>
+                <td>${patientInfo.email}</td>
+              </tr>
+              <tr>
+                <td><strong>Số điện thoại:</strong></td>
+                <td>${patientInfo.phone || 'Không cung cấp'}</td>
+              </tr>
+              <tr>
+                <td><strong>Ngày khám:</strong></td>
+                <td><span class="highlight">${appointmentInfo.appointmentDate}</span></td>
+              </tr>
+              <tr>
+                <td><strong>Giờ khám:</strong></td>
+                <td><span class="highlight">${appointmentInfo.startTime} - ${appointmentInfo.endTime}</span></td>
+              </tr>
+              <tr>
+                <td><strong>Bệnh viện:</strong></td>
+                <td>${appointmentInfo.hospitalName}</td>
+              </tr>
+              <tr>
+                <td><strong>Phòng khám:</strong></td>
+                <td>${appointmentInfo.roomName}</td>
+              </tr>
+              ${appointmentInfo.specialtyName ? `
+              <tr>
+                <td><strong>Chuyên khoa:</strong></td>
+                <td>${appointmentInfo.specialtyName}</td>
+              </tr>` : ''}
+              ${appointmentInfo.serviceName ? `
+              <tr>
+                <td><strong>Dịch vụ:</strong></td>
+                <td>${appointmentInfo.serviceName}</td>
+              </tr>` : ''}
+            </table>
+            
+            ${rescheduledInfoContent}
+            
+            <p>Vui lòng kiểm tra lịch và xác nhận lịch hẹn trên hệ thống.</p>
+            
+            <p>Trân trọng,<br>Hệ thống đặt lịch khám bệnh</p>
           </div>
-          
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            ${symptomsInfo}
-            ${medicalHistoryInfo}
-            ${notesInfo}
-          </table>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/doctor/appointments" style="display: inline-block; padding: 12px 24px; background-color: #0066cc; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
-              Xem lịch hẹn
-            </a>
-          </div>
-          
-          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-            <p style="font-size: 12px; color: #666;">
-              Đây là email tự động, vui lòng không trả lời. Nếu bạn cần hỗ trợ, vui lòng liên hệ với bộ phận quản trị.
-            </p>
+          <div class="footer">
+            <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+            <p>&copy; ${new Date().getFullYear()} Hệ thống đặt lịch khám bệnh. Tất cả quyền được bảo lưu.</p>
           </div>
         </div>
-      `
+      </body>
+      </html>
+    `;
+    
+    // Prepare mail options
+    const mailOptions = {
+      from: `"Hệ thống đặt lịch khám" <${process.env.EMAIL_USER || 'support@healthcaresystem.com'}>`,
+      to: email,
+      subject: subject,
+      html: htmlContent
     };
 
+    // Send email
+    console.log(`Sending doctor notification email to ${email} with subject: ${subject}`);
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email thông báo lịch hẹn mới cho bác sĩ gửi thành công: %s', info.messageId);
+    console.log('Doctor appointment notification email sent:', info.messageId);
     
     // Khi sử dụng Ethereal, hiển thị URL để xem email đã gửi
     if (info.messageId && transporter.options.host && transporter.options.host.includes('ethereal')) {
       console.log('URL xem email: %s', nodemailer.getTestMessageUrl(info));
     }
     
-    return true;
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Lỗi gửi email thông báo lịch hẹn mới cho bác sĩ:', error);
-    throw error;
+    console.error('Error sending doctor appointment notification email:', error);
+    return { success: false, error: error.message };
   }
 };
 

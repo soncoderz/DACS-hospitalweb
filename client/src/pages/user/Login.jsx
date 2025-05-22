@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { navigateByRole } from '../../utils/roleUtils';
-import { toastError, toastSuccess } from '../../utils/toast';
+import { toastError } from '../../utils/toast';
 
 const Login = ({ onRegisterClick }) => {
   const navigate = useNavigate();
@@ -48,7 +48,6 @@ const Login = ({ onRegisterClick }) => {
       
       if (response.data.success) {
         login(response.data.data, formData.rememberMe, true);
-        toastSuccess('Đăng nhập thành công!');
         navigateByRole(response.data.data, navigate, from);
       } else {
         setError(response.data.message || 'Đăng nhập không thành công');
