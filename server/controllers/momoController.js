@@ -303,7 +303,7 @@ exports.momoIPN = async (req, res) => {
     // Update payment status based on resultCode
     if (resultCode === 0) {
       // Payment successful
-      payment.paymentStatus = 'paid';
+      payment.paymentStatus = 'completed';
       payment.paidAt = Date.now();
       payment.transactionId = transId;
       payment.paymentDetails = { ...payment.paymentDetails, ...req.body };
@@ -311,7 +311,7 @@ exports.momoIPN = async (req, res) => {
       // Update appointment status
       const appointment = await Appointment.findById(payment.appointmentId);
       if (appointment) {
-        appointment.paymentStatus = 'paid';
+        appointment.paymentStatus = 'completed';
         appointment.paymentMethod = 'momo';
         
         // Automatically confirm appointment if it's pending, like PayPal
@@ -322,7 +322,7 @@ exports.momoIPN = async (req, res) => {
         await appointment.save();
       } else {
         await Appointment.findByIdAndUpdate(payment.appointmentId, {
-          paymentStatus: 'paid',
+          paymentStatus: 'completed',
           paymentMethod: 'momo'
         });
       }
@@ -381,7 +381,7 @@ exports.momoPaymentResult = async (req, res) => {
     if (payment.paymentStatus === 'pending') {
       // Check resultCode as string or number (MoMo returns as string in URL param)
       if (resultCode === '0' || resultCode === 0) {
-        payment.paymentStatus = 'paid';
+        payment.paymentStatus = 'completed';
         payment.paidAt = Date.now();
         payment.paymentDetails = { 
           ...payment.paymentDetails, 
@@ -409,7 +409,7 @@ exports.momoPaymentResult = async (req, res) => {
                 paymentStatus: appointment.paymentStatus
               });
               
-              appointment.paymentStatus = 'paid';
+              appointment.paymentStatus = 'completed';
               appointment.paymentMethod = 'momo';
               
               // Automatically confirm appointment if it's pending, like PayPal

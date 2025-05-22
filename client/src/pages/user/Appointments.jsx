@@ -6,7 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 
 import { FaCalendarAlt, FaClock, FaHospital, FaUserMd, FaNotesMedical, FaFileMedical, 
          FaMoneyBillWave, FaExclamationTriangle, FaTimesCircle, FaCheckCircle, 
-         FaCalendarCheck, FaPrint, FaFileDownload, FaStar, FaEye, FaRedo, FaInfoCircle, FaQuestion, FaCheck, FaCheckDouble, FaTimes, FaRegCalendarCheck, FaExchangeAlt, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
+         FaCalendarCheck, FaPrint, FaFileDownload, FaStar, FaEye, FaRedo, FaInfoCircle, FaQuestion, FaCheck, FaCheckDouble, FaTimes, FaRegCalendarCheck, FaExchangeAlt, FaAngleLeft, FaAngleRight, FaDoorOpen } from 'react-icons/fa';
 import { FaPaypal } from 'react-icons/fa';
 import CancelAppointmentModal from '../../components/shared/CancelAppointmentModal';
 
@@ -519,7 +519,7 @@ const Appointments = () => {
   const getPaymentStatusLabel = (appointment) => {
     const { paymentStatus, paymentMethod } = appointment;
     
-    if (paymentStatus === 'completed' || paymentStatus === 'paid') {
+    if (paymentStatus === 'completed') {
       // Payment method specific styling
       const methodStyles = {
         paypal: {
@@ -648,42 +648,76 @@ const Appointments = () => {
             onApprove: async (data, actions) => {
               try {
                 setProcessingPayment(true);
+                toast.info('Đang xử lý thanh toán, vui lòng đợi...');
                 
+                console.log('PayPal payment approved, capturing order:', data);
                 const order = await actions.order.capture();
-                console.log('PayPal payment successful:', order);
+                console.log('PayPal payment successful, order details:', order);
                 
-              // Update payment status on the server
-                const paymentResponse = await api.post('/payments/paypal/confirmed', {
-                  appointmentId,
-                  paymentId: order.id,
-                  paymentDetails: order
-                });
-                
-                if (paymentResponse.data.success) {
-                  toast.success('Thanh toán thành công!');
+                // Update payment status on the server
+                try {
+                  console.log('Sending payment confirmation to server with data:', {
+                    appointmentId,
+                    paymentId: order.id,
+                  });
                   
-                // After successful payment, reload the page
-                  setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-                } else {
-                toast.error(paymentResponse.data.message || 'Đã xảy ra lỗi khi xử lý thanh toán');
+                  const paymentResponse = await api.post('/payments/paypal/confirmed', {
+                    appointmentId,
+                    paymentId: order.id,
+                    paymentDetails: order
+                  });
+                  
+                  console.log('Server payment confirmation response:', paymentResponse.data);
+                  
+                  if (paymentResponse.data.success) {
+                    toast.success('Thanh toán thành công!');
+                    
+                    // After successful payment, reload the page
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 1000);
+                  } else {
+                    console.error('Server rejected payment:', paymentResponse.data);
+                    toast.error(paymentResponse.data.message || 'Đã xảy ra lỗi khi xử lý thanh toán');
+                  }
+                } catch (apiError) {
+                  console.error('API error during payment confirmation:', apiError);
+                  
+                  // If the server response indicates payment might still be successful
+                  // despite the error (e.g., server timeout after processing)
+                  const errorResponse = apiError.response?.data;
+                  if (errorResponse && errorResponse.paymentProcessed) {
+                    toast.warning('Thanh toán đã được xử lý nhưng có lỗi. Vui lòng kiểm tra trạng thái sau.');
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 2000);
+                  } else {
+                    toast.error('Không thể xác nhận thanh toán với máy chủ. Vui lòng liên hệ hỗ trợ.');
+                  }
                 }
               } catch (error) {
                 console.error('Error processing payment:', error);
-                toast.error('Đã xảy ra lỗi khi xử lý thanh toán');
+                toast.error('Đã xảy ra lỗi khi xử lý thanh toán. Vui lòng thử lại hoặc chọn phương thức khác.');
               } finally {
                 setProcessingPayment(false);
               }
             },
             onError: (err) => {
               console.error('PayPal button error:', err);
-              toast.error('Đã xảy ra lỗi khi xử lý thanh toán');
+              toast.error('Đã xảy ra lỗi với cổng thanh toán PayPal. Vui lòng thử lại sau.');
+              setProcessingPayment(false);
+            },
+            onCancel: () => {
+              console.log('PayPal payment cancelled by user');
+              toast.info('Bạn đã hủy thanh toán.');
+              setProcessingPayment(false);
             }
           })
           .render(container)
           .catch(err => {
             console.error('PayPal render error:', err);
+            toast.error('Không thể khởi tạo nút thanh toán PayPal');
+            setProcessingPayment(false);
           });
         
       return true;
@@ -829,6 +863,32 @@ const Appointments = () => {
                   <div className="font-medium">{startTime} - {endTime}</div>
                 </div>
               </div>
+              
+              {appointment.queueNumber > 0 && (
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 11h.01M7 15h.01M11 7h6M11 11h6M11 15h6" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Số thứ tự khám</div>
+                    <div className="font-medium text-indigo-600">{appointment.queueNumber}</div>
+                  </div>
+                </div>
+              )}
+              
+              {appointment.roomId && (
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
+                    <FaDoorOpen />
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Phòng khám</div>
+                    <div className="font-medium">{getRoomInfo(appointment)}</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           

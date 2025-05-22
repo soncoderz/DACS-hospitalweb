@@ -681,6 +681,9 @@ const Appointments = () => {
                   Mã lịch hẹn
                 </th>
                 <th scope="col" className="px-4 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  STT
+                </th>
+                <th scope="col" className="px-4 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Thông tin bệnh nhân
                 </th>
                 <th scope="col" className="px-4 sm:px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -702,6 +705,13 @@ const Appointments = () => {
                 <tr key={appointment._id} className="hover:bg-blue-50 transition-all duration-150">
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {appointment.bookingCode || 'N/A'}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {appointment.queueNumber > 0 ? (
+                      <span className="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium">
+                        {appointment.queueNumber}
+                      </span>
+                    ) : 'N/A'}
                   </td>
                   <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">

@@ -323,7 +323,7 @@ exports.createPayment = async (req, res) => {
     // Map payment status to appointment payment status
     let appointmentPaymentStatus = 'pending';
     if (initialPaymentStatus === 'completed') {
-      appointmentPaymentStatus = 'paid';
+      appointmentPaymentStatus = 'completed';
     }
 
     // Ensure appointment has a booking code
@@ -473,27 +473,45 @@ exports.createPayPalPayment = async (payment, origin) => {
  */
 exports.confirmPayPalPayment = async (req, res) => {
   try {
+    console.log('PayPal confirmation request received:', {
+      body: req.body
+    });
+    
     const { appointmentId, paymentId, paymentDetails } = req.body;
     
     // Validate required fields
     if (!appointmentId || !paymentId) {
+      console.error('Missing required fields:', { appointmentId, paymentId });
       return res.status(400).json({
         success: false,
         message: 'Thiếu ID cuộc hẹn hoặc ID thanh toán'
       });
     }
     
+    // Validate appointment ID format
+    if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+      console.error(`Invalid appointment ID format: ${appointmentId}`);
+      return res.status(400).json({
+        success: false,
+        message: 'ID cuộc hẹn không hợp lệ'
+      });
+    }
+    
     // Tìm bản ghi cuộc hẹn
     const appointment = await Appointment.findById(appointmentId);
     if (!appointment) {
+      console.error(`Appointment not found with ID: ${appointmentId}`);
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy thông tin cuộc hẹn'
       });
     }
     
+    console.log(`Found appointment: ${appointment._id}, status: ${appointment.status}, paymentStatus: ${appointment.paymentStatus}`);
+    
     // Kiểm tra nếu đã thanh toán
-    if (appointment.paymentStatus === 'paid') {
+    if (appointment.paymentStatus === 'completed') {
+      console.log(`Appointment ${appointmentId} is already paid`);
       return res.status(400).json({
         success: false,
         message: 'Cuộc hẹn này đã được thanh toán'
@@ -503,8 +521,11 @@ exports.confirmPayPalPayment = async (req, res) => {
     // Tìm bản ghi thanh toán theo appointmentId
     let payment = await Payment.findOne({ appointmentId });
     
+    console.log(`Payment search result:`, payment ? `Found: ${payment._id}, status: ${payment.paymentStatus}` : 'Not found');
+    
     if (!payment) {
       // Nếu không tìm thấy payment, tạo mới
+      console.log(`Creating new payment record for appointment ${appointmentId}`);
       payment = new Payment({
         appointmentId,
         userId: appointment.patientId,
@@ -521,6 +542,7 @@ exports.confirmPayPalPayment = async (req, res) => {
       });
     } else {
       // Cập nhật bản ghi payment hiện có
+      console.log(`Updating existing payment ${payment._id}`);
       payment.paymentStatus = 'completed';
       payment.transactionId = paymentId;
       payment.paymentDetails = paymentDetails;
@@ -530,20 +552,55 @@ exports.confirmPayPalPayment = async (req, res) => {
     }
     
     // Lưu thông tin thanh toán
-    await payment.save();
-    
-    // Cập nhật trạng thái thanh toán trong Appointment
-    appointment.paymentStatus = 'paid';  // Đảm bảo là 'paid', không phải 'completed'
-    appointment.paymentMethod = 'paypal';
-    appointment.paymentId = paymentId;   // Lưu ID giao dịch PayPal vào Appointment
-    
-    // Nếu cuộc hẹn đang ở trạng thái pending, tự động chuyển sang confirmed
-    if (appointment.status === 'pending') {
-      appointment.status = 'confirmed';
+    try {
+      await payment.save();
+      console.log(`Payment saved successfully: ${payment._id}`);
+    } catch (saveError) {
+      console.error(`Error saving payment:`, saveError);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi lưu thông tin thanh toán',
+        error: saveError.message
+      });
     }
     
-    // Lưu cập nhật cho cuộc hẹn
-    await appointment.save();
+    // Cập nhật trạng thái thanh toán trong Appointment
+    try {
+      appointment.paymentStatus = 'completed';
+      appointment.paymentMethod = 'paypal';
+      
+      // Store our internal payment document's ObjectId in the paymentId field
+      // This is correctly typed as an ObjectId reference to the Payment model
+      appointment.paymentId = payment._id;
+      
+      // We can store the PayPal transaction ID in a separate property if needed
+      // (check if a transactionId field exists in the schema, or use notes field)
+      
+      // Nếu cuộc hẹn đang ở trạng thái pending, tự động chuyển sang confirmed
+      if (appointment.status === 'pending') {
+        console.log(`Auto-confirming appointment ${appointmentId} due to payment completion`);
+        appointment.status = 'confirmed';
+      }
+      
+      // Lưu cập nhật cho cuộc hẹn
+      await appointment.save();
+      console.log(`Appointment updated successfully: ${appointment._id}, status: ${appointment.status}, paymentStatus: ${appointment.paymentStatus}`);
+    } catch (appointmentError) {
+      console.error(`Error updating appointment:`, appointmentError);
+      // Note: We still return success since the payment was completed
+      // but include a warning about the appointment update
+      return res.status(200).json({
+        success: true,
+        message: 'Thanh toán thành công nhưng không thể cập nhật trạng thái cuộc hẹn',
+        paymentProcessed: true,
+        warning: 'Appointment update failed: ' + appointmentError.message,
+        data: {
+          payment,
+          appointment,
+          redirectUrl: '/user/appointments'
+        }
+      });
+    }
     
     res.status(200).json({
       success: true,

@@ -1,37 +1,39 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+const { v4: uuidv4 } = require('uuid');
 
-const appointmentSchema = new mongoose.Schema({
+const appointmentSchema = new Schema({
   patientId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
   doctorId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'Doctor',
     required: true
   },
   hospitalId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'Hospital',
     required: true
   },
   specialtyId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'Specialty',
     required: true
   },
   serviceId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'Service'
   },
   scheduleId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'Schedule',
     required: true
   },
   roomId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'Room'
   },
   appointmentDate: {
@@ -48,13 +50,19 @@ const appointmentSchema = new mongoose.Schema({
       required: true
     }
   },
+  queueNumber: {
+    type: Number,
+    default: 0
+  },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'completed', 'cancelled', 'rescheduled', 'no-show', 'rejected'],
     default: 'pending'
   },
   bookingCode: {
-    type: String
+    type: String,
+    unique: true,
+    sparse: true
   },
   appointmentType: {
     type: String,
@@ -106,7 +114,7 @@ const appointmentSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ['pending', 'paid', 'refunded', 'failed'],
+    enum: ['pending', 'completed', 'refunded', 'failed'],
     default: 'pending'
   },
   paymentMethod: {
@@ -115,8 +123,8 @@ const appointmentSchema = new mongoose.Schema({
     default: 'cash'
   },
   paymentId: {
-    type: String,
-    trim: true
+    type: Schema.Types.ObjectId,
+    ref: 'Payment'
   },
   cancellationReason: {
     type: String,
@@ -262,7 +270,6 @@ appointmentSchema.index({ doctorId: 1 });
 appointmentSchema.index({ hospitalId: 1 });
 appointmentSchema.index({ appointmentDate: 1 });
 appointmentSchema.index({ status: 1 });
-appointmentSchema.index({ bookingCode: 1 }, { unique: true });
 
 const Appointment = mongoose.model('Appointment', appointmentSchema);
 

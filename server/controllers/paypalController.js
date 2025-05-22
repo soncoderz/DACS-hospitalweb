@@ -33,7 +33,7 @@ exports.createPaypalPayment = async (req, res) => {
     }
     
     // Kiểm tra nếu đã thanh toán hoàn tất
-    if (appointment.paymentStatus === 'paid') {
+    if (appointment.paymentStatus === 'completed') {
       return res.status(400).json({
         success: false,
         message: 'Cuộc hẹn này đã được thanh toán'
@@ -196,6 +196,17 @@ exports.executePaypalPayment = async (req, res) => {
     });
     
     if (!payment) {
+      console.error(`Không tìm thấy thanh toán với transactionId: ${paymentId}`);
+      
+      // Try to get more information about possible payments
+      const recentPayments = await Payment.find({}).sort({createdAt: -1}).limit(5);
+      console.log('Recent payments:', recentPayments.map(p => ({
+        id: p._id,
+        transactionId: p.transactionId,
+        appointmentId: p.appointmentId,
+        status: p.paymentStatus
+      })));
+      
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy thông tin thanh toán'
@@ -241,14 +252,17 @@ exports.executePaypalPayment = async (req, res) => {
           const appointment = await Appointment.findById(payment.appointmentId._id);
           
           if (!appointment) {
+            console.error(`Không tìm thấy cuộc hẹn với ID: ${payment.appointmentId._id}`);
             return res.status(404).json({
               success: false,
               message: 'Không tìm thấy thông tin cuộc hẹn'
             });
           }
           
+          console.log(`Tìm thấy cuộc hẹn: ${appointment._id}, trạng thái hiện tại: ${appointment.status}, thanh toán: ${appointment.paymentStatus}`);
+          
           // Cập nhật trạng thái thanh toán
-          appointment.paymentStatus = 'paid';
+          appointment.paymentStatus = 'completed';
           appointment.paymentMethod = 'paypal';
           
           // Nếu cuộc hẹn đang ở trạng thái pending, tự động chuyển sang confirmed
@@ -258,7 +272,7 @@ exports.executePaypalPayment = async (req, res) => {
           }
           
           await appointment.save();
-          console.log(`Đã cập nhật cuộc hẹn: ${appointment._id}, trạng thái: ${appointment.status}, paymentStatus: ${appointment.paymentStatus}`);
+          console.log(`Đã cập nhật cuộc hẹn: ${appointment._id}, trạng thái mới: ${appointment.status}, paymentStatus: ${appointment.paymentStatus}`);
           
           // Extract appointment details for the response
           const appointmentDetails = {

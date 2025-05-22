@@ -155,7 +155,7 @@ const AppointmentDetail = () => {
 
   // Get payment status badge
   const getPaymentStatusBadge = (status, method) => {
-    if (status === 'completed' || status === 'paid') {
+    if (status === 'completed') {
       // Payment method specific styling
       const methodStyles = {
         paypal: {
@@ -233,11 +233,12 @@ const AppointmentDetail = () => {
   // Add a function to extract room information
   const getRoomInfo = (appointment) => {
     if (appointment.roomInfo) return appointment.roomInfo;
-    if (appointment.roomId && typeof appointment.roomId === 'object') {
-      const room = appointment.roomId;
-      return `${room.name || 'Phòng'} ${room.number || ''} ${room.floor ? `(Tầng ${room.floor})` : ''}`.trim();
+    if (appointment.roomId) {
+      if (typeof appointment.roomId === 'object') {
+        return `${appointment.roomId.floor ? `Tầng ${appointment.roomId.floor}, ` : ''}${appointment.roomId.roomName || appointment.roomId.name || 'Phòng không xác định'}`;
+      }
     }
-    return 'Chưa phân phòng';
+    return 'Theo hướng dẫn tại bệnh viện';
   };
 
   // Add function to extract doctor information
@@ -374,6 +375,14 @@ const AppointmentDetail = () => {
                   )}
                 </div>
                 <h2 className="text-xl font-bold text-gray-800">{serviceName}</h2>
+                {appointment.queueNumber > 0 && (
+                  <div className="mt-2 bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-md inline-flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 11h.01M7 15h.01M11 7h6M11 11h6M11 15h6" />
+                    </svg>
+                    <span className="font-semibold">Số thứ tự khám: {appointment.queueNumber}</span>
+                  </div>
+                )}
                 <div className="mt-2 flex flex-wrap gap-4">
                   <div className="flex items-center text-gray-600">
                     <FaCalendarAlt className="text-primary mr-2" />

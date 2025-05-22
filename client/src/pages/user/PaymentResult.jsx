@@ -36,14 +36,14 @@ const PaymentResult = () => {
             
             if (response.data.success) {
               setResult({
-                success: response.data.paymentStatus === 'paid',
+                success: response.data.paymentStatus === 'completed',
                 message: response.data.message,
                 appointmentId: response.data.appointmentId,
                 paymentStatus: response.data.paymentStatus
               });
               
               // Show success or error toast
-              if (response.data.paymentStatus === 'paid') {
+              if (response.data.paymentStatus === 'completed') {
                 toast.success('Thanh toán thành công!');
               } else {
                 toast.error('Thanh toán thất bại. Vui lòng thử lại!');

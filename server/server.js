@@ -166,10 +166,12 @@ app.use('/api', apiRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/medications', medicationRoutes);
 app.use('/api/doctor-auth', doctorAuthRoutes);
 app.use('/api', medicalRecordRoutes);
-app.use('/api/medications', medicationRoutes);
-app.use('/api/news', newsRoutes);
+
+
 
 // Xử lý callback ở đường dẫn gốc (root URL)
 app.get('/', (req, res) => {

@@ -592,8 +592,8 @@ const Home = () => {
                   <h3 className="text-white font-bold">Miễn phí tư vấn online với bác sĩ chuyên khoa - Mã: <span className="text-blue-700 bg-white px-2 py-0.5 rounded">ONLINE2023</span></h3>
                 </div>
                 <div className="w-full md:w-auto text-center">
-                  <Link to="/online-consultation" className="inline-block bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-2 rounded-lg transition-colors">
-                    Tư vấn ngay
+                  <Link to="/appointment" className="inline-block bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-2 rounded-lg transition-colors">
+                    Đặt lịch ngay
                   </Link>
                 </div>
               </div>
@@ -608,8 +608,8 @@ const Home = () => {
                   <h3 className="text-white font-bold">Gói tầm soát ung thư toàn diện giảm 30% - Mã: <span className="text-blue-700 bg-white px-2 py-0.5 rounded">CANCER30</span></h3>
                 </div>
                 <div className="w-full md:w-auto text-center">
-                  <Link to="/screening-packages" className="inline-block bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-2 rounded-lg transition-colors">
-                    Tìm hiểu thêm
+                  <Link to="/appointment" className="inline-block bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-2 rounded-lg transition-colors">
+                    Đặt lịch ngay
                   </Link>
                 </div>
               </div>

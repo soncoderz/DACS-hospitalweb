@@ -3,9 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { toast, ToastContainer } from 'react-toastify';
+import io from 'socket.io-client';
 
 import { FaCalendarAlt, FaClock, FaHospital, FaUserMd, 
-        FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaAngleRight, FaAngleLeft } from 'react-icons/fa';
+        FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaAngleRight, FaAngleLeft, FaLock } from 'react-icons/fa';
 
 const RescheduleAppointment = () => {
   const { id } = useParams();
@@ -30,10 +31,200 @@ const RescheduleAppointment = () => {
     timeSlot: { startTime: '', endTime: '' }
   });
   
+  // Socket connection state
+  const [socket, setSocket] = useState(null);
+  const [lockedSlots, setLockedSlots] = useState(new Map());
+  
   // UI states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Initialize socket connection
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const apiBaseUrl = import.meta.env?.VITE_API_URL || 'http://localhost:5000/api';
+      // Extract base server URL (without /api)
+      const socketUrl = apiBaseUrl.replace(/\/api$/, '');
+
+      console.log("Connecting to socket server at:", socketUrl);
+
+      // Get JWT token from localStorage
+      const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
+      const token = userInfo.token;
+
+      // Create socket instance with improved configuration
+      const socketInstance = io(socketUrl, {
+        auth: {
+          token: token
+        },
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000, // Increase timeout
+        // Start with polling first, then upgrade to websocket if possible
+        transports: ['polling', 'websocket'],
+        path: '/socket.io',
+        forceNew: true,
+        autoConnect: true
+      });
+
+      socketInstance.on('connect', () => {
+        console.log('Socket connected successfully');
+      });
+
+      socketInstance.on('connect_error', (error) => {
+        console.error('Socket connection error:', error.message);
+        toast.error('Không thể kết nối tới máy chủ cho tính năng cập nhật thời gian thực. Vui lòng thử lại sau.');
+      });
+
+      // Set up event listeners for time slot locking
+      socketInstance.on('time_slot_locked', ({ scheduleId, timeSlotId, userId }) => {
+        console.log(`Time slot locked: ${scheduleId}_${timeSlotId} by ${userId}`);
+        setLockedSlots(prev => {
+          const newMap = new Map(prev);
+          newMap.set(`${scheduleId}_${timeSlotId}`, userId);
+          return newMap;
+        });
+
+        // Hiển thị thông báo khi có người khác vừa chọn khung giờ (chỉ khi người dùng đang xem khung giờ này)
+        if (formData.scheduleId === scheduleId && userId !== user?.id) {
+          toast.info('Có người vừa chọn một khung giờ. Khung giờ này sẽ bị khóa tạm thời.', {
+            autoClose: 3000,
+          });
+        }
+        
+        // Nếu đây là khung giờ mà người dùng đang chọn, thông báo rằng nó vừa bị người khác chọn
+        if (formData.scheduleId === scheduleId && 
+            formData.timeSlot.startTime === timeSlotId && 
+            userId !== user?.id) {
+          toast.warning('Khung giờ bạn đang chọn vừa được người khác chọn. Vui lòng chọn khung giờ khác.', {
+            autoClose: 5000,
+          });
+          
+          // Reset the time slot selection
+          setFormData(prev => ({
+            ...prev,
+            timeSlot: { startTime: '', endTime: '' }
+          }));
+        }
+      });
+
+      socketInstance.on('time_slot_unlocked', ({ scheduleId, timeSlotId }) => {
+        console.log(`Time slot unlocked: ${scheduleId}_${timeSlotId}`);
+        setLockedSlots(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(`${scheduleId}_${timeSlotId}`);
+          return newMap;
+        });
+        
+        // Thông báo khi khung giờ được mở khóa (có thể có người vừa hủy đặt lịch)
+        if (formData.scheduleId === scheduleId) {
+          toast.info('Một khung giờ vừa được mở khóa và có thể đặt lịch.', {
+            autoClose: 3000,
+          });
+        }
+      });
+
+      // Listen for time slot booking status changes
+      socketInstance.on('time_slot_status_changed', ({ scheduleId, timeSlotInfo, updateType }) => {
+        console.log(`Time slot booking status changed: ${scheduleId}, slot: ${timeSlotInfo.startTime}`, timeSlotInfo);
+        
+        // Update the time slots with the new booking information
+        setAvailableTimeSlots(prev => {
+          return prev.map(schedule => {
+            if (schedule.scheduleId === scheduleId) {
+              return {
+                ...schedule,
+                timeSlots: schedule.timeSlots.map(slot => {
+                  if (slot.startTime === timeSlotInfo.startTime) {
+                    return {
+                      ...slot,
+                      isBooked: timeSlotInfo.isBooked,
+                      bookedCount: timeSlotInfo.bookedCount,
+                      maxBookings: timeSlotInfo.maxBookings
+                    };
+                  }
+                  return slot;
+                })
+              };
+            }
+            return schedule;
+          });
+        });
+        
+        // Show toast notification about the change
+        if (formData.scheduleId === scheduleId) {
+          if (updateType === 'booking_changed') {
+            if (timeSlotInfo.isBooked) {
+              toast.info(`Khung giờ ${timeSlotInfo.startTime}-${timeSlotInfo.endTime} vừa được đặt kín.`, {
+                autoClose: 3000,
+              });
+            } else if (timeSlotInfo.bookedCount > 0) {
+              toast.info(`Khung giờ ${timeSlotInfo.startTime}-${timeSlotInfo.endTime} còn ${timeSlotInfo.maxBookings - timeSlotInfo.bookedCount}/${timeSlotInfo.maxBookings} chỗ trống.`, {
+                autoClose: 3000,
+              });
+            }
+          }
+        }
+      });
+
+      socketInstance.on('time_slot_lock_confirmed', ({ scheduleId, timeSlotId }) => {
+        console.log(`Your lock was confirmed for: ${scheduleId}_${timeSlotId}`);
+      });
+
+      socketInstance.on('time_slot_lock_rejected', ({ message, scheduleId, timeSlotId }) => {
+        console.warn(`Lock rejected: ${message}`);
+        toast.warning('Khung giờ này đang được người khác xử lý, vui lòng chọn khung giờ khác.');
+
+        // Reset the time slot selection if our selection was rejected
+        if (formData.scheduleId === scheduleId && 
+            formData.timeSlot?.startTime === timeSlotId) {
+          setFormData(prev => ({
+            ...prev,
+            timeSlot: { startTime: '', endTime: '' }
+          }));
+        }
+      });
+
+      socketInstance.on('current_locked_slots', ({ lockedSlots: currentLockedSlots }) => {
+        console.log('Current locked slots:', currentLockedSlots);
+        const locksMap = new Map();
+        currentLockedSlots.forEach(({ scheduleId, timeSlotId, userId }) => {
+          locksMap.set(`${scheduleId}_${timeSlotId}`, userId);
+        });
+        setLockedSlots(locksMap);
+      });
+
+      setSocket(socketInstance);
+
+      // Clean up function
+      return () => {
+        // Unlock any time slot this user has locked before disconnecting
+        if (formData.scheduleId && formData.timeSlot?.startTime && originalAppointment?.doctorId) {
+          socketInstance.emit('unlock_time_slot', {
+            scheduleId: formData.scheduleId,
+            timeSlotId: formData.timeSlot.startTime,
+            doctorId: originalAppointment.doctorId._id || originalAppointment.doctorId,
+            date: formData.appointmentDate
+          });
+        }
+        
+        socketInstance.disconnect();
+      };
+    }
+  }, [isAuthenticated, user]);
+
+  // Join doctor-specific appointment room when doctor is selected and date is available
+  useEffect(() => {
+    if (socket && originalAppointment?.doctorId && formData.appointmentDate) {
+      const doctorId = originalAppointment.doctorId._id || originalAppointment.doctorId;
+      const date = new Date(formData.appointmentDate).toISOString().split('T')[0];
+      
+      socket.emit('join_appointment_room', {
+        doctorId: doctorId,
+        date
+      });
+    }
+  }, [socket, originalAppointment?.doctorId, formData.appointmentDate]);
 
   // Load the appointment details and available schedules on component mount
   useEffect(() => {
@@ -392,6 +583,42 @@ const RescheduleAppointment = () => {
 
   // Handle time slot selection
   const handleTimeSlotSelect = (scheduleId, slot) => {
+    // Don't allow selecting booked slots
+    if (slot.isBooked) return;
+    
+    // Check if slot is locked by another user
+    const slotKey = `${scheduleId}_${slot.startTime}`;
+    if (lockedSlots.has(slotKey) && lockedSlots.get(slotKey) !== user?.id) {
+      toast.warning('Khung giờ này đang được người khác xử lý, vui lòng chọn khung giờ khác.');
+      return;
+    }
+    
+    // If we had a different slot selected before, unlock it first
+    if (formData.scheduleId && formData.timeSlot?.startTime && 
+        (formData.scheduleId !== scheduleId || formData.timeSlot.startTime !== slot.startTime) &&
+        socket && originalAppointment) {
+      const doctorId = originalAppointment.doctorId._id || originalAppointment.doctorId;
+      
+      socket.emit('unlock_time_slot', {
+        scheduleId: formData.scheduleId,
+        timeSlotId: formData.timeSlot.startTime,
+        doctorId: doctorId,
+        date: formData.appointmentDate
+      });
+    }
+    
+    // Lock the new slot
+    if (socket && originalAppointment) {
+      const doctorId = originalAppointment.doctorId._id || originalAppointment.doctorId;
+      
+      socket.emit('lock_time_slot', {
+        scheduleId,
+        timeSlotId: slot.startTime,
+        doctorId: doctorId,
+        date: formData.appointmentDate
+      });
+    }
+    
     setFormData({
       ...formData,
       scheduleId,
@@ -767,34 +994,56 @@ const RescheduleAppointment = () => {
                   
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {availableTimeSlots.map(schedule => 
-                      schedule.timeSlots && schedule.timeSlots.map((slot, index) => (
-                        <div 
-                          key={`${schedule.scheduleId}-${index}`}
-                          className={`
-                            rounded-lg border p-2 text-center cursor-pointer transition-all
-                            ${slot.isBooked 
-                              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
-                              : slot.bookedCount > 0 
-                                ? formData.scheduleId === schedule.scheduleId && formData.timeSlot.startTime === slot.startTime
-                                  ? 'bg-primary/10 border-primary text-primary shadow-sm'
-                                  : 'bg-yellow-50 border-yellow-200 hover:border-primary hover:bg-primary/5 text-gray-700'
-                                : formData.scheduleId === schedule.scheduleId && formData.timeSlot.startTime === slot.startTime
-                                  ? 'bg-primary/10 border-primary text-primary shadow-sm'
-                                  : 'bg-white border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-700'
-                            }
-                          `}
-                          onClick={() => !slot.isBooked && handleTimeSlotSelect(schedule.scheduleId, slot)}
-                        >
-                          <div className="text-xs font-medium">{slot.startTime} - {slot.endTime}</div>
-                          <div className={`text-xs ${slot.isBooked ? 'text-red-400' : 'text-green-500'}`}>
-                            {slot.isBooked ? 'Đã đầy' : `Còn ${(slot.maxBookings || 3) - (slot.bookedCount || 0)}/${slot.maxBookings || 3}`}
+                      schedule.timeSlots && schedule.timeSlots.map((slot, index) => {
+                        const slotKey = `${schedule.scheduleId}_${slot.startTime}`;
+                        const isLockedByOther = lockedSlots.has(slotKey) && lockedSlots.get(slotKey) !== user?.id;
+                        const isLockedByMe = lockedSlots.has(slotKey) && lockedSlots.get(slotKey) === user?.id;
+                        
+                        return (
+                          <div 
+                            key={`${schedule.scheduleId}-${index}`}
+                            className={`
+                              rounded-lg border p-2 text-center cursor-pointer transition-all relative
+                              ${slot.isBooked 
+                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                                : isLockedByOther
+                                  ? 'bg-yellow-50 border-yellow-300 text-yellow-700 cursor-not-allowed animate-pulse'
+                                  : formData.scheduleId === schedule.scheduleId && formData.timeSlot.startTime === slot.startTime
+                                    ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                                    : slot.bookedCount > 0 
+                                      ? 'bg-yellow-50 border-yellow-200 hover:border-primary hover:bg-primary/5 text-gray-700'
+                                      : 'bg-white border-gray-200 hover:border-primary hover:bg-primary/5 text-gray-700'
+                              }
+                            `}
+                            onClick={() => !slot.isBooked && !isLockedByOther && handleTimeSlotSelect(schedule.scheduleId, slot)}
+                          >
+                            <div className="text-xs font-medium">{slot.startTime} - {slot.endTime}</div>
+                            <div className={`text-xs ${
+                              slot.isBooked 
+                                ? 'text-red-400' 
+                                : isLockedByOther 
+                                  ? 'text-yellow-600 font-semibold' 
+                                  : 'text-green-500'
+                            }`}>
+                              {slot.isBooked 
+                                ? 'Đã đầy' 
+                                : isLockedByOther 
+                                  ? 'Đang có người chọn' 
+                                  : `Còn ${(slot.maxBookings || 3) - (slot.bookedCount || 0)}/${slot.maxBookings || 3}`}
+                            </div>
+                            
+                            {(isLockedByOther || isLockedByMe) && (
+                              <div className="absolute top-1 right-1 text-xs">
+                                <FaLock className={isLockedByOther ? 'text-yellow-500' : 'text-blue-500'} />
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                   
-                                      {/* Legend for time slot statuses */}
+                  {/* Update the legend to include locked slot information */}
                   <div className="mt-4 bg-blue-50 rounded-lg p-3 text-sm text-blue-700 flex items-start">
                     <FaInfoCircle className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
                     <div>
@@ -803,6 +1052,7 @@ const RescheduleAppointment = () => {
                         <li><span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> <span className="font-medium">Còn trống:</span> Khung giờ có thể đặt lịch</li>
                         <li><span className="inline-block w-3 h-3 bg-yellow-400 rounded-full mr-1"></span> <span className="font-medium">Còn X/3:</span> Khung giờ đã có người đặt nhưng vẫn còn chỗ trống</li>
                         <li><span className="inline-block w-3 h-3 bg-red-400 rounded-full mr-1"></span> <span className="font-medium">Đã đầy:</span> Khung giờ đã đạt giới hạn tối đa (3 lịch hẹn)</li>
+                        <li><span className="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span> <span className="font-medium">Đang có người chọn:</span> Khung giờ đang được người khác xử lý</li>
                       </ul>
                     </div>
                   </div>
