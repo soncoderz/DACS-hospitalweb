@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const reviewController = require('../controllers/reviewController');
-const adminReviewController = require('../controllers/adminReviewController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { check } = require('express-validator');
 
@@ -59,10 +58,10 @@ router.post('/:id/reply', replyValidationRules, reviewController.replyToReview);
 
 // ADMIN ROUTES
 // GET /api/reviews/admin/all - Admin xem tất cả đánh giá trong hệ thống
-router.get('/admin/all', authorize('admin'), adminReviewController.getAllReviews);
+router.get('/admin/all', authorize('admin'), reviewController.getAllReviews);
 
 // GET /api/reviews/admin/stats - Admin xem thống kê đánh giá
-router.get('/admin/stats', authorize('admin'), adminReviewController.getReviewStats);
+router.get('/admin/stats', authorize('admin'), reviewController.getReviewStats);
 
 // DELETE /api/reviews/:id - Admin xóa đánh giá
 router.delete('/:id', authorize('admin'), reviewController.deleteReview);

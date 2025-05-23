@@ -35,75 +35,129 @@ const formatReviewResponse = (review) => {
   };
 };
 
-// @desc    Get all reviews (with filters)
-// @route   GET /api/admin/reviews
-// @access  Private (Admin)
+/**
+ * @desc    Get all reviews (with filters and pagination)
+ * @route   GET /api/reviews/admin/all
+ * @access  Private (Admin)
+ */
 exports.getAllReviews = async (req, res) => {
   try {
-    const { doctorId, hospitalId, userId, rating, type, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    const { doctorId, hospitalId, doctorName, hospitalName, status, rating, search, page = 1, limit = 10 } = req.query;
     
+    // Build query
     const query = {};
-    if (doctorId && mongoose.Types.ObjectId.isValid(doctorId)) {
-      query.doctorId = doctorId;
+    
+    // Add filters to query
+    if (doctorId && doctorId !== 'all' && mongoose.Types.ObjectId.isValid(doctorId)) {
+      query.doctorId = new mongoose.Types.ObjectId(doctorId);
     }
-    if (hospitalId && mongoose.Types.ObjectId.isValid(hospitalId)) {
-      query.hospitalId = hospitalId;
+    
+    if (hospitalId && hospitalId !== 'all' && mongoose.Types.ObjectId.isValid(hospitalId)) {
+      query.hospitalId = new mongoose.Types.ObjectId(hospitalId);
     }
-    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-      query.userId = userId;
+    
+    if (rating && rating !== 'all') {
+      query.rating = parseInt(rating);
     }
-    if (rating) query.rating = parseInt(rating);
-    if (type) query.type = type;
-
-    // Tính skip để phân trang
+    
+    if (status === 'replied') {
+      query['replies.0'] = { $exists: true }; // Has at least one reply
+    } else if (status === 'not_replied') {
+      query['replies.0'] = { $exists: false }; // Has no replies
+    }
+    
+    // Initialize search conditions array
+    const searchConditions = [];
+    
+    // If there's a general search term
+    if (search && search.trim()) {
+      searchConditions.push({ comment: { $regex: search, $options: 'i' } });
+    }
+    
+    // If we need to lookup doctors by name
+    let doctorIds = [];
+    if (doctorName && doctorName.trim()) {
+      try {
+        // First lookup users by name
+        const users = await User.find({ 
+          fullName: { $regex: doctorName.trim(), $options: 'i' } 
+        }).select('_id');
+        
+        // Then find doctors associated with these users
+        const doctors = await Doctor.find({ 
+          user: { $in: users.map(u => u._id) }
+        }).select('_id');
+        
+        doctorIds = doctors.map(doc => doc._id);
+        if (doctorIds.length > 0) {
+          searchConditions.push({ doctorId: { $in: doctorIds } });
+        }
+      } catch (error) {
+        console.error('Error searching for doctors by name:', error);
+        // Don't fail completely, just don't add this filter
+      }
+    }
+    
+    // If we need to lookup hospitals by name
+    let hospitalIds = [];
+    if (hospitalName && hospitalName.trim()) {
+      const hospitals = await Hospital.find({ 
+        name: { $regex: hospitalName, $options: 'i' } 
+      }).select('_id');
+      
+      hospitalIds = hospitals.map(hospital => hospital._id);
+      if (hospitalIds.length > 0) {
+        searchConditions.push({ hospitalId: { $in: hospitalIds } });
+      }
+    }
+    
+    // Add search conditions to the query
+    if (searchConditions.length > 0) {
+      query.$or = searchConditions;
+    }
+    
+    // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
-    // Thực hiện truy vấn
+    
+    // Execute query with pagination
     const reviews = await Review.find(query)
       .populate('userId', 'fullName email avatarUrl avatar profileImage')
       .populate({
         path: 'doctorId',
-        select: 'userId specialtyId user', 
+        select: 'fullName specialtyId user',
         populate: {
           path: 'user',
-          select: 'fullName email avatarUrl avatar',
-        },
+          select: 'fullName email avatarUrl avatar'
+        }
       })
       .populate('hospitalId', 'name address imageUrl logo')
       .populate({
         path: 'replies.userId',
         select: 'fullName email avatarUrl avatar profileImage roleType'
       })
-      .sort(sortOptions)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
-
-    // Đếm tổng số documents để tính tổng số trang
-    const total = await Review.countDocuments(query);
-
+    
+    // Get total count for pagination
+    const totalReviews = await Review.countDocuments(query);
+    
+    // Format response
     return res.status(200).json({
       success: true,
-      message: 'Lấy danh sách đánh giá thành công',
       data: {
-        docs: reviews,
-        totalDocs: total,
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        reviews,
+        total: totalReviews,
         page: parseInt(page),
-        pagingCounter: skip + 1,
-        hasPrevPage: parseInt(page) > 1,
-        hasNextPage: parseInt(page) < Math.ceil(total / parseInt(limit)),
-        prevPage: parseInt(page) > 1 ? parseInt(page) - 1 : null,
-        nextPage: parseInt(page) < Math.ceil(total / parseInt(limit)) ? parseInt(page) + 1 : null
+        limit: parseInt(limit),
+        totalPages: Math.ceil(totalReviews / parseInt(limit))
       }
     });
   } catch (error) {
-    console.error('Error getting reviews:', error);
+    console.error('Error fetching admin reviews:', error);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy danh sách đánh giá',
+      message: 'Error fetching reviews',
       error: error.message
     });
   }
@@ -619,72 +673,63 @@ exports.createHospitalReview = async (req, res) => {
     });
   }
 };
-
 /**
- * @desc    Lấy thống kê đánh giá
- * @route   GET /api/admin/reviews/stats
+ * @desc    Get review statistics for admin dashboard
+ * @route   GET /api/reviews/admin/stats
  * @access  Private (Admin)
  */
 exports.getReviewStats = async (req, res) => {
   try {
-    const { type = 'all' } = req.query;
+    // Get total reviews count
+    const total = await Review.countDocuments();
     
-    const match = {};
-    if (type !== 'all') {
-      match.type = type;
-    }
-
-    const stats = await Review.aggregate([
-      { $match: match },
-      { 
-        $group: {
-          _id: '$rating',
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
+    // Get counts by rating
+    const ratingCounts = await Review.aggregate([
+      { $group: { _id: '$rating', count: { $sum: 1 } } }
     ]);
-
-    const totalReviews = await Review.countDocuments(match);
     
-    // Transform to rating distribution object
-    const ratingDistribution = {
-      1: 0, 2: 0, 3: 0, 4: 0, 5: 0
-    };
-    
-    stats.forEach(item => {
-      ratingDistribution[item._id] = item.count;
+    // Format rating counts
+    const ratingCountsFormatted = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    ratingCounts.forEach(r => {
+      ratingCountsFormatted[r._id] = r.count;
     });
     
     // Calculate average rating
-    let avgRating = 0;
-    if (totalReviews > 0) {
-      avgRating = (
-        (ratingDistribution[1] * 1) +
-        (ratingDistribution[2] * 2) +
-        (ratingDistribution[3] * 3) +
-        (ratingDistribution[4] * 4) +
-        (ratingDistribution[5] * 5)
-      ) / totalReviews;
+    let averageRating = 0;
+    if (total > 0) {
+      const ratingSum = 
+        ratingCountsFormatted[1] * 1 +
+        ratingCountsFormatted[2] * 2 +
+        ratingCountsFormatted[3] * 3 +
+        ratingCountsFormatted[4] * 4 +
+        ratingCountsFormatted[5] * 5;
+      
+      averageRating = ratingSum / total;
     }
-
+    
+    // Count reviews with replies
+    const replied = await Review.countDocuments({ 'replies.0': { $exists: true } });
+    const notReplied = total - replied;
+    
     return res.status(200).json({
       success: true,
       data: {
-        totalReviews,
-        avgRating: avgRating.toFixed(1),
-        ratingDistribution
+        total,
+        averageRating,
+        ratingCounts: ratingCountsFormatted,
+        replied,
+        notReplied
       }
     });
   } catch (error) {
-    console.error('Error getting review stats:', error);
+    console.error('Error fetching review statistics:', error);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi khi lấy thống kê đánh giá',
+      message: 'Error fetching review statistics',
       error: error.message
     });
   }
-};
+}; 
 
 /**
  * @desc    Xóa một trả lời đánh giá (Admin)

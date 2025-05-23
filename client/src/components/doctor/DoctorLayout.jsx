@@ -61,7 +61,7 @@ const DoctorLayout = ({ children }) => {
       <aside className={`bg-gradient-to-br from-primary via-blue-600 to-primary-dark text-white flex flex-col fixed lg:sticky top-0 z-40 h-screen w-[280px] shadow-xl transition-all duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo/Brand */}
         <div className="px-6 py-8 border-b border-white/20">
-          <Link to="/" className="flex items-center space-x-3 transition-transform hover:scale-105">
+          <Link to="/doctor/dashboard" className="flex items-center space-x-3 transition-transform hover:scale-105">
             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
               <FaUserMd className="text-2xl text-white" />
             </div>

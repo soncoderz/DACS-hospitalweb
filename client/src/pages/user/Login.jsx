@@ -3,7 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { navigateByRole } from '../../utils/roleUtils';
-import { toastError } from '../../utils/toast';
+import { toast } from 'react-toastify';
+import { motion } from 'framer-motion';
+import { 
+  FaEye, FaEyeSlash, FaEnvelope, FaLock, 
+  FaGoogle, FaFacebookF, FaUserPlus 
+} from 'react-icons/fa';
 
 const Login = ({ onRegisterClick }) => {
   const navigate = useNavigate();
@@ -18,11 +23,7 @@ const Login = ({ onRegisterClick }) => {
   });
   
   const [loading, setLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState({
-    google: false,
-    facebook: false
-  });
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Handle form input changes
   const handleChange = (e) => {
@@ -37,7 +38,6 @@ const Login = ({ onRegisterClick }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
     
     try {
       const response = await api.post('/auth/login', {
@@ -47,78 +47,56 @@ const Login = ({ onRegisterClick }) => {
       });
       
       if (response.data.success) {
-        login(response.data.data, formData.rememberMe, true);
+        login(response.data.data, formData.rememberMe);
+        toast.success(`Xin chào, ${response.data.data.fullName || 'bạn'}!`);
         navigateByRole(response.data.data, navigate, from);
       } else {
-        setError(response.data.message || 'Đăng nhập không thành công');
+        toast.error(response.data.message || 'Đăng nhập không thành công');
       }
-      
     } catch (error) {
       console.error('Login error:', error);
       
-      if (error.response) {
-        const { data } = error.response;
-        
-        if (data.needVerification) {
-          navigate('/need-verification', { 
-            state: { email: formData.email } 
-          });
-          return;
-        }
-        
-        setError(data.message || 'Đăng nhập không thành công');
-      } else if (error.request) {
-        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
-      } else {
-        setError('Đăng nhập không thành công. Vui lòng thử lại sau.');
+      if (error.response?.data?.needVerification) {
+        toast.info('Email của bạn chưa được xác thực. Vui lòng kiểm tra hòm thư.');
+        navigate('/need-verification', { 
+          state: { email: formData.email } 
+        });
+        return;
       }
+      
+      toast.error(
+        error.response?.data?.message || 
+        'Đăng nhập không thành công. Vui lòng thử lại.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle social login
+  // Handle social login - removed notification
   const handleSocialLogin = (provider) => {
-    setSocialLoading(prev => ({ ...prev, [provider]: true }));
-    
-    // Store current location to return after authentication
     sessionStorage.setItem('auth_redirect', from);
-    
-    // Redirect to backend auth endpoint
     window.location.href = `${import.meta.env.VITE_API_URL}/auth/${provider}`;
   };
 
   return (
     <div className="w-full">
-      {/* Error message */}
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
-          <span className="block sm:inline">{error}</span>
-          <button 
-            className="absolute top-0 bottom-0 right-0 px-4 py-3"
-            onClick={() => setError('')}
-          >
-            <span className="sr-only">Close</span>
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
-            </svg>
-          </button>
-        </div>
-      )}
-      
-      {/* Login form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <motion.form 
+        onSubmit={handleSubmit} 
+        className="space-y-5"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+      >
         {/* Email field */}
-          <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
             Địa chỉ email
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-              </svg>
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              {/* Fixed icon to prevent flickering and blurriness */}
+              <FaEnvelope className="text-blue-500 h-4 w-4" style={{minWidth: '1rem'}} />
             </div>
             <input
               id="email"
@@ -128,172 +106,135 @@ const Login = ({ onRegisterClick }) => {
               required
               value={formData.email}
               onChange={handleChange}
-              className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="your.email@example.com"
-              />
+            />
           </div>
-          </div>
+        </div>
 
         {/* Password field */}
-          <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Mật khẩu
-          </label>
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Mật khẩu
+            </label>
+            <Link to="/forgot-password" className="text-xs font-medium text-blue-600 hover:text-blue-500 hover:underline">
+              Quên mật khẩu?
+            </Link>
+          </div>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-              </svg>
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              {/* Fixed icon to prevent flickering and blurriness */}
+              <FaLock className="text-blue-500 h-4 w-4" style={{minWidth: '1rem'}} />
             </div>
             <input
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               required
               value={formData.password}
               onChange={handleChange}
-              className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? (
+                <FaEyeSlash className="h-4 w-4" style={{minWidth: '1rem'}} />
+              ) : (
+                <FaEye className="h-4 w-4" style={{minWidth: '1rem'}} />
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Remember me & Forgot password */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="rememberMe"
-              name="rememberMe"
-              type="checkbox"
-              checked={formData.rememberMe}
-              onChange={handleChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
-              Ghi nhớ đăng nhập
-            </label>
-          </div>
-          
-          <div>
-            <Link to="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500">
-            Quên mật khẩu?
-          </Link>
-          </div>
+        {/* Remember me checkbox */}
+        <div className="flex items-center">
+          <input
+            id="rememberMe"
+            name="rememberMe"
+            type="checkbox"
+            checked={formData.rememberMe}
+            onChange={handleChange}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
+            Ghi nhớ đăng nhập
+          </label>
         </div>
 
         {/* Submit button */}
-        <div>
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Đang xử lý...
-              </>
-            ) : (
-              'Đăng nhập'
+        <button
+          type="submit"
+          disabled={loading}
+          className="relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 overflow-hidden"
+        >
+          <span className="relative z-10 flex items-center">
+            {loading && (
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
             )}
-          </button>
-        </div>
-      </form>
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          </span>
+        </button>
+      </motion.form>
 
-      {/* Social logins */}
-      <div className="mt-6">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-500">
-              Hoặc đăng nhập với
-            </span>
-          </div>
+      {/* Social login divider */}
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-4 bg-white text-gray-500">hoặc tiếp tục với</span>
+        </div>
       </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          {/* Google login */}
-        <button 
+      {/* Social login buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Google login */}
+        <motion.button 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           type="button" 
           onClick={() => handleSocialLogin('google')}
-            disabled={socialLoading.google}
-            className="w-full flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+          className="group w-full flex items-center justify-center py-2.5 px-4 border border-gray-200 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 transition-all"
         >
-            {socialLoading.google ? (
-              <svg className="animate-spin h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <>
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                  <path
-                    fill="#EA4335"
-                    d="M5.26620003,9.76452941 C6.19878754,6.93863203 8.85444915,4.90909091 12,4.90909091 C13.6909091,4.90909091 15.2181818,5.50909091 16.4181818,6.49090909 L19.9090909,3 C17.7818182,1.14545455 15.0545455,0 12,0 C7.27006974,0 3.1977497,2.69829785 1.23999023,6.65002441 L5.26620003,9.76452941 Z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M16.0407269,18.0125889 C14.9509167,18.7163016 13.5660892,19.0909091 12,19.0909091 C8.86648613,19.0909091 6.21911939,17.076871 5.27698177,14.2678769 L1.23746264,17.3349879 C3.19279051,21.2936293 7.26500293,24 12,24 C14.9328362,24 17.7353462,22.9573905 19.834192,20.9995801 L16.0407269,18.0125889 Z"
-                  />
-                  <path
-                    fill="#4A90E2"
-                    d="M19.834192,20.9995801 C22.0291676,18.9520994 23.4545455,15.903663 23.4545455,12 C23.4545455,11.2909091 23.3454545,10.5818182 23.1818182,9.90909091 L12,9.90909091 L12,14.4545455 L18.4363636,14.4545455 C18.1187732,16.013626 17.2662994,17.2212117 16.0407269,18.0125889 L19.834192,20.9995801 Z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.27698177,14.2678769 C5.03832634,13.556323 4.90909091,12.7937589 4.90909091,12 C4.90909091,11.2182781 5.03443647,10.4668121 5.26620003,9.76452941 L1.23999023,6.65002441 C0.43658717,8.26043162 0,10.0753848 0,12 C0,13.9195484 0.444780743,15.7301709 1.23746264,17.3349879 L5.27698177,14.2678769 Z"
-                  />
-                </svg>
-                Google
-              </>
-            )}
-        </button>
+          <FaGoogle className="text-red-500 mr-2" style={{minWidth: '1rem'}} />
+          Google
+        </motion.button>
 
-          {/* Facebook login */}
-        <button 
+        {/* Facebook login */}
+        <motion.button 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           type="button" 
-            onClick={() => handleSocialLogin('facebook')}
-            disabled={socialLoading.facebook}
-            className="w-full flex items-center justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm bg-blue-500 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          onClick={() => handleSocialLogin('facebook')}
+          className="group w-full flex items-center justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm bg-[#1877F2] text-sm font-medium text-white hover:bg-[#166fe5] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1877F2] transition-all"
         >
-            {socialLoading.facebook ? (
-              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <>
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                  <path 
-                    fillRule="evenodd" 
-                    d="M20 10c0-5.523-4.477-10-10-10S0 4.477 0 10c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V10h2.54V7.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V10h2.773l-.443 2.89h-2.33v6.988C16.343 19.128 20 14.991 20 10z" 
-                    clipRule="evenodd" 
-                  />
-                </svg>
-                Facebook
-              </>
-            )}
-        </button>
-        </div>
+          <FaFacebookF className="mr-2" style={{minWidth: '1rem'}} />
+          Facebook
+        </motion.button>
       </div>
 
       {/* Sign up link */}
-      <p className="mt-8 text-center text-sm text-gray-600">
-        Chưa có tài khoản?{' '}
-        <button 
+      <div className="mt-8 text-center">
+        <motion.button 
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
           type="button" 
-          onClick={onRegisterClick} 
-          className="font-medium text-blue-600 hover:text-blue-500 underline focus:outline-none"
+          onClick={onRegisterClick}
+          className="inline-flex items-center font-medium text-blue-600 hover:text-blue-500 hover:underline focus:outline-none"
         >
-          Đăng ký ngay
-        </button>
-      </p>
+          <FaUserPlus className="mr-1.5" style={{minWidth: '1rem'}} />
+          <span>Chưa có tài khoản? Đăng ký ngay</span>
+        </motion.button>
+      </div>
     </div>
   );
 };

@@ -51,6 +51,9 @@ router.post('/profile/avatar', protect, uploadToMemory.single('avatar'), userCon
 // GET /api/auth/:id/avatar - Get user avatar
 router.get('/:id/avatar', protect, userController.getUserAvatar);
 
+// GET /api/auth/refresh-token - Refresh authentication token (without requiring token validation)
+router.get('/refresh-token', refreshToken);
+
 // POST /api/auth/refresh-token - Refresh authentication token
 router.post('/refresh-token', protect, refreshToken);
 

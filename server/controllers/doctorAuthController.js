@@ -91,7 +91,7 @@ exports.loginDoctor = async (req, res) => {
       return res.status(401).json({
         success: false,
         field: 'password',
-        message: 'Mật khẩu không chính xác'
+        message: 'Tài khoản hoặc mật khẩu không chính xác'
       });
     }
     

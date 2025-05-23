@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toastSuccess, toastError, toastInfo } from '../../utils/toast';
 import { Button } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import { Spin } from 'antd';
+import { Spin, Modal } from 'antd';
 import { getAvatarUrl, handleAvatarError } from '../../utils/avatarUtils';
 import { FaCalendarAlt, FaFileAlt, FaNotesMedical, FaPills, FaPrint, FaUserMd, FaHospital, FaHeart } from 'react-icons/fa';
 
@@ -66,6 +66,9 @@ const Profile = () => {
   const [favoriteDoctors, setFavoriteDoctors] = useState([]);
   const [loadingFavorites, setLoadingFavorites] = useState(false);
   const [favoritesError, setFavoritesError] = useState(null);
+
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [isAvatarModalVisible, setIsAvatarModalVisible] = useState(false);
 
   const togglePasswordVisibility = (field) => {
     setPasswordVisibility(prev => ({
@@ -317,6 +320,7 @@ const Profile = () => {
 
     try {
       setLoading(true);
+      setAvatarLoading(true);
       
       // Hiển thị preview trước khi upload
       const reader = new FileReader();
@@ -387,6 +391,7 @@ const Profile = () => {
       );
     } finally {
       setLoading(false);
+      setAvatarLoading(false);
       // Xóa giá trị input file để cho phép người dùng tải lại cùng một file nếu cần
       e.target.value = null;
     }
@@ -681,17 +686,23 @@ const Profile = () => {
   const renderAvatar = () => {
     return (
       <div className="relative mb-4">
-        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-100 shadow-sm mx-auto">
+        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-100 shadow-sm mx-auto relative">
+          {avatarLoading && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-t-2 border-white rounded-full animate-spin"></div>
+            </div>
+          )}
           <img
             id="avatar-preview"
             src={getAvatarUrl(formData.avatarUrl)}
             alt={formData.fullName || "User"}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-pointer"
             onError={(e) => handleAvatarError(e)}
+            onClick={() => setIsAvatarModalVisible(true)}
           />
         </div>
         
-        <div className="mt-3 text-center">
+        <div className="mt-3 text-center flex justify-center gap-2">
           <input
             type="file"
             id="avatar-upload"
@@ -704,9 +715,37 @@ const Profile = () => {
             className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-sm font-medium cursor-pointer transition-colors"
           >
             <UploadOutlined />
-            Thay đổi ảnh
+            {avatarLoading ? 'Đang tải lên...' : 'Thay đổi ảnh'}
           </label>
+          
+          <button
+            type="button"
+            onClick={() => setIsAvatarModalVisible(true)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-medium cursor-pointer transition-colors"
+          >
+            <i className="fas fa-search"></i>
+            Xem ảnh
+          </button>
         </div>
+        
+        {/* Avatar Modal/Lightbox */}
+        <Modal
+          open={isAvatarModalVisible}
+          footer={null}
+          onCancel={() => setIsAvatarModalVisible(false)}
+          width={400}
+          className="avatar-modal"
+          centered
+        >
+          <div className="py-4">
+            <img
+              src={getAvatarUrl(formData.avatarUrl)}
+              alt={formData.fullName || "User"}
+              className="w-full h-auto object-contain rounded-lg"
+              onError={(e) => handleAvatarError(e)}
+            />
+          </div>
+        </Modal>
       </div>
     );
   };
@@ -1143,34 +1182,9 @@ const Profile = () => {
                     </form>
                   </div>
 
-                  <div className="border-t border-gray-100 pt-8">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Thông báo</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="text-gray-700">Thông báo qua email</div>
-                        <div className="relative inline-block w-10 h-6 transition duration-200 ease-in-out rounded-full bg-gray-200">
-                          <input type="checkbox" id="emailNotifications" defaultChecked={true} className="absolute w-0 h-0 opacity-0" />
-                          <label htmlFor="emailNotifications" className="absolute left-0 w-6 h-6 bg-white border border-gray-200 rounded-full transition-transform duration-200 ease-in-out transform translate-x-0 translate-y-0 cursor-pointer" style={{ transform: 'translateX(0)' }}></label>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="text-gray-700">Thông báo qua SMS</div>
-                        <div className="relative inline-block w-10 h-6 transition duration-200 ease-in-out rounded-full bg-gray-200">
-                          <input type="checkbox" id="smsNotifications" defaultChecked={true} className="absolute w-0 h-0 opacity-0" />
-                          <label htmlFor="smsNotifications" className="absolute left-0 w-6 h-6 bg-white border border-gray-200 rounded-full transition-transform duration-200 ease-in-out transform translate-x-0 translate-y-0 cursor-pointer" style={{ transform: 'translateX(0)' }}></label>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="text-gray-700">Nhắc nhở lịch hẹn</div>
-                        <div className="relative inline-block w-10 h-6 transition duration-200 ease-in-out rounded-full bg-gray-200">
-                          <input type="checkbox" id="appointmentReminders" defaultChecked={true} className="absolute w-0 h-0 opacity-0" />
-                          <label htmlFor="appointmentReminders" className="absolute left-0 w-6 h-6 bg-white border border-gray-200 rounded-full transition-transform duration-200 ease-in-out transform translate-x-0 translate-y-0 cursor-pointer" style={{ transform: 'translateX(0)' }}></label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  
+
+
                 </div>
               </div>
             )}

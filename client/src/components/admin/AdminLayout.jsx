@@ -180,7 +180,7 @@ const AdminLayout = ({ children }) => {
       }`}>
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 bg-blue-950/50 flex-shrink-0 border-b border-blue-700/50">
-          <Link to="/" className="flex items-center space-x-3 text-white">
+          <Link to="/admin/dashboard" className="flex items-center space-x-3 text-white">
             <FaHospital className="text-2xl text-blue-300" />
             <span className="text-xl font-bold tracking-wide">Admin Portal</span>
           </Link>

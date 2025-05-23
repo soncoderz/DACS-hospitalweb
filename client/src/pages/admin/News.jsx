@@ -26,9 +26,6 @@ import {
 } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-
 const { Option } = Select;
 const { TextArea } = Input;
 
