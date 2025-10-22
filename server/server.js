@@ -24,7 +24,6 @@ const statisticsRoutes = require('./routes/statistics');
 const logRoutes = require('./routes/log');
 const scheduleRoutes = require('./routes/schedule');
 const adminRoutes = require('./routes/admin');
-const notificationRoutes = require('./routes/notificationRoutes');
 
 // Import các routes còn thiếu
 const apiRoutes = require('./routes/api');
@@ -33,6 +32,9 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const doctorAuthRoutes = require('./routes/doctorAuth');
 const medicalRecordRoutes = require('./routes/medicalRecordRoutes');
+const medicationRoutes = require('./routes/medicationRoutes');
+const newsRoutes = require('./routes/newsRoutes');
+const videoRoomRoutes = require('./routes/videoRoomRoutes');
 
 // Load environment variables
 console.log('Loading environment variables from .env file');
@@ -92,7 +94,7 @@ const createAdminAccount = async () => {
       fullName: 'Administrator',
       email: 'admin@congson.com',
       phoneNumber: '0123456789',
-      passwordHash: 'Password123', // Sẽ được hash trong model
+      passwordHash: 'qwe123', // Sẽ được hash trong model
       dateOfBirth: new Date('1990-01-01'),
       gender: 'other',
       address: 'Hospital Address',
@@ -102,7 +104,7 @@ const createAdminAccount = async () => {
 
     console.log('Created admin account successfully:');
     console.log('- Email: admin@congson.com');
-    console.log('- Password: Password123');
+    console.log('- Password: qwe123');
     console.log('- ID:', admin._id);
   } catch (error) {
     console.error('Error creating admin account:', error);
@@ -158,15 +160,20 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/notifications', notificationRoutes);
+
 
 // Đăng ký các routes còn thiếu
 app.use('/api', apiRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/medications', medicationRoutes);
 app.use('/api/doctor-auth', doctorAuthRoutes);
-app.use('/api', medicalRecordRoutes);
+app.use('/api/video-rooms', videoRoomRoutes);
+app.use('/api/medical-records', medicalRecordRoutes);
+
+
 
 // Xử lý callback ở đường dẫn gốc (root URL)
 app.get('/', (req, res) => {

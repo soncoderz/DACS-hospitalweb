@@ -336,8 +336,8 @@ const Services = () => {
       return false;
     }
     
-    if (formData.description && formData.description.length > 2000) {
-      toast.error('Mô tả chi tiết không được vượt quá 2000 ký tự');
+    if (formData.description && formData.description.length > 10000) {
+      toast.error('Mô tả chi tiết không được vượt quá 10000 ký tự');
       return false;
     }
     

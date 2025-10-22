@@ -12,13 +12,13 @@ const Service = require('../models/Service');
 const Specialty = require('../models/Specialty');
 const Coupon = require('../models/Coupon');
 const MedicalRecord = require('../models/MedicalRecord');
-// Add notification service
+// Import socket functions for time slot locking and real-time updates
 const { 
-  appointmentCreatedNotification, 
-  appointmentUpdatedNotification, 
-  appointmentCanceledNotification,
-  appointmentReminderNotification
-} = require('../services/notificationService');
+  isTimeSlotLocked, 
+  getTimeSlotLocker, 
+  unlockTimeSlot,
+  broadcastTimeSlotUpdate
+} = require('../config/socketConfig');
 
 /**
  * @desc    Get all services for a specific hospital
@@ -111,6 +111,19 @@ exports.createAppointment = async (req, res) => {
         success: false,
         message: 'Thiếu thông tin khung giờ hoặc định dạng không hợp lệ. Vui lòng chọn lại khung giờ.'
       });
+    }
+    
+    // Check if the time slot is currently locked by another user
+    if (isTimeSlotLocked(scheduleId, timeSlot.startTime)) {
+      const lockerUserId = getTimeSlotLocker(scheduleId, timeSlot.startTime);
+      
+      // If locked by another user, reject the request
+      if (lockerUserId !== req.user.id.toString()) {
+        return res.status(409).json({
+          success: false,
+          message: 'Khung giờ này đang được người khác đặt. Vui lòng chọn khung giờ khác hoặc thử lại sau.'
+        });
+      }
     }
     
     // Validate required fields theo luồng Bệnh viện → chuyên khoa → dịch vụ → bác sĩ → phòng khám → lịch trống → phương thức thanh toán
@@ -271,17 +284,32 @@ exports.createAppointment = async (req, res) => {
       });
     }
     
-    // Check if the time slot is available
-    const availableSlot = schedule.timeSlots.find(
+    // Check if the time slot is available - modified to support multiple bookings
+    const timeSlotIndex = schedule.timeSlots.findIndex(
       slot => slot.startTime === timeSlot.startTime && 
-              slot.endTime === timeSlot.endTime && 
-              !slot.isBooked
+              slot.endTime === timeSlot.endTime
     );
     
-    if (!availableSlot) {
+    if (timeSlotIndex === -1) {
+      // Unlock the time slot in case it was locked by this user
+      unlockTimeSlot(scheduleId, timeSlot.startTime, req.user.id);
+      
       return res.status(400).json({
         success: false,
-        message: 'Khung giờ này đã được đặt hoặc không tồn tại'
+        message: 'Khung giờ không tồn tại trong lịch này'
+      });
+    }
+    
+    const availableSlot = schedule.timeSlots[timeSlotIndex];
+    
+    // Check if the slot is already at maximum capacity
+    if (availableSlot.isBooked || (availableSlot.bookedCount >= (availableSlot.maxBookings || 3))) {
+      // Unlock the time slot in case it was locked by this user
+      unlockTimeSlot(scheduleId, timeSlot.startTime, req.user.id);
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Khung giờ này đã đầy. Vui lòng chọn khung giờ khác.'
       });
     }
     
@@ -296,8 +324,8 @@ exports.createAppointment = async (req, res) => {
       if (room && room.status === 'active' && room.isActive) {
         console.log(`Found room from timeSlot: ${room.name} (${room.number})`);
         
-        // Kiểm tra xem phòng có sẵn sàng cho khung giờ đã chọn không
-        const roomIsBusy = await Appointment.findOne({
+        // Đếm số lịch hẹn hiện tại trong phòng và khung giờ đã chọn
+        const roomBookings = await Appointment.countDocuments({
           roomId: room._id,
           appointmentDate: new Date(appointmentDate),
           status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -305,10 +333,9 @@ exports.createAppointment = async (req, res) => {
           'timeSlot.endTime': timeSlot.endTime
         });
         
-        if (roomIsBusy) {
-          console.log(`Room from timeSlot is busy, will search for another room`);
-          room = null; // Đặt lại room để tìm phòng khác
-        }
+        console.log(`Room ${room.name} (${room.number}) has ${roomBookings} bookings for time slot ${timeSlot.startTime}-${timeSlot.endTime}`);
+        
+        // Không kiểm tra phòng bận hay không - cho phép nhiều lịch hẹn (tối đa 3) trong cùng phòng và khung giờ
       } else {
         console.log(`Room from timeSlot not found or inactive, will search for another room`);
         room = null; // Đặt lại room để tìm phòng khác
@@ -357,8 +384,9 @@ exports.createAppointment = async (req, res) => {
         });
       }
       
-      // Kiểm tra xem phòng có sẵn sàng cho khung giờ đã chọn không
-      const roomIsBusy = await Appointment.findOne({
+      // Không kiểm tra phòng bận hay không - cho phép nhiều lịch hẹn (tối đa 3) trong cùng phòng và cùng khung giờ
+      // Đếm số lịch hẹn hiện tại trong phòng và khung giờ này
+      const roomBookings = await Appointment.countDocuments({
         roomId: room._id,
         appointmentDate: new Date(appointmentDate),
         status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -366,12 +394,10 @@ exports.createAppointment = async (req, res) => {
         'timeSlot.endTime': timeSlot.endTime
       });
       
-      if (roomIsBusy) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phòng đã có lịch khám vào khung giờ này. Vui lòng chọn phòng khác hoặc khung giờ khác.'
-        });
-      }
+      // Ghi log số lượng lịch hẹn hiện tại trong phòng
+      console.log(`Room ${room.name} (${room.number}) has ${roomBookings} bookings for time slot ${timeSlot.startTime}-${timeSlot.endTime}`);
+      
+      // Không báo lỗi ngay cả khi phòng đã có lịch hẹn - cho phép nhiều bệnh nhân dùng cùng một phòng
     } else if (!room) {
       // Tự động tìm phòng phù hợp khi không có roomId
       console.log('Finding suitable room for appointment...');
@@ -388,9 +414,12 @@ exports.createAppointment = async (req, res) => {
       if (doctorRooms.length > 0) {
         console.log(`Found ${doctorRooms.length} rooms with doctor assigned`);
         
-        // Kiểm tra phòng nào còn trống trong khung giờ này
+        // Kiểm tra phòng nào có thể sử dụng (cho phép mỗi phòng có tối đa 3 lịch hẹn trong cùng khung giờ)
+        const selectedRooms = [];
+        
         for (const candidateRoom of doctorRooms) {
-          const isRoomBusy = await Appointment.findOne({
+          // Đếm số lịch hẹn hiện có trong phòng ứng viên
+          const roomBookingCount = await Appointment.countDocuments({
             roomId: candidateRoom._id,
             appointmentDate: new Date(appointmentDate),
             status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -398,11 +427,20 @@ exports.createAppointment = async (req, res) => {
             'timeSlot.endTime': timeSlot.endTime
           });
           
-          if (!isRoomBusy) {
-            room = candidateRoom;
-            console.log(`Selected room: ${room.name} (${room.number})`);
-            break;
-          }
+          // Thêm vào danh sách phòng có thể dùng, với thông tin số lịch đã đặt
+          selectedRooms.push({
+            room: candidateRoom,
+            bookingCount: roomBookingCount
+          });
+        }
+        
+        // Sắp xếp phòng theo số lịch đã đặt, ưu tiên phòng có ít lịch hơn
+        selectedRooms.sort((a, b) => a.bookingCount - b.bookingCount);
+        
+        // Lấy phòng đầu tiên (phòng có ít lịch nhất)
+        if (selectedRooms.length > 0) {
+          room = selectedRooms[0].room;
+          console.log(`Selected room: ${room.name} (${room.number}) with ${selectedRooms[0].bookingCount} existing bookings`);
         }
       }
       
@@ -420,9 +458,12 @@ exports.createAppointment = async (req, res) => {
         if (specialtyRooms.length > 0) {
           console.log(`Found ${specialtyRooms.length} rooms for this specialty`);
           
-          // Kiểm tra phòng nào còn trống trong khung giờ này
+          // Kiểm tra phòng nào có thể sử dụng (ưu tiên phòng có ít lịch hẹn)
+          const selectedRooms = [];
+          
           for (const candidateRoom of specialtyRooms) {
-            const isRoomBusy = await Appointment.findOne({
+            // Đếm số lịch hẹn hiện có trong phòng ứng viên
+            const roomBookingCount = await Appointment.countDocuments({
               roomId: candidateRoom._id,
               appointmentDate: new Date(appointmentDate),
               status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -430,11 +471,20 @@ exports.createAppointment = async (req, res) => {
               'timeSlot.endTime': timeSlot.endTime
             });
             
-            if (!isRoomBusy) {
-              room = candidateRoom;
-              console.log(`Selected room: ${room.name} (${room.number})`);
-              break;
-            }
+            // Thêm vào danh sách phòng có thể dùng, với thông tin số lịch đã đặt
+            selectedRooms.push({
+              room: candidateRoom,
+              bookingCount: roomBookingCount
+            });
+          }
+          
+          // Sắp xếp phòng theo số lịch đã đặt, ưu tiên phòng có ít lịch hơn
+          selectedRooms.sort((a, b) => a.bookingCount - b.bookingCount);
+          
+          // Lấy phòng đầu tiên (phòng có ít lịch nhất)
+          if (selectedRooms.length > 0) {
+            room = selectedRooms[0].room;
+            console.log(`Selected room: ${room.name} (${room.number}) with ${selectedRooms[0].bookingCount} existing bookings`);
           }
         }
       }
@@ -450,9 +500,12 @@ exports.createAppointment = async (req, res) => {
         });
         
         if (anyRooms.length > 0) {
-          // Kiểm tra phòng nào còn trống trong khung giờ này
+          // Kiểm tra tất cả phòng và chọn phòng ít lịch hẹn nhất
+          const selectedRooms = [];
+          
           for (const candidateRoom of anyRooms) {
-            const isRoomBusy = await Appointment.findOne({
+            // Đếm số lịch hẹn hiện có trong phòng ứng viên
+            const roomBookingCount = await Appointment.countDocuments({
               roomId: candidateRoom._id,
               appointmentDate: new Date(appointmentDate),
               status: { $nin: ['cancelled', 'rejected', 'completed'] },
@@ -460,11 +513,20 @@ exports.createAppointment = async (req, res) => {
               'timeSlot.endTime': timeSlot.endTime
             });
             
-            if (!isRoomBusy) {
-              room = candidateRoom;
-              console.log(`Selected room (any available): ${room.name} (${room.number})`);
-              break;
-            }
+            // Thêm vào danh sách phòng có thể dùng, với thông tin số lịch đã đặt
+            selectedRooms.push({
+              room: candidateRoom,
+              bookingCount: roomBookingCount
+            });
+          }
+          
+          // Sắp xếp phòng theo số lịch đã đặt, ưu tiên phòng có ít lịch hơn
+          selectedRooms.sort((a, b) => a.bookingCount - b.bookingCount);
+          
+          // Lấy phòng đầu tiên (phòng có ít lịch nhất)
+          if (selectedRooms.length > 0) {
+            room = selectedRooms[0].room;
+            console.log(`Selected room (any available): ${room.name} (${room.number}) with ${selectedRooms[0].bookingCount} existing bookings`);
           }
         }
       }
@@ -474,7 +536,7 @@ exports.createAppointment = async (req, res) => {
         console.log('No available rooms found for this time slot');
         return res.status(400).json({
           success: false,
-          message: 'Không có phòng khám trống cho khung giờ này. Vui lòng chọn khung giờ khác.'
+          message: 'Không tìm thấy phòng khám phù hợp cho chuyên khoa và bác sĩ đã chọn. Vui lòng chọn khung giờ khác hoặc liên hệ bệnh viện.'
         });
       }
     }
@@ -582,6 +644,28 @@ exports.createAppointment = async (req, res) => {
       paymentMethod: paymentMethod
     };
     
+    // Generate queue number for the day, regardless of time slot
+    // Convert appointment date to start of day to ensure counting all appointments within the same day
+    const appointmentDateStart = new Date(appointmentDate);
+    appointmentDateStart.setHours(0, 0, 0, 0);
+    
+    const appointmentDateEnd = new Date(appointmentDate);
+    appointmentDateEnd.setHours(23, 59, 59, 999);
+    
+    // Find the highest queue number for this doctor on this day
+    const latestAppointment = await Appointment.findOne({
+      doctorId,
+      appointmentDate: {
+        $gte: appointmentDateStart,
+        $lte: appointmentDateEnd
+      },
+      status: { $nin: ['cancelled', 'rejected'] }
+    }).sort({ queueNumber: -1 });
+    
+    // Assign next queue number or 1 if this is the first appointment
+    appointmentData.queueNumber = latestAppointment ? latestAppointment.queueNumber + 1 : 1;
+    console.log(`Assigning queue number ${appointmentData.queueNumber} for doctor ${doctorId} on ${appointmentDate}`);
+    
     // Add coupon code to appointment data if applied
     if (couponCode) {
       appointmentData.couponCode = couponCode.toUpperCase();
@@ -648,14 +732,28 @@ exports.createAppointment = async (req, res) => {
     
     const appointment = await Appointment.create(appointmentData);
     
-    // Update the schedule to mark the time slot as booked
+    // Update the schedule to mark the time slot as booked - modified for multiple bookings
     const slotIndex = schedule.timeSlots.findIndex(
       slot => slot.startTime === timeSlot.startTime && slot.endTime === timeSlot.endTime
     );
     
     if (slotIndex !== -1) {
-      schedule.timeSlots[slotIndex].isBooked = true;
-      schedule.timeSlots[slotIndex].appointmentId = appointment._id;
+      // Increment bookedCount
+      const currentCount = schedule.timeSlots[slotIndex].bookedCount || 0;
+      const maxBookings = schedule.timeSlots[slotIndex].maxBookings || 3;
+      
+      schedule.timeSlots[slotIndex].bookedCount = currentCount + 1;
+      
+      // Add appointment ID to the list
+      if (!schedule.timeSlots[slotIndex].appointmentIds) {
+        schedule.timeSlots[slotIndex].appointmentIds = [];
+      }
+      schedule.timeSlots[slotIndex].appointmentIds.push(appointment._id);
+      
+      // Mark as fully booked if we've reached the maximum
+      if (currentCount + 1 >= maxBookings) {
+        schedule.timeSlots[slotIndex].isBooked = true;
+      }
       
       // Add room to time slot if available
       if (room) {
@@ -663,7 +761,30 @@ exports.createAppointment = async (req, res) => {
       }
       
       await schedule.save();
+      
+      // Broadcast the updated time slot info to all users viewing this doctor's schedule
+      const timeSlotInfo = {
+        _id: schedule.timeSlots[slotIndex]._id,
+        startTime: schedule.timeSlots[slotIndex].startTime,
+        endTime: schedule.timeSlots[slotIndex].endTime,
+        isBooked: schedule.timeSlots[slotIndex].isBooked,
+        bookedCount: schedule.timeSlots[slotIndex].bookedCount,
+        maxBookings: schedule.timeSlots[slotIndex].maxBookings || 3
+      };
+      
+      // Get the doctor's details to extract the date for the socket room
+      const doctor = await Doctor.findById(doctorId);
+      if (doctor) {
+        // Format date as YYYY-MM-DD for the socket room
+        const formattedDate = new Date(appointmentDate).toISOString().split('T')[0];
+        // Broadcast update to all clients viewing this doctor's schedule
+        broadcastTimeSlotUpdate(scheduleId, timeSlotInfo, doctorId, formattedDate);
+        console.log(`Broadcasting time slot update for ${schedule.timeSlots[slotIndex].startTime}-${schedule.timeSlots[slotIndex].endTime}`);
+      }
     }
+    
+    // Unlock the time slot after it has been successfully booked
+    unlockTimeSlot(scheduleId, timeSlot.startTime, req.user.id);
     
     // Tạo bản ghi thanh toán tương ứng
     let payment;
@@ -750,6 +871,24 @@ exports.createAppointment = async (req, res) => {
         }
       }
       
+      // Lấy thông tin phòng đầy đủ nếu có
+      let roomInfo = 'Chưa phân phòng';
+      if (appointment.roomId) {
+        try {
+          const room = await Room.findById(appointment.roomId);
+          if (room) {
+            roomInfo = `${room.name} (Phòng ${room.number})`;
+            console.log(`[INFO] Found room for confirmation email: ${roomInfo}`);
+          } else {
+            console.warn(`[WARN] Room not found with ID: ${appointment.roomId}`);
+          }
+        } catch (err) {
+          console.error('[ERROR] Error fetching room information:', err);
+        }
+      } else {
+        console.warn(`[WARN] No room assigned for appointment ${id} - using default text`);
+      }
+      
       // Create appointment info object for email
       const appointmentInfo = {
         bookingCode: appointment.bookingCode,
@@ -758,7 +897,8 @@ exports.createAppointment = async (req, res) => {
         appointmentDate: new Date(appointmentDate).toLocaleDateString('vi-VN'),
         startTime: timeSlot.startTime,
         endTime: timeSlot.endTime,
-        roomName: room ? `${room.name} (Phòng ${room.number})` : 'Sẽ thông báo sau',
+        roomName: roomInfo,
+        queueNumber: appointment.queueNumber || 0,
         specialtyName: specialtyName,
         serviceName: serviceName,
         totalAmount: totalAmount ? totalAmount.toLocaleString('vi-VN') + 'đ' : 'Chưa tính',
@@ -768,59 +908,71 @@ exports.createAppointment = async (req, res) => {
         notes: notes || ''
       };
       
-      console.log('Appointment info for email:', appointmentInfo);
+      console.log('Appointment info for email (detailed):', JSON.stringify({
+        bookingCode: appointmentInfo.bookingCode,
+        doctorName: appointmentInfo.doctorName,
+        roomInfo: {
+          providedRoom: room ? `${room.name} (${room.number})` : 'No room',
+          finalRoomName: appointmentInfo.roomName
+        },
+        queueNumber: appointmentInfo.queueNumber
+      }));
       
-      // Send email to patient
-      await sendAppointmentConfirmationEmail(
+      // Log chi tiết thông tin lịch hẹn trước khi gửi email
+      console.log(`[INFO] Appointment confirmation details:`, JSON.stringify({
+        bookingCode: appointmentInfo.bookingCode,
+        roomInfo: {
+          appointmentRoomId: appointment.roomId ? appointment.roomId.toString() : 'None',
+          finalRoomName: appointmentInfo.roomName
+        },
+        queueNumber: appointmentInfo.queueNumber
+      }));
+      
+      console.log(`[INFO] Sending confirmation email to ${patient.email}`);
+      const emailResult = await sendAppointmentConfirmationEmail(
         patient.email,
         patient.fullName,
         appointmentInfo
       );
-      console.log('Appointment confirmation email sent successfully to patient');
       
-      // Send email to doctor
-      if (doctorInfo && doctorInfo.user && doctorInfo.user.email) {
-        // Calculate patient age if birthdate is available
-        let patientAge = '';
-        if (patient.dateOfBirth) {
-          const birthDate = new Date(patient.dateOfBirth);
-          const today = new Date();
-          patientAge = today.getFullYear() - birthDate.getFullYear();
+      if (emailResult) {
+        console.log(`[INFO] Confirmation email sent successfully to patient ${patient._id}`);
+      } else {
+        console.warn(`[WARN] Confirmation email may not have been sent correctly to ${patient.email}`);
+      }
+      
+      // Gửi email thông báo cho bác sĩ
+      try {
+        if (doctorInfo && doctorInfo.user && doctorInfo.user.email) {
+          // Tạo thông tin bệnh nhân để thông báo cho bác sĩ
+          const patientInfo = {
+            name: patient.fullName,
+            email: patient.email,
+            phone: patient.phone || patient.phoneNumber || 'Không có thông tin'
+          };
           
-          // Adjust age if birthday hasn't occurred yet this year
-          const m = today.getMonth() - birthDate.getMonth();
-          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            patientAge--;
-          }
-        }
-        
-        // Create patient info object for doctor notification
-        const patientInfo = {
-          patientName: patient.fullName,
-          patientGender: patient.gender,
-          patientAge: patientAge ? `${patientAge} tuổi` : '',
-          patientPhone: patient.phoneNumber,
-          patientEmail: patient.email
-        };
-        
-        try {
-          await sendDoctorAppointmentNotificationEmail(
+          console.log(`[INFO] Sending notification email to doctor: ${doctorInfo.user.email}`);
+          const doctorEmailResult = await sendDoctorAppointmentNotificationEmail(
             doctorInfo.user.email,
             doctorInfo.user.fullName,
             appointmentInfo,
             patientInfo
           );
-          console.log('Appointment notification email sent successfully to doctor:', doctorInfo.user.email);
-        } catch (doctorEmailError) {
-          console.error('Error sending email to doctor:', doctorEmailError);
-          // Don't fail if doctor email fails
+          
+          if (doctorEmailResult && doctorEmailResult.success) {
+            console.log(`[INFO] Doctor notification email sent successfully: ${doctorEmailResult.messageId}`);
+          } else {
+            console.warn(`[WARN] Doctor notification email may not have been sent correctly: ${doctorEmailResult?.error || 'Unknown error'}`);
+          }
+        } else {
+          console.warn(`[WARN] Doctor email not available, skipping notification email for doctor ID: ${doctorId}`);
         }
-      } else {
-        console.log('Doctor email not available, skipping notification');
+      } catch (doctorEmailError) {
+        console.error(`[ERROR] Error sending doctor notification email:`, doctorEmailError);
+        // Không ảnh hưởng đến luồng chính nếu gửi email cho bác sĩ thất bại
       }
     } catch (emailError) {
-      console.error('Lỗi gửi email xác nhận:', emailError);
-      // Không trả lỗi, chỉ log lại
+      console.error('Error sending appointment email:', emailError);
     }
     
     // Return response based on payment method
@@ -860,16 +1012,14 @@ exports.createAppointment = async (req, res) => {
       });
     }
     
-    // Send real-time notification
-    try {
-      await appointmentCreatedNotification(appointment);
-    } catch (notificationError) {
-      console.error('Error sending appointment creation notification:', notificationError);
-      // Continue execution - don't fail the appointment creation if notification fails
-    }
-    
   } catch (error) {
     console.error('Create appointment error:', error);
+    
+    // Ensure time slot is unlocked if the operation fails
+    if (req.body.scheduleId && req.body.timeSlot && req.body.timeSlot.startTime) {
+      unlockTimeSlot(req.body.scheduleId, req.body.timeSlot.startTime, req.user.id);
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi đặt lịch khám',
@@ -878,110 +1028,7 @@ exports.createAppointment = async (req, res) => {
   }
 };
 
-exports.getAppointments = async (req, res) => { 
-  try {
-    const { userId, status, page = 1, limit = 10 } = req.query;
-    
-    // Xác định người dùng để lấy lịch hẹn
-    const targetUserId = userId || req.user.id;
-    
-    // Kiểm tra quyền truy cập
-    if (targetUserId !== req.user.id && req.user.roleType !== 'admin' && req.user.roleType !== 'doctor') {
-      return res.status(403).json({
-        success: false,
-        message: 'Không có quyền truy cập lịch hẹn của người dùng khác'
-      });
-    }
-    
-    // Tạo điều kiện truy vấn
-    const query = {};
-    
-    // Nếu là bệnh nhân, chỉ xem lịch hẹn của mình
-    if (req.user.roleType === 'user') {
-      query.patientId = req.user.id;
-    } 
-    // Nếu là bác sĩ, chỉ xem lịch hẹn của mình
-    else if (req.user.roleType === 'doctor') {
-      // Tìm doctorId dựa trên userId
-      const doctorProfile = await Doctor.findOne({ user: req.user.id });
-      if (!doctorProfile) {
-        return res.status(404).json({
-          success: false,
-          message: 'Không tìm thấy thông tin bác sĩ'
-        });
-      }
-      query.doctorId = doctorProfile._id;
-    } 
-    // Nếu là quản trị viên, có thể xem tất cả hoặc lọc theo userId
-    else if (req.user.roleType === 'admin') {
-      if (userId) {
-        // Kiểm tra xem userId là của bệnh nhân hay bác sĩ
-        const user = await User.findById(userId);
-        if (!user) {
-          return res.status(404).json({
-            success: false,
-            message: 'Không tìm thấy người dùng'
-          });
-        }
-        
-        if (user.roleType === 'doctor') {
-          const doctorProfile = await Doctor.findOne({ user: userId });
-          if (doctorProfile) {
-            query.doctorId = doctorProfile._id;
-          }
-        } else {
-          query.patientId = userId;
-        }
-      }
-    }
-    
-    // Lọc theo trạng thái nếu được cung cấp
-    if (status) {
-      query.status = status;
-    }
-    
-    // Tính toán pagination
-    const skip = (page - 1) * limit;
-    
-    // Thực hiện truy vấn với pagination và populate thêm chuyên khoa, dịch vụ phòng, và phòng
-    const appointments = await Appointment.find(query)
-      .populate('patientId', 'fullName email phoneNumber avatarUrl')
-      .populate({
-        path: 'doctorId',
-        populate: {
-          path: 'user',
-          select: 'fullName email'
-        }
-      })
-      .populate('hospitalId', 'name address imageUrl image')
-      .populate('specialtyId', 'name')  // Populating specialty
-      .populate('serviceId', 'name')    // Populating service
-      .populate('roomId', 'name')       // Populating room
-      .sort({ appointmentDate: -1, 'timeSlot.startTime': -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-    
-    // Đếm tổng số lịch hẹn thỏa mãn điều kiện
-    const total = await Appointment.countDocuments(query);
-    
-    return res.status(200).json({
-      success: true,
-      count: appointments.length,
-      total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: parseInt(page),
-      data: appointments
-    });
-    
-  } catch (error) {
-    console.error('Get appointments error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Lỗi khi lấy danh sách lịch hẹn',
-      error: error.message
-    });
-  }
-};
+
 
 
 // GET /api/appointments/:id – Chi tiết lịch khám
@@ -1026,11 +1073,12 @@ exports.getAppointmentById = async (req, res) => {
     }
     
     // Kiểm tra quyền truy cập
-    if (
-      req.user.roleType !== 'admin' && 
-      appointment.patientId._id.toString() !== req.user.id &&
-      req.user.roleType === 'doctor' && appointment.doctorId.user._id.toString() !== req.user.id
-    ) {
+    const isAdmin = req.user.roleType === 'admin' || req.user.role === 'admin';
+    const isPatient = appointment.patientId && appointment.patientId._id.toString() === req.user.id;
+    const isDoctor = appointment.doctorId && appointment.doctorId.user && 
+                     appointment.doctorId.user._id.toString() === req.user.id;
+    
+    if (!isAdmin && !isPatient && !isDoctor) {
       return res.status(403).json({
         success: false,
         message: 'Không có quyền truy cập lịch hẹn này'
@@ -1082,7 +1130,8 @@ exports.cancelAppointment = catchAsync(async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  const appointment = await Appointment.findOne({ _id: id, patientId: userId });
+  const appointment = await Appointment.findOne({ _id: id, patientId: userId })
+    .populate('scheduleId');
   
   if (!appointment) {
     return next(new AppError('Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy', 404));
@@ -1093,67 +1142,152 @@ exports.cancelAppointment = catchAsync(async (req, res, next) => {
   appointment.cancellationReason = req.body.cancellationReason || 'Người dùng hủy';
   await appointment.save();
 
-  // Giải phóng khung giờ trong lịch
-  await Schedule.updateOne(
-    { _id: appointment.scheduleId, 'timeSlots.startTime': appointment.timeSlot.startTime, 'timeSlots.endTime': appointment.timeSlot.endTime },
-    { $set: { 'timeSlots.$.isBooked': false, 'timeSlots.$.appointmentId': null } }
-  );
+  // Giải phóng khung giờ trong lịch và cập nhật số lượng đặt chỗ
+  const scheduleId = appointment.scheduleId._id || appointment.scheduleId;
+  console.log(`Updating schedule with ID: ${scheduleId}`);
+  
+  const schedule = await Schedule.findById(scheduleId);
+  if (schedule) {
+    // Tìm time slot cần cập nhật
+    const timeSlotIndex = schedule.timeSlots.findIndex(
+      slot => slot.startTime === appointment.timeSlot.startTime && 
+              slot.endTime === appointment.timeSlot.endTime
+    );
+    
+    if (timeSlotIndex !== -1) {
+      // Lấy dữ liệu time slot hiện tại
+      const timeSlot = schedule.timeSlots[timeSlotIndex];
+      
+      // Giảm bookedCount nếu có
+      if (timeSlot.bookedCount && timeSlot.bookedCount > 0) {
+        schedule.timeSlots[timeSlotIndex].bookedCount -= 1;
+        
+        // Xóa appointment ID khỏi danh sách nếu có
+        if (Array.isArray(timeSlot.appointmentIds)) {
+          schedule.timeSlots[timeSlotIndex].appointmentIds = timeSlot.appointmentIds.filter(
+            apptId => apptId.toString() !== appointment._id.toString()
+          );
+        }
+        
+        // Đánh dấu là chưa đặt đầy nếu bookedCount < maxBookings
+        if (schedule.timeSlots[timeSlotIndex].bookedCount < (timeSlot.maxBookings || 3)) {
+          schedule.timeSlots[timeSlotIndex].isBooked = false;
+        }
+        
+        // Xóa thông tin cũ nếu không còn booking nào
+        if (schedule.timeSlots[timeSlotIndex].bookedCount === 0) {
+          schedule.timeSlots[timeSlotIndex].appointmentId = null;
+        }
+        
+        console.log(`Slot updated: bookedCount=${schedule.timeSlots[timeSlotIndex].bookedCount}, isBooked=${schedule.timeSlots[timeSlotIndex].isBooked}`);
+      } else {
+        // Trường hợp cũ không có bookedCount - chỉ đánh dấu là chưa đặt
+        schedule.timeSlots[timeSlotIndex].isBooked = false;
+        schedule.timeSlots[timeSlotIndex].appointmentId = null;
+        
+        console.log(`Legacy slot marked as not booked`);
+      }
+      
+      await schedule.save();
+      
+      // Broadcast the updated time slot status to all users viewing this schedule
+      if (timeSlotIndex !== -1) {
+        const timeSlotInfo = {
+          _id: schedule.timeSlots[timeSlotIndex]._id,
+          startTime: schedule.timeSlots[timeSlotIndex].startTime,
+          endTime: schedule.timeSlots[timeSlotIndex].endTime,
+          isBooked: schedule.timeSlots[timeSlotIndex].isBooked,
+          bookedCount: schedule.timeSlots[timeSlotIndex].bookedCount,
+          maxBookings: schedule.timeSlots[timeSlotIndex].maxBookings || 3
+        };
+        
+        // Format date as YYYY-MM-DD for the socket room
+        const formattedDate = new Date(appointment.appointmentDate).toISOString().split('T')[0];
+        
+        // Broadcast update to all clients viewing this doctor's schedule
+        broadcastTimeSlotUpdate(
+          scheduleId, 
+          timeSlotInfo, 
+          appointment.doctorId._id || appointment.doctorId, 
+          formattedDate
+        );
+        
+        console.log(`Broadcasting time slot cancellation update for ${timeSlotInfo.startTime}-${timeSlotInfo.endTime}`);
+      }
+    }
+  }
 
+  // If the slot was being locked by this user, unlock it
+  if (appointment.timeSlot && appointment.timeSlot.startTime) {
+    unlockTimeSlot(scheduleId, appointment.timeSlot.startTime, userId);
+  }
+
+  // Log the successful cancellation with details
+  console.log(`Appointment ${id} cancelled successfully. Schedule slot updated to decrease booking count.`);
+  
   res.status(200).json({
     status: 'success',
     message: 'Lịch hẹn đã được hủy thành công'
   });
 
-  // Send real-time notification
-  try {
-    await appointmentCanceledNotification(appointment, req.user.id, appointment.cancellationReason);
-  } catch (notificationError) {
-    console.error('Error sending appointment cancellation notification:', notificationError);
-    // Continue execution
-  }
+
 });
 
 // PUT /api/appointments/:id/reschedule – Đổi giờ khám
 exports.rescheduleAppointment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      scheduleId, 
-      timeSlot, 
-      appointmentDate, 
-      roomId,
-      notes 
-    } = req.body;
+    const { scheduleId, timeSlot, appointmentDate } = req.body;
     
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    // Log thông tin đổi lịch
+    console.log('Reschedule request:', {
+      appointmentId: id,
+      newScheduleId: scheduleId,
+      newTimeSlot: timeSlot,
+      newDate: appointmentDate,
+      userId: req.user.id
+    });
+    
+    // Validate required params
+    if (!id || !scheduleId || !timeSlot || !appointmentDate) {
       return res.status(400).json({
         success: false,
-        message: 'ID lịch hẹn không hợp lệ'
+        message: 'Thiếu thông tin cần thiết để đổi lịch hẹn'
       });
     }
     
-    if (!scheduleId || !timeSlot || !appointmentDate) {
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(scheduleId)) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng cung cấp đầy đủ thông tin lịch hẹn mới'
+        message: 'ID không hợp lệ'
       });
     }
     
+    // Enhanced validation for timeSlot
+    if (!timeSlot || typeof timeSlot !== 'object' || !timeSlot.startTime || !timeSlot.endTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu thông tin khung giờ hoặc định dạng không hợp lệ'
+      });
+    }
+    
+    // Tìm lịch hẹn và populate các trường cần thiết
     const appointment = await Appointment.findById(id)
       .populate('patientId', 'fullName email')
       .populate({
         path: 'doctorId',
         populate: {
           path: 'user',
-          select: 'fullName'
+          select: 'fullName email'
         }
       })
-      .populate('hospitalId', 'name address imageUrl image')
+      .populate('hospitalId')
       .populate('specialtyId', 'name')
-      .populate('serviceId', 'name price')
+      .populate('serviceId', 'name')
       .populate('scheduleId')
-      .populate('roomId', 'name number floor');
-    
+      .populate('roomId');
+
     if (!appointment) {
       return res.status(404).json({
         success: false,
@@ -1161,40 +1295,68 @@ exports.rescheduleAppointment = async (req, res) => {
       });
     }
     
-    // Kiểm tra quyền đổi lịch hẹn
-    if (
-      req.user.roleType !== 'admin' && 
-      appointment.patientId._id.toString() !== req.user.id &&
-      req.user.roleType === 'doctor' && appointment.doctorId.user._id.toString() !== req.user.id
-    ) {
+    // Kiểm tra quyền: Chỉ user sở hữu hoặc admin mới có thể đổi lịch
+    if (req.user.role !== 'admin' && req.user.id !== appointment.patientId._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Không có quyền đổi lịch hẹn này'
+        message: 'Bạn không có quyền đổi lịch hẹn này'
       });
     }
     
-    // Kiểm tra xem lịch hẹn đã hoàn thành hoặc đã hủy chưa
-    if (['completed', 'cancelled'].includes(appointment.status)) {
+    // Kiểm tra xem lịch hẹn có thể đổi không (chỉ status = pending hoặc rescheduled mới được đổi)
+    if (!['pending', 'rescheduled'].includes(appointment.status)) {
       return res.status(400).json({
         success: false,
-        message: `Không thể đổi lịch hẹn đã ${appointment.status === 'completed' ? 'hoàn thành' : 'bị hủy'}`
+        message: `Không thể đổi lịch hẹn có trạng thái '${appointment.status}'`
       });
     }
-    
-    // Kiểm tra giới hạn số lần đổi lịch (tối đa 2 lần)
-    if (!appointment.rescheduleCount) {
-      appointment.rescheduleCount = 0;
-    }
-    
+
+    // RÀNG BUỘC MỚI 1: Kiểm tra số lần đổi lịch tối đa (2 lần)
     if (appointment.rescheduleCount >= 2) {
       return res.status(400).json({
         success: false,
-        message: 'Bạn đã đổi lịch hẹn này quá 2 lần, vui lòng liên hệ trực tiếp với bệnh viện'
+        message: 'Lịch hẹn này đã được đổi 2 lần, không thể đổi thêm'
+      });
+    }
+
+    // RÀNG BUỘC MỚI 2: Không thể đổi lịch trong vòng 4 giờ trước cuộc hẹn
+    const currentTime = new Date();
+    const appointmentTime = new Date(appointment.appointmentDate);
+    const [hours, minutes] = appointment.timeSlot.startTime.split(':').map(Number);
+    appointmentTime.setHours(hours, minutes, 0, 0);
+
+    const timeDiffInHours = (appointmentTime - currentTime) / (1000 * 60 * 60);
+    if (timeDiffInHours < 4) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể đổi lịch trong vòng 4 giờ trước thời gian hẹn'
       });
     }
     
-    // Kiểm tra schedule mới có tồn tại không
-    const Schedule = require('../models/Schedule');
+    // RÀNG BUỘC MỚI 3: Không thể đổi lịch về thời gian đã qua
+    const newAppointmentDateTime = new Date(appointmentDate);
+    const [newHours, newMinutes] = timeSlot.startTime.split(':').map(Number);
+    newAppointmentDateTime.setHours(newHours, newMinutes, 0, 0);
+
+    if (newAppointmentDateTime < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể đổi lịch về thời gian đã qua'
+      });
+    }
+
+    // RÀNG BUỘC MỚI 4: Không thể đổi lịch xa quá 30 ngày
+    const maxFutureDate = new Date();
+    maxFutureDate.setDate(maxFutureDate.getDate() + 30);
+    
+    if (newAppointmentDateTime > maxFutureDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể đổi lịch xa quá 30 ngày kể từ hôm nay'
+      });
+    }
+    
+    // Kiểm tra lịch mới có tồn tại không
     const newSchedule = await Schedule.findById(scheduleId);
     if (!newSchedule) {
       return res.status(404).json({
@@ -1203,151 +1365,310 @@ exports.rescheduleAppointment = async (req, res) => {
       });
     }
     
-    // Kiểm tra xem lịch mới có phải của cùng một bác sĩ không
+    // Lưu lại thông tin lịch hẹn cũ để gửi email thông báo
+    const oldTimeSlot = { ...appointment.timeSlot };
+    const oldAppointmentDate = new Date(appointment.appointmentDate);
+    const oldScheduleId = appointment.scheduleId._id;
+    const oldRoomId = appointment.roomId ? appointment.roomId._id : null;
+    
+    // Kiểm tra xem lịch khám mới có phải của cùng bác sĩ không
     if (newSchedule.doctorId.toString() !== appointment.doctorId._id.toString()) {
       return res.status(400).json({
         success: false,
-        message: 'Lịch khám mới phải của cùng bác sĩ với lịch hẹn ban đầu'
+        message: 'Lịch khám mới không thuộc về bác sĩ hiện tại'
       });
     }
     
-    // Kiểm tra ngày trong newSchedule có khớp với appointmentDate không
-    const scheduleDate = new Date(newSchedule.date);
-    const requestDate = new Date(appointmentDate);
+    // Kiểm tra thời gian mới có hợp lệ không
+    // Convert date to YYYY-MM-DD format để so sánh ngày không bị ảnh hưởng bởi time zone
+    const scheduleDate = new Date(newSchedule.date).toISOString().split('T')[0];
+    const newAppointmentDate = new Date(appointmentDate).toISOString().split('T')[0];
     
-    // Chuyển đổi cả hai ngày về định dạng YYYY-MM-DD để so sánh
-    const scheduleDateStr = scheduleDate.toISOString().split('T')[0];
-    const requestDateStr = requestDate.toISOString().split('T')[0];
-    
-    if (scheduleDateStr !== requestDateStr) {
+    if (scheduleDate !== newAppointmentDate) {
       return res.status(400).json({
         success: false,
-        message: 'Ngày trong lịch khám không khớp với ngày yêu cầu đổi lịch',
-        scheduleDateStr,
-        requestDateStr
+        message: 'Ngày lịch hẹn không khớp với lịch của bác sĩ'
       });
     }
     
-    // Kiểm tra time slot mới có available không
-    const availableSlot = newSchedule.timeSlots.find(
-      slot => slot.startTime === timeSlot.startTime && 
-              slot.endTime === timeSlot.endTime && 
-              !slot.isBooked
+    // Kiểm tra time slot mới có tồn tại và còn chỗ không
+    const timeSlotIndex = newSchedule.timeSlots.findIndex(
+      slot => slot.startTime === timeSlot.startTime && slot.endTime === timeSlot.endTime
     );
     
-    if (!availableSlot) {
+    if (timeSlotIndex === -1) {
       return res.status(400).json({
         success: false,
-        message: 'Khung giờ này đã được đặt hoặc không tồn tại'
+        message: 'Khung giờ không tồn tại trong lịch này'
       });
     }
     
-    // Kiểm tra phòng khám mới (nếu có chỉ định)
-    let room = appointment.roomId;
+    const selectedTimeSlot = newSchedule.timeSlots[timeSlotIndex];
     
-    if (roomId && mongoose.Types.ObjectId.isValid(roomId)) {
-      const Room = require('../models/Room');
-      const newRoom = await Room.findById(roomId);
+    // Kiểm tra xem slot này đã đầy chưa (chỉ kiểm tra nếu đổi qua slot mới)
+    const isSameSlot = oldTimeSlot.startTime === timeSlot.startTime && 
+                       oldTimeSlot.endTime === timeSlot.endTime &&
+                       oldScheduleId.toString() === scheduleId.toString();
+    
+    // RÀNG BUỘC MỚI 6: Nếu đổi trong cùng ngày, phải chọn khung giờ khác
+    const oldDateString = oldAppointmentDate.toISOString().split('T')[0];
+    const newDateString = new Date(appointmentDate).toISOString().split('T')[0];
+    
+    if (oldDateString === newDateString && isSameSlot) {
+      return res.status(400).json({
+        success: false,
+        message: 'Khi đổi lịch trong cùng một ngày, bạn phải chọn khung giờ khác với lịch hẹn cũ'
+      });
+    }
+
+    if (!isSameSlot && selectedTimeSlot.isBooked) {
+      return res.status(400).json({
+        success: false,
+        message: 'Khung giờ mới đã đầy'
+      });
+    }
+
+    // RÀNG BUỘC MỚI 5: Kiểm tra số lượng cuộc hẹn tối đa của bệnh nhân trong ngày mới
+    const appointmentDateStart = new Date(appointmentDate);
+    appointmentDateStart.setHours(0, 0, 0, 0);
+    
+    const appointmentDateEnd = new Date(appointmentDate);
+    appointmentDateEnd.setHours(23, 59, 59, 999);
+    
+    // Kiểm tra nếu ngày mới khác ngày cũ
+    if (oldDateString !== newDateString) {
+      // Đếm số lượng lịch hẹn của bệnh nhân trong ngày mới (không tính lịch hẹn hiện tại)
+      const patientAppointmentsInNewDate = await Appointment.countDocuments({
+        patientId: appointment.patientId._id,
+        appointmentDate: {
+          $gte: appointmentDateStart,
+          $lte: appointmentDateEnd
+        },
+        _id: { $ne: appointment._id }, // Không tính lịch hẹn hiện tại
+        status: { $nin: ['cancelled', 'rejected'] }
+      });
       
-      if (!newRoom) {
-        return res.status(404).json({
-          success: false,
-          message: 'Không tìm thấy phòng khám mới'
-        });
-      }
-      
-      // Kiểm tra phòng có thuộc bệnh viện không
-      if (newRoom.hospitalId.toString() !== appointment.hospitalId._id.toString()) {
+      if (patientAppointmentsInNewDate >= 3) {
         return res.status(400).json({
           success: false,
-          message: 'Phòng khám mới không thuộc bệnh viện đã chọn'
+          message: 'Bạn đã có 3 cuộc hẹn trong ngày đã chọn. Vui lòng chọn ngày khác.'
         });
       }
+    }
+    
+    // Tìm phòng phù hợp cho lịch hẹn mới
+    let room = null;
+    if (selectedTimeSlot.roomId) {
+      room = await Room.findById(selectedTimeSlot.roomId);
+    }
+    
+    // Nếu không có phòng từ time slot, tìm một phòng phù hợp dựa trên bệnh viện và chuyên khoa
+    if (!room) {
+      const availableRooms = await Room.find({
+        hospitalId: appointment.hospitalId._id,
+        specialtyId: appointment.specialtyId._id,
+        status: 'active',
+        isActive: true
+      });
       
-      // Kiểm tra phòng có phù hợp với chuyên khoa không
-      if (newRoom.specialtyId && appointment.specialtyId && 
-          newRoom.specialtyId.toString() !== appointment.specialtyId._id.toString()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Phòng khám mới không phù hợp với chuyên khoa'
-        });
+      if (availableRooms.length > 0) {
+        // Sắp xếp ưu tiên phòng có bác sĩ
+        const doctorRooms = availableRooms.filter(r => 
+          r.assignedDoctors && r.assignedDoctors.includes(appointment.doctorId._id)
+        );
+        
+        if (doctorRooms.length > 0) {
+          room = doctorRooms[0];
+        } else {
+          room = availableRooms[0];
+        }
       }
+    }
+    
+    // Check if the new date is different from the old date
+    let queueNumber = appointment.queueNumber;
+    
+    // If rescheduling to a different day, generate a new queue number
+    if (oldDateString !== newDateString) {
+      console.log('Rescheduling to a different day, generating new queue number');
+      // Convert appointment date to start of day to ensure counting all appointments within the same day
       
-      room = newRoom;
+      // Find the highest queue number for this doctor on the new day
+      const latestAppointment = await Appointment.findOne({
+        doctorId: appointment.doctorId._id,
+        appointmentDate: {
+          $gte: appointmentDateStart,
+          $lte: appointmentDateEnd
+        },
+        status: { $nin: ['cancelled', 'rejected'] }
+      }).sort({ queueNumber: -1 });
+      
+      // Assign next queue number or 1 if this is the first appointment
+      queueNumber = latestAppointment ? latestAppointment.queueNumber + 1 : 1;
+      console.log(`New queue number ${queueNumber} assigned for reschedule to ${newDateString}`);
+    } else {
+      console.log(`Keeping existing queue number ${queueNumber} for same-day reschedule`);
     }
     
-    // Lưu thông tin lịch hẹn cũ trước khi cập nhật
-    const oldScheduleId = appointment.scheduleId._id;
-    const oldTimeSlot = { ...appointment.timeSlot };
-    const oldAppointmentDate = appointment.appointmentDate;
-    const oldRoomId = appointment.roomId ? appointment.roomId._id : null;
-    
-    // Cập nhật thông tin lịch hẹn
-    appointment.isRescheduled = true;
-    appointment.scheduleId = scheduleId;
-    appointment.timeSlot = timeSlot;
-    appointment.appointmentDate = new Date(appointmentDate);
-    appointment.status = 'rescheduled';
-    
-    // Cập nhật roomId nếu có thay đổi
-    if (room && room._id) {
-      appointment.roomId = room._id;
-    }
-    
-    // Cập nhật số lần đổi lịch và thêm lịch sử đổi lịch
-    appointment.rescheduleCount = (appointment.rescheduleCount || 0) + 1;
-    
-    // Lưu lịch sử đổi lịch
-    if (!appointment.rescheduleHistory) {
-      appointment.rescheduleHistory = [];
-    }
-    
+    // Lưu thông tin vào bảng lịch sử thay đổi lịch hẹn
     appointment.rescheduleHistory.push({
       oldScheduleId: oldScheduleId,
       oldTimeSlot: oldTimeSlot,
       oldAppointmentDate: oldAppointmentDate,
-      oldRoomId: oldRoomId,
       newScheduleId: scheduleId,
       newTimeSlot: timeSlot,
       newAppointmentDate: new Date(appointmentDate),
-      newRoomId: room ? room._id : null,
       rescheduleBy: req.user.id,
       rescheduleAt: new Date(),
-      notes: notes || 'Đổi lịch hẹn'
+      notes: req.body.notes || 'Đổi lịch hẹn'
     });
     
-    // Lưu lịch hẹn đã cập nhật
-    await appointment.save();
+    // Cập nhật thông tin lịch hẹn
+    appointment.scheduleId = scheduleId;
+    appointment.timeSlot = timeSlot;
+    appointment.appointmentDate = new Date(appointmentDate);
+    appointment.queueNumber = queueNumber;
     
-    // Cập nhật lại trạng thái của time slot cũ (đánh dấu là trống)
-    const oldSchedule = await Schedule.findById(oldScheduleId);
-    if (oldSchedule) {
-      const oldSlotIndex = oldSchedule.timeSlots.findIndex(
-        slot => 
-          slot.startTime === oldTimeSlot.startTime && 
-          slot.endTime === oldTimeSlot.endTime
-      );
-      
-      if (oldSlotIndex !== -1) {
-        oldSchedule.timeSlots[oldSlotIndex].isBooked = false;
-        oldSchedule.timeSlots[oldSlotIndex].appointmentId = null;
-        oldSchedule.timeSlots[oldSlotIndex].roomId = null;
-        await oldSchedule.save();
-      }
+    if (room) {
+      appointment.roomId = room._id;
     }
     
-    // Cập nhật lại trạng thái của time slot mới (đánh dấu là đã đặt)
-    const newSlotIndex = newSchedule.timeSlots.findIndex(
-      slot => slot.startTime === timeSlot.startTime && slot.endTime === timeSlot.endTime
-    );
+    // Cập nhật trạng thái thành 'rescheduled'
+    appointment.status = 'rescheduled';
     
-    if (newSlotIndex !== -1) {
-      newSchedule.timeSlots[newSlotIndex].isBooked = true;
-      newSchedule.timeSlots[newSlotIndex].appointmentId = appointment._id;
-      if (room && room._id) {
-        newSchedule.timeSlots[newSlotIndex].roomId = room._id;
+    // Tăng số lần đổi lịch
+    appointment.rescheduleCount = (appointment.rescheduleCount || 0) + 1;
+    appointment.isRescheduled = true;
+    
+    // Nếu đổi lịch, trạng thái thanh toán vẫn giữ nguyên (không cần thanh toán lại)
+    
+    // Lưu lại các thay đổi
+    await appointment.save();
+    
+    // Cập nhật lại trạng thái của time slot cũ (đánh dấu là trống hoặc giảm số lượng đặt)
+    try {
+      // Tìm vị trí của time slot cũ 
+      const oldSchedule = await Schedule.findById(oldScheduleId);
+      if (oldSchedule) {
+        const oldSlotIndex = oldSchedule.timeSlots.findIndex(
+          slot => 
+            slot.startTime === oldTimeSlot.startTime && 
+            slot.endTime === oldTimeSlot.endTime
+        );
+        
+        if (oldSlotIndex !== -1) {
+          console.log(`Updating old schedule ${oldScheduleId}, slot index ${oldSlotIndex}`);
+          
+          // Sử dụng findOneAndUpdate để tránh xung đột phiên bản
+          await Schedule.findOneAndUpdate(
+            { 
+              _id: oldScheduleId,
+              [`timeSlots.${oldSlotIndex}.startTime`]: oldTimeSlot.startTime,
+              [`timeSlots.${oldSlotIndex}.endTime`]: oldTimeSlot.endTime
+            },
+            { 
+              $inc: { [`timeSlots.${oldSlotIndex}.bookedCount`]: -1 },
+              $pull: { [`timeSlots.${oldSlotIndex}.appointmentIds`]: appointment._id },
+              $set: {
+                [`timeSlots.${oldSlotIndex}.isBooked`]: false,
+                [`timeSlots.${oldSlotIndex}.appointmentId`]: null,
+                [`timeSlots.${oldSlotIndex}.roomId`]: null
+              }
+            },
+            { 
+              new: true,
+              runValidators: false
+            }
+          );
+          
+          console.log(`Old schedule slot updated successfully`);
+        }
       }
-      await newSchedule.save();
+    } catch (updateError) {
+      console.error('Error updating old schedule:', updateError);
+      // Tiếp tục xử lý mặc dù có lỗi khi cập nhật lịch cũ
+    }
+    
+    // Cập nhật lại trạng thái của time slot mới (tăng số lượng đặt)
+    try {
+      const newSlotIndex = newSchedule.timeSlots.findIndex(
+        slot => slot.startTime === timeSlot.startTime && slot.endTime === timeSlot.endTime
+      );
+      
+      if (newSlotIndex !== -1) {
+        console.log(`Updating new schedule ${scheduleId}, slot index ${newSlotIndex}`);
+        
+        // Lấy thông tin hiện tại của slot
+        const currentCount = newSchedule.timeSlots[newSlotIndex].bookedCount || 0;
+        const maxBookings = newSchedule.timeSlots[newSlotIndex].maxBookings || 3;
+        
+        // Xác định xem slot sẽ đầy sau khi thêm booking này không
+        const willBeFull = (currentCount + 1) >= maxBookings;
+        
+        // Cập nhật slot bằng findOneAndUpdate để tránh xung đột phiên bản
+        const updateFields = {
+          $inc: { [`timeSlots.${newSlotIndex}.bookedCount`]: 1 },
+          $addToSet: { [`timeSlots.${newSlotIndex}.appointmentIds`]: appointment._id },
+          $set: {
+            [`timeSlots.${newSlotIndex}.appointmentId`]: appointment._id
+          }
+        };
+        
+        // Chỉ cập nhật isBooked nếu slot sẽ đầy
+        if (willBeFull) {
+          updateFields.$set[`timeSlots.${newSlotIndex}.isBooked`] = true;
+        }
+        
+        // Cập nhật roomId nếu có
+        if (room && room._id) {
+          updateFields.$set[`timeSlots.${newSlotIndex}.roomId`] = room._id;
+        }
+        
+        await Schedule.findOneAndUpdate(
+          { 
+            _id: scheduleId,
+            [`timeSlots.${newSlotIndex}.startTime`]: timeSlot.startTime,
+            [`timeSlots.${newSlotIndex}.endTime`]: timeSlot.endTime
+          },
+          updateFields,
+          { 
+            new: true,
+            runValidators: false
+          }
+        );
+        
+        console.log(`New schedule slot updated successfully`);
+        
+        // Fetch the updated schedule to broadcast changes
+        const updatedSchedule = await Schedule.findById(scheduleId);
+        if (updatedSchedule && updatedSchedule.timeSlots[newSlotIndex]) {
+          // Create time slot info object for broadcasting
+          const timeSlotInfo = {
+            _id: updatedSchedule.timeSlots[newSlotIndex]._id,
+            startTime: updatedSchedule.timeSlots[newSlotIndex].startTime,
+            endTime: updatedSchedule.timeSlots[newSlotIndex].endTime,
+            isBooked: updatedSchedule.timeSlots[newSlotIndex].isBooked,
+            bookedCount: updatedSchedule.timeSlots[newSlotIndex].bookedCount,
+            maxBookings: updatedSchedule.timeSlots[newSlotIndex].maxBookings || 3
+          };
+          
+          // Format date as YYYY-MM-DD for the socket room
+          const formattedDate = new Date(appointmentDate).toISOString().split('T')[0];
+          
+          // Broadcast update to all clients viewing this doctor's schedule
+          broadcastTimeSlotUpdate(
+            scheduleId, 
+            timeSlotInfo, 
+            appointment.doctorId._id || appointment.doctorId, 
+            formattedDate
+          );
+          
+          console.log(`Broadcasting reschedule time slot update for ${timeSlotInfo.startTime}-${timeSlotInfo.endTime}`);
+        }
+      }
+    } catch (updateError) {
+      console.error('Error updating new schedule:', updateError);
+      // Tiếp tục xử lý dù có lỗi khi cập nhật lịch mới
     }
     
     // Gửi email thông báo đổi lịch cho bệnh nhân
@@ -1356,6 +1677,17 @@ exports.rescheduleAppointment = async (req, res) => {
       if (typeof sendAppointmentRescheduleEmail === 'function') {
         // Lấy thông tin bệnh viện
         const hospital = await Hospital.findById(appointment.hospitalId);
+        
+        // Lấy thông tin phòng cũ nếu có
+        let oldRoom = null;
+        if (oldRoomId) {
+          try {
+            oldRoom = await Room.findById(oldRoomId);
+            console.log('Đã tìm thấy thông tin phòng cũ:', oldRoom ? `${oldRoom.name} (${oldRoom.number})` : 'Không tìm thấy');
+          } catch (roomErr) {
+            console.error('Lỗi khi tìm thông tin phòng cũ:', roomErr);
+          }
+        }
         
         // Chuẩn bị dữ liệu cho email
         const emailData = {
@@ -1366,6 +1698,7 @@ exports.rescheduleAppointment = async (req, res) => {
           startTime: timeSlot.startTime,
           endTime: timeSlot.endTime,
           roomName: room ? `${room.name} (Phòng ${room.number})` : 'Sẽ thông báo sau',
+          queueNumber: appointment.queueNumber,
           specialtyName: appointment.specialtyId ? appointment.specialtyId.name : '',
           serviceName: appointment.serviceId ? appointment.serviceId.name : ''
         };
@@ -1375,16 +1708,44 @@ exports.rescheduleAppointment = async (req, res) => {
           appointmentDate: new Date(oldAppointmentDate).toLocaleDateString('vi-VN'),
           startTime: oldTimeSlot.startTime,
           endTime: oldTimeSlot.endTime,
-          roomName: oldRoomId ? 'Phòng cũ' : 'Không có phòng',
+          roomName: oldRoom ? `${oldRoom.name} (Phòng ${oldRoom.number})` : 'Không có phòng',
+          queueNumber: appointment.rescheduleHistory && appointment.rescheduleHistory.length > 0 ? 
+                      appointment.rescheduleHistory[appointment.rescheduleHistory.length - 1].queueNumber : 0
         };
         
+        // Gửi email thông báo đổi lịch cho bệnh nhân
         await sendAppointmentRescheduleEmail(
           appointment.patientId.email,
           appointment.patientId.fullName,
           emailData,
           oldAppointmentData
         );
-        console.log('Đã gửi email thông báo đổi lịch thành công');
+        console.log('Đã gửi email thông báo đổi lịch thành công đến bệnh nhân');
+        
+        // Gửi email thông báo đổi lịch cho bác sĩ
+        if (appointment.doctorId && appointment.doctorId.user && appointment.doctorId.user.email) {
+          // Thông tin bệnh nhân cho email gửi bác sĩ
+          const patient = await User.findById(appointment.patientId);
+          const patientInfo = {
+            name: patient.fullName,
+            email: patient.email,
+            phone: patient.phoneNumber || patient.phone || 'Không có'
+          };
+          
+          // Thêm thông tin đổi lịch vào dữ liệu email
+          emailData.isRescheduled = true;
+          emailData.oldAppointmentDate = oldAppointmentData.appointmentDate;
+          emailData.oldStartTime = oldAppointmentData.startTime;
+          emailData.oldEndTime = oldAppointmentData.endTime;
+          
+          await sendDoctorAppointmentNotificationEmail(
+            appointment.doctorId.user.email,
+            appointment.doctorId.user.fullName,
+            emailData,
+            patientInfo
+          );
+          console.log('Đã gửi email thông báo đổi lịch thành công đến bác sĩ:', appointment.doctorId.user.email);
+        }
       } else {
         console.log('Bỏ qua gửi email vì hàm sendAppointmentRescheduleEmail chưa được triển khai');
       }
@@ -1400,79 +1761,29 @@ exports.rescheduleAppointment = async (req, res) => {
     
   } catch (error) {
     console.error('Reschedule appointment error:', error);
+    
+    // Xử lý các loại lỗi cụ thể và cung cấp thông báo phù hợp
+    let errorMessage = 'Lỗi khi đổi lịch hẹn';
+    
+    if (error.name === 'VersionError') {
+      errorMessage = 'Có một người dùng khác đang đặt lịch cùng lúc với bạn. Vui lòng thử lại sau.';
+    } else if (error.name === 'ValidationError') {
+      errorMessage = 'Dữ liệu không hợp lệ: ' + Object.values(error.errors).map(e => e.message).join(', ');
+    } else if (error.name === 'CastError') {
+      errorMessage = 'ID không hợp lệ hoặc không đúng định dạng';
+    } else if (error.code === 11000) {  // Duplicate key error
+      errorMessage = 'Dữ liệu bị trùng lặp, vui lòng thử lại';
+    }
+    
     return res.status(500).json({
       success: false,
-      message: 'Lỗi khi đổi lịch hẹn',
-      error: error.message
+      message: errorMessage,
+      error: error.message,
+      errorType: error.name
     });
   }
 };
 
-// Đặt lịch hẹn
-exports.bookAppointment = catchAsync(async (req, res, next) => {
-  const { doctorId, date, time, reason } = req.body;
-  const userId = req.user.id;
-
-  // Kiểm tra bác sĩ tồn tại
-  const doctor = await Doctor.findById(doctorId);
-  if (!doctor) {
-    return next(new AppError('Không tìm thấy bác sĩ', 404));
-  }
-
-  // Kiểm tra lịch làm việc của bác sĩ
-  const schedule = await Schedule.findOne({
-    doctorId,
-    date,
-    availableSlots: { $elemMatch: { time, isBooked: false } }
-  });
-
-  if (!schedule) {
-    return next(new AppError('Khung giờ không có sẵn', 400));
-  }
-
-  // Tạo cuộc hẹn mới
-  const appointment = await Appointment.create({
-    doctorId,
-    userId,
-    date,
-    time,
-    reason,
-    status: 'pending'
-  });
-
-  // Cập nhật trạng thái khung giờ
-  await Schedule.updateOne(
-    { _id: schedule._id, 'availableSlots.time': time },
-    { $set: { 'availableSlots.$.isBooked': true } }
-  );
-
-  res.status(201).json({
-    status: 'success',
-    data: {
-      appointment
-    }
-  });
-});
-
-// Lấy danh sách lịch hẹn của người dùng
-exports.getUserAppointments = catchAsync(async (req, res, next) => {
-  const userId = req.user.id;
-  
-  const appointments = await Appointment.find({ userId })
-    .populate({
-      path: 'doctorId',
-      select: 'name specialty avatarUrl'
-    })
-    .sort({ date: -1, time: -1 });
-
-  res.status(200).json({
-    status: 'success',
-    results: appointments.length,
-    data: {
-      appointments
-    }
-  });
-});
 
 // Đánh giá sau cuộc hẹn
 exports.reviewAppointment = catchAsync(async (req, res, next) => {
@@ -1543,72 +1854,6 @@ exports.getDoctorSchedule = catchAsync(async (req, res, next) => {
   });
 });
 
-// Cập nhật trạng thái cuộc hẹn (cho bác sĩ)
-exports.updateAppointmentStatus = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const { status, notes } = req.body;
-  const doctorId = req.user.id;
-
-  const appointment = await Appointment.findOne({ _id: id, doctorId });
-  
-  if (!appointment) {
-    return next(new AppError('Không tìm thấy lịch hẹn hoặc bạn không phải bác sĩ của lịch hẹn này', 404));
-  }
-
-  const validStatuses = ['confirmed', 'completed', 'no-show'];
-  if (!validStatuses.includes(status)) {
-    return next(new AppError('Trạng thái không hợp lệ', 400));
-  }
-
-  appointment.status = status;
-  if (notes) appointment.doctorNotes = notes;
-  await appointment.save();
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      appointment
-    }
-  });
-});
-
-// Thiết lập khung giờ làm việc (cho bác sĩ)
-exports.setAvailability = catchAsync(async (req, res, next) => {
-  const { date, slots } = req.body;
-  const doctorId = req.user.id;
-
-  // Validate input
-  if (!date || !slots || !Array.isArray(slots)) {
-    return next(new AppError('Vui lòng cung cấp ngày và danh sách khung giờ', 400));
-  }
-
-  // Format slots thành định dạng chuẩn
-  const availableSlots = slots.map(slot => ({
-    time: slot,
-    isBooked: false
-  }));
-
-  // Tìm và cập nhật hoặc tạo mới lịch
-  let schedule = await Schedule.findOne({ doctorId, date });
-  
-  if (schedule) {
-    schedule.availableSlots = availableSlots;
-    await schedule.save();
-  } else {
-    schedule = await Schedule.create({
-      doctorId,
-      date,
-      availableSlots
-    });
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      schedule
-    }
-  });
-});
 
 // Lấy tất cả cuộc hẹn (cho admin)
 exports.getAllAppointments = async (req, res) => {
@@ -1810,29 +2055,6 @@ exports.getAppointmentStats = catchAsync(async (req, res, next) => {
   });
 });
 
-// Xóa cuộc hẹn (cho admin)
-exports.deleteAppointment = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  
-  const appointment = await Appointment.findById(id);
-  
-  if (!appointment) {
-    return next(new AppError('Không tìm thấy lịch hẹn', 404));
-  }
-
-  // Giải phóng khung giờ trong lịch bác sĩ
-  await Schedule.updateOne(
-    { doctorId: appointment.doctorId, date: appointment.date, 'availableSlots.time': appointment.time },
-    { $set: { 'availableSlots.$.isBooked': false } }
-  );
-
-  await Appointment.findByIdAndDelete(id);
-
-  res.status(200).json({
-    status: 'success',
-    message: 'Lịch hẹn đã được xóa thành công'
-  });
-});
 
 // Lấy danh sách chuyên khoa theo bệnh viện
 exports.getSpecialtiesByHospital = async (req, res) => {
@@ -2305,229 +2527,7 @@ exports.getDoctorSchedules = catchAsync(async (req, res, next) => {
   });
 });
 
-// Thống kê theo chuyên khoa
-exports.getSpecialtyStatistics = async (req, res) => {
-  try {
-    // Thống kê số lượng bác sĩ theo từng chuyên khoa
-    const doctorsBySpecialty = await Doctor.aggregate([
-      {
-        $group: {
-          _id: '$specialtyId',
-          doctorCount: { $sum: 1 }
-        }
-      },
-      {
-        $lookup: {
-          from: 'specialties',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'specialty'
-        }
-      },
-      {
-        $unwind: '$specialty'
-      },
-      {
-        $project: {
-          _id: 1,
-          doctorCount: 1,
-          specialtyName: '$specialty.name'
-        }
-      },
-      {
-        $sort: { doctorCount: -1 }
-      }
-    ]);
-    
-    // Thống kê số lượng lịch hẹn theo từng chuyên khoa
-    const appointmentsBySpecialty = await Appointment.aggregate([
-      {
-        $group: {
-          _id: '$specialtyId',
-          appointmentCount: { $sum: 1 },
-          completedCount: {
-            $sum: {
-              $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
-            }
-          },
-          cancelledCount: {
-            $sum: {
-              $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0]
-            }
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: 'specialties',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'specialty'
-        }
-      },
-      {
-        $unwind: '$specialty'
-      },
-      {
-        $project: {
-          _id: 1,
-          appointmentCount: 1,
-          completedCount: 1,
-          cancelledCount: 1,
-          specialtyName: '$specialty.name'
-        }
-      },
-      {
-        $sort: { appointmentCount: -1 }
-      }
-    ]);
-    
-    // Kết hợp kết quả
-    const specialtyStats = [];
-    
-    // Thêm thông tin từ doctorsBySpecialty
-    doctorsBySpecialty.forEach(item => {
-      specialtyStats.push({
-        specialtyId: item._id,
-        specialtyName: item.specialtyName,
-        doctorCount: item.doctorCount,
-        appointmentCount: 0,
-        completedCount: 0,
-        cancelledCount: 0
-      });
-    });
-    
-    // Cập nhật từ appointmentsBySpecialty
-    appointmentsBySpecialty.forEach(item => {
-      const index = specialtyStats.findIndex(s => s.specialtyId.toString() === item._id.toString());
-      
-      if (index !== -1) {
-        specialtyStats[index].appointmentCount = item.appointmentCount;
-        specialtyStats[index].completedCount = item.completedCount;
-        specialtyStats[index].cancelledCount = item.cancelledCount;
-      } else {
-        specialtyStats.push({
-          specialtyId: item._id,
-          specialtyName: item.specialtyName,
-          doctorCount: 0,
-          appointmentCount: item.appointmentCount,
-          completedCount: item.completedCount,
-          cancelledCount: item.cancelledCount
-        });
-      }
-    });
-    
-    return res.status(200).json({
-      success: true,
-      count: specialtyStats.length,
-      data: specialtyStats
-    });
-    
-  } catch (error) {
-    console.error('Get specialty statistics error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Lỗi khi lấy thống kê theo chuyên khoa',
-      error: error.message
-    });
-  }
-};
 
-// Thống kê theo dịch vụ
-exports.getServiceStatistics = async (req, res) => {
-  try {
-    // Thống kê số lượng lịch hẹn theo từng dịch vụ
-    const appointmentsByService = await Appointment.aggregate([
-      {
-        $match: {
-          serviceId: { $exists: true, $ne: null }
-        }
-      },
-      {
-        $group: {
-          _id: '$serviceId',
-          appointmentCount: { $sum: 1 },
-          completedCount: {
-            $sum: {
-              $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
-            }
-          },
-          totalRevenue: {
-            $sum: {
-              $cond: [
-                { $eq: ['$status', 'completed'] },
-                '$fee.totalAmount',
-                0
-              ]
-            }
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: 'services',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'service'
-        }
-      },
-      {
-        $unwind: '$service'
-      },
-      {
-        $project: {
-          _id: 1,
-          appointmentCount: 1,
-          completedCount: 1,
-          totalRevenue: 1,
-          serviceName: '$service.name',
-          servicePrice: '$service.price',
-          specialtyId: '$service.specialtyId'
-        }
-      },
-      {
-        $lookup: {
-          from: 'specialties',
-          localField: 'specialtyId',
-          foreignField: '_id',
-          as: 'specialty'
-        }
-      },
-      {
-        $unwind: '$specialty'
-      },
-      {
-        $project: {
-          _id: 1,
-          appointmentCount: 1,
-          completedCount: 1,
-          totalRevenue: 1,
-          serviceName: 1,
-          servicePrice: 1,
-          specialtyId: 1,
-          specialtyName: '$specialty.name'
-        }
-      },
-      {
-        $sort: { appointmentCount: -1 }
-      }
-    ]);
-    
-    return res.status(200).json({
-      success: true,
-      count: appointmentsByService.length,
-      data: appointmentsByService
-    });
-    
-  } catch (error) {
-    console.error('Get service statistics error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Lỗi khi lấy thống kê theo dịch vụ',
-      error: error.message
-    });
-  }
-};
 
 /**
  * @desc    Admin xem chi tiết lịch hẹn
@@ -2566,10 +2566,9 @@ exports.getAppointmentDetailAdmin = async (req, res) => {
         ]
       })
       .populate('hospitalId', 'name address contactInfo workingHours imageUrl image')
+      .populate('specialtyId', 'name description')
       .populate('serviceId', 'name price description')
-      .populate('roomId', 'name number floor')
-      .populate('createdBy', 'fullName email')
-      .populate('updatedBy', 'fullName email');
+      .populate('roomId', 'name number floor');
 
     if (!appointment) {
       return res.status(404).json({
@@ -2788,15 +2787,7 @@ exports.updateAppointmentAdmin = async (req, res) => {
     .populate('hospitalId', 'name address imageUrl image')
     .populate('serviceId', 'name price');
 
-    // Send real-time notification if there were meaningful changes
-    if (Object.keys(updateData).length > 0) {
-      try {
-        await appointmentUpdatedNotification(updatedAppointment, req.user.id, updateData);
-      } catch (notificationError) {
-        console.error('Error sending appointment update notification:', notificationError);
-        // Continue execution
-      }
-    }
+
 
     return res.status(200).json({
       success: true,
@@ -2914,7 +2905,7 @@ exports.confirmAppointment = async (req, res) => {
     }
     
     // Kiểm tra trạng thái hiện tại của lịch hẹn
-    if (appointment.status !== 'pending') {
+    if (appointment.status !== 'pending' && appointment.status !== 'rescheduled' ) {
       return res.status(400).json({
         success: false,
         message: `Không thể xác nhận lịch hẹn vì trạng thái hiện tại là ${appointment.status}`
@@ -2924,16 +2915,36 @@ exports.confirmAppointment = async (req, res) => {
     // Cập nhật trạng thái lịch hẹn
     appointment.status = 'confirmed';
     appointment.confirmationDate = new Date();
-    
+  
+    console.log(`[INFO] Updating appointment ${id} status to confirmed`);
     await appointment.save();
-    
-    // Gửi email thông báo cho bệnh nhân (nếu có)
+    console.log(`[INFO] Appointment ${id} confirmed successfully`);
+  
+    // Gửi email thông báo cho bệnh nhân
     try {
       const patient = await User.findById(appointment.patientId);
-      if (patient && patient.email) {
+      if (!patient) {
+        console.error(`[ERROR] Patient not found for appointment ${id}`);
+        throw new Error('Không tìm thấy thông tin bệnh nhân');
+      }
+      
+      console.log(`[INFO] Preparing confirmation email for patient: ${patient.email || 'Email not available'}`);
+      
+      if (!patient.email) {
+        console.warn(`[WARN] Patient ${patient._id} has no email address for confirmation`);
+      } else {
         // Tạo đối tượng thông tin lịch hẹn cho email
         const doctorUser = await User.findById(doctor.user);
+        if (!doctorUser) {
+          console.error(`[ERROR] Doctor user not found: ${doctor.user}`);
+          throw new Error('Không tìm thấy thông tin tài khoản bác sĩ');
+        }
+
         const hospitalData = await Hospital.findById(appointment.hospitalId);
+        if (!hospitalData) {
+          console.error(`[ERROR] Hospital not found: ${appointment.hospitalId}`);
+          throw new Error('Không tìm thấy thông tin bệnh viện');
+        }
 
         // Kiểm tra và định dạng giờ từ khung giờ
         let startTime = '';
@@ -2953,35 +2964,114 @@ exports.confirmAppointment = async (req, res) => {
           }
         }
 
+        // Lấy thông tin chuyên khoa
+        let specialtyName = '';
+        if (doctor.specialtyId) {
+          try {
+            const specialty = await Specialty.findById(doctor.specialtyId);
+            specialtyName = specialty ? specialty.name : '';
+          } catch (err) {
+            console.warn(`[WARN] Error fetching specialty: ${err.message}`);
+          }
+        }
+
+        // Lấy thông tin dịch vụ
+        let serviceName = '';
+        if (appointment.serviceId) {
+          try {
+            serviceName = await getServiceName(appointment.serviceId);
+          } catch (err) {
+            console.warn(`[WARN] Error fetching service: ${err.message}`);
+          }
+        }
+
+        // Lấy thông tin phòng đầy đủ nếu có
+        let roomInfo = 'Chưa phân phòng';
+        if (appointment.roomId) {
+          try {
+            const room = await Room.findById(appointment.roomId);
+            if (room) {
+              roomInfo = `${room.name} (Phòng ${room.number})`;
+              console.log(`[INFO] Found room for confirmation email: ${roomInfo}`);
+            } else {
+              console.warn(`[WARN] Room not found with ID: ${appointment.roomId}`);
+            }
+          } catch (err) {
+            console.error('[ERROR] Error fetching room information:', err);
+          }
+        } else {
+          console.warn(`[WARN] No room assigned for appointment ${id} - using default text`);
+        }
+
         const appointmentInfo = {
-          bookingCode: appointment.bookingCode || appointment.appointmentCode,
+          bookingCode: appointment.bookingCode || appointment.appointmentCode || id.substring(0, 8).toUpperCase(),
           doctorName: doctor.title + ' ' + doctorUser.fullName,
           hospitalName: hospitalData.name,
           appointmentDate: new Date(appointment.appointmentDate).toLocaleDateString('vi-VN'),
           startTime: startTime,
           endTime: endTime,
-          roomName: appointment.roomName || 'Chưa xác định',
-          specialtyName: (await Specialty.findById(doctor.specialtyId))?.name || '',
-          serviceName: appointment.serviceId ? await getServiceName(appointment.serviceId) : ''
+          roomName: roomInfo,
+          queueNumber: appointment.queueNumber || 0,
+          specialtyName: specialtyName,
+          serviceName: serviceName
         };
         
-        await sendAppointmentConfirmationEmail(
+        console.log(`[INFO] Sending confirmation email to ${patient.email}`);
+        const emailResult = await sendAppointmentConfirmationEmail(
           patient.email,
           patient.fullName,
           appointmentInfo
         );
+        
+        if (emailResult) {
+          console.log(`[INFO] Confirmation email sent successfully to patient ${patient._id}`);
+        } else {
+          console.warn(`[WARN] Confirmation email may not have been sent correctly to ${patient.email}`);
+        }
+        
+        // Gửi email thông báo cho bác sĩ
+        try {
+          if (doctorInfo && doctorInfo.user && doctorInfo.user.email) {
+            // Tạo thông tin bệnh nhân để thông báo cho bác sĩ
+            const patientInfo = {
+              name: patient.fullName,
+              email: patient.email,
+              phone: patient.phone || patient.phoneNumber || 'Không có thông tin'
+            };
+            
+            console.log(`[INFO] Sending notification email to doctor: ${doctorInfo.user.email}`);
+            const doctorEmailResult = await sendDoctorAppointmentNotificationEmail(
+              doctorInfo.user.email,
+              doctorInfo.user.fullName,
+              appointmentInfo,
+              patientInfo
+            );
+            
+            if (doctorEmailResult && doctorEmailResult.success) {
+              console.log(`[INFO] Doctor notification email sent successfully: ${doctorEmailResult.messageId}`);
+            } else {
+              console.warn(`[WARN] Doctor notification email may not have been sent correctly: ${doctorEmailResult?.error || 'Unknown error'}`);
+            }
+          } else {
+            console.warn(`[WARN] Doctor email not available, skipping notification email for doctor ID: ${doctorId}`);
+          }
+        } catch (doctorEmailError) {
+          console.error(`[ERROR] Error sending doctor notification email:`, doctorEmailError);
+          // Không ảnh hưởng đến luồng chính nếu gửi email cho bác sĩ thất bại
+        }
       }
     } catch (emailError) {
-      console.error('Error sending confirmation email:', emailError);
+      console.error(`[ERROR] Error sending confirmation email:`, emailError);
+      // Không trả về lỗi cho client vì đây chỉ là email thông báo phụ
     }
-    
+  
     return res.status(200).json({
       success: true,
       data: appointment,
       message: 'Xác nhận lịch hẹn thành công'
     });
   } catch (error) {
-    console.error('Confirm appointment error:', error);
+    console.error('[ERROR] Confirm appointment error:', error);
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi xác nhận lịch hẹn',
@@ -3043,7 +3133,7 @@ exports.rejectAppointment = async (req, res) => {
     }
     
     // Kiểm tra trạng thái hiện tại của lịch hẹn
-    if (appointment.status !== 'pending') {
+    if (appointment.status !== 'pending' && appointment.status !== 'rescheduled') {
       return res.status(400).json({
         success: false,
         message: `Không thể từ chối lịch hẹn vì trạng thái hiện tại là ${appointment.status}`
@@ -3084,6 +3174,8 @@ exports.rejectAppointment = async (req, res) => {
     } catch (emailError) {
       console.error('Error sending rejection email:', emailError);
     }
+    
+
     
     return res.status(200).json({
       success: true,
@@ -3214,6 +3306,8 @@ exports.completeAppointment = async (req, res) => {
       });
       await medicalRecord.save();
     }
+    
+
     
     return res.status(200).json({
       success: true,
@@ -3381,6 +3475,317 @@ exports.getDoctorAppointmentCounts = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy số lượng lịch hẹn theo trạng thái',
+      error: error.message
+    });
+  }
+};
+
+// Add a new endpoint to check slot availability and lock status
+exports.checkTimeSlotAvailability = async (req, res) => {
+  try {
+    const { scheduleId, timeSlotId } = req.params;
+    
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(scheduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID lịch không hợp lệ'
+      });
+    }
+    
+    // Find schedule
+    const schedule = await Schedule.findById(scheduleId);
+    if (!schedule) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy lịch'
+      });
+    }
+    
+    // Find time slot
+    const timeSlot = schedule.timeSlots.find(slot => 
+      slot.startTime === timeSlotId || slot._id.toString() === timeSlotId
+    );
+    
+    if (!timeSlot) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy khung giờ'
+      });
+    }
+    
+    // Check if slot is booked
+    if (timeSlot.isBooked) {
+      return res.status(200).json({
+        success: true,
+        isAvailable: false,
+        isLocked: false,
+        message: 'Khung giờ đã được đặt'
+      });
+    }
+    
+    // Check if slot is locked by another user
+    const isLocked = isTimeSlotLocked(scheduleId, timeSlot.startTime);
+    const lockerUserId = isLocked ? getTimeSlotLocker(scheduleId, timeSlot.startTime) : null;
+    const isLockedByCurrentUser = isLocked && lockerUserId === req.user.id.toString();
+    
+    return res.status(200).json({
+      success: true,
+      isAvailable: !isLocked || isLockedByCurrentUser,
+      isLocked: isLocked && !isLockedByCurrentUser,
+      message: isLocked && !isLockedByCurrentUser 
+        ? 'Khung giờ đang được người khác xử lý' 
+        : 'Khung giờ có sẵn'
+    });
+    
+  } catch (error) {
+    console.error('Check time slot availability error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi kiểm tra khung giờ',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get all appointments for logged-in doctor
+ * @route   GET /api/appointments/doctor
+ * @access  Private (doctor)
+ */
+exports.getDoctorAppointments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Tìm doctor record dựa vào user id
+    const doctor = await Doctor.findOne({ user: userId });
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thông tin bác sĩ'
+      });
+    }
+    
+    // Lấy query parameters cho phân trang và lọc
+    const { page = 1, limit = 10, status, fromDate, toDate, search } = req.query;
+    
+    // Xây dựng query
+    const query = {
+      doctorId: doctor._id
+    };
+    
+    // Thêm bộ lọc trạng thái nếu có
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    // Thêm bộ lọc theo khoảng thời gian nếu có
+    if (fromDate || toDate) {
+      query.appointmentDate = {};
+      
+      if (fromDate) {
+        const startDate = new Date(fromDate);
+        startDate.setHours(0, 0, 0, 0);
+        query.appointmentDate.$gte = startDate;
+      }
+      
+      if (toDate) {
+        const endDate = new Date(toDate);
+        endDate.setHours(23, 59, 59, 999);
+        query.appointmentDate.$lte = endDate;
+      }
+    }
+    
+    // Tìm kiếm theo tên bệnh nhân hoặc mã đặt lịch nếu có
+    if (search) {
+      // Tìm danh sách user IDs khớp với từ khóa tìm kiếm
+      const users = await User.find({
+        fullName: { $regex: search, $options: 'i' }
+      }).select('_id');
+      
+      const userIds = users.map(user => user._id);
+      
+      // Mở rộng query để tìm kiếm theo ID bệnh nhân hoặc mã đặt lịch
+      query.$or = [
+        { patientId: { $in: userIds } },
+        { bookingCode: { $regex: search, $options: 'i' } },
+        { appointmentCode: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    console.log('Doctor appointments query:', JSON.stringify(query));
+    
+    // Tính toán skip cho phân trang
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Đếm tổng số lịch hẹn thỏa mãn điều kiện
+    const total = await Appointment.countDocuments(query);
+    
+    // Lấy danh sách lịch hẹn
+    const appointments = await Appointment.find(query)
+      .populate('patientId', 'fullName phoneNumber email gender dateOfBirth avatarUrl')
+      .populate('hospitalId', 'name address imageUrl image')
+      .populate('specialtyId', 'name')
+      .populate('serviceId', 'name price')
+      .sort({ appointmentDate: -1, 'timeSlot.startTime': -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    console.log(`Found ${appointments.length} appointments for doctor, including statuses:`, 
+               appointments.map(a => a.status));
+    
+    return res.status(200).json({
+      success: true,
+      count: appointments.length,
+      total: total,
+      totalPages: Math.ceil(total / parseInt(limit)),
+      currentPage: parseInt(page),
+      data: appointments
+    });
+  } catch (error) {
+    console.error('Get doctor appointments error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách lịch hẹn',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get all appointments for logged-in patient
+ * @route   GET /api/appointments/user/patient
+ * @access  Private (patient)
+ */
+exports.getPatientAppointments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Lấy query parameters cho phân trang và lọc
+    const { page = 1, limit = 10, status, fromDate, toDate } = req.query;
+    
+    console.log('Original query params:', { page, limit, status, fromDate, toDate });
+    
+    // Xây dựng query
+    const query = {
+      patientId: userId
+    };
+    
+    // Only apply status filter if specifically requested and not 'all'
+    if (status && status !== 'all' && status !== '') {
+      query.status = status;
+    }
+    // Don't add any default status filtering - this allows all statuses to be shown
+    
+    console.log('Final MongoDB query:', JSON.stringify(query));
+    
+    // Tính toán skip cho phân trang
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Đếm tổng số lịch hẹn thỏa mãn điều kiện
+    const total = await Appointment.countDocuments(query);
+    
+    // Lấy danh sách lịch hẹn
+    const appointments = await Appointment.find(query)
+      .populate({
+        path: 'doctorId',
+        populate: {
+          path: 'user',
+          select: 'fullName avatarUrl'
+        }
+      })
+      .populate('hospitalId', 'name address imageUrl image')
+      .populate('specialtyId', 'name')
+      .populate('serviceId', 'name price')
+      .populate('roomId', 'name number floor')
+      .sort({ appointmentDate: -1, 'timeSlot.startTime': -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    // Add debug logging to verify the fix
+    console.log(`Found ${appointments.length} appointments with these statuses:`, 
+                appointments.map(a => a.status).join(', '));
+    
+    return res.status(200).json({
+      success: true,
+      count: appointments.length,
+      total: total,
+      totalPages: Math.ceil(total / parseInt(limit)),
+      currentPage: parseInt(page),
+      data: appointments
+    });
+  } catch (error) {
+    console.error('Get patient appointments error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách lịch hẹn',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Mark appointment as no-show
+ * @route   PUT /api/appointments/:id/no-show
+ * @access  Private (doctor)
+ */
+exports.markAsNoShow = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the doctor associated with the logged-in user
+    const doctor = await Doctor.findOne({ user: req.user.id });
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thông tin bác sĩ'
+      });
+    }
+    
+    // Find the appointment
+    const appointment = await Appointment.findById(id);
+    
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy lịch hẹn'
+      });
+    }
+    
+    // Verify the appointment belongs to this doctor
+    if (appointment.doctorId.toString() !== doctor._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Không có quyền thực hiện'
+      });
+    }
+    
+    // Check the current status of the appointment
+    if (appointment.status !== 'confirmed') {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể đánh dấu không đến khám vì trạng thái hiện tại là ${appointment.status}`
+      });
+    }
+    
+    // Update the appointment status
+    appointment.status = 'no-show';
+    appointment.noShowDate = new Date();
+    
+    await appointment.save();
+    
+    return res.status(200).json({
+      success: true,
+      data: appointment,
+      message: 'Đã đánh dấu bệnh nhân không đến khám'
+    });
+  } catch (error) {
+    console.error('Mark as no-show error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi đánh dấu bệnh nhân không đến khám',
       error: error.message
     });
   }

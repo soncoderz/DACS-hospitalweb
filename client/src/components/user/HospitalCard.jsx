@@ -77,7 +77,9 @@ const HospitalCard = ({ hospital }) => {
         </h3>
         <div className="flex items-start mb-3">
           <FaMapMarkerAlt className="text-primary mt-1 mr-2 flex-shrink-0" />
-          <p className="text-gray-600 text-sm">{hospital.address || 'Đang cập nhật địa chỉ'}</p>
+          <p className="text-gray-600 text-sm leading-relaxed overflow-hidden text-ellipsis whitespace-nowrap">
+            {hospital.address || 'Đang cập nhật địa chỉ'}
+          </p>
         </div>
         
         {hospital.phone && (

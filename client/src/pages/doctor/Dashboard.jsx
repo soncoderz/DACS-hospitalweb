@@ -79,10 +79,17 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Format time from ISO string
-  const formatTime = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
+  // Format time from ISO string or time string (HH:MM)
+  const formatTime = (timeData) => {
+    if (!timeData) return '';
+    
+    // If timeData is a string in format HH:MM
+    if (typeof timeData === 'string' && timeData.includes(':')) {
+      return timeData;
+    }
+    
+    // If timeData is an ISO string
+    const date = new Date(timeData);
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -378,9 +385,15 @@ const Dashboard = () => {
                   <tbody className="divide-y divide-gray-200">
                     {todayAppointments.map((appointment) => (
                       <tr key={appointment._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-4 whitespace-nowrap font-medium">{formatTime(appointment.time)}</td>
-                        <td className="px-4 py-4 whitespace-nowrap">{appointment.userId.fullName}</td>
-                        <td className="px-4 py-4 whitespace-nowrap">{appointment.serviceId.name}</td>
+                        <td className="px-4 py-4 whitespace-nowrap font-medium">
+                          {appointment.timeSlot ? `${formatTime(appointment.timeSlot.startTime)} - ${formatTime(appointment.timeSlot.endTime)}` : formatTime(appointment.time)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {appointment.patientId?.fullName || 'Không xác định'}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {appointment.serviceId?.name || 'Không xác định'}
+                        </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <StatusBadge status={appointment.status} />
                         </td>

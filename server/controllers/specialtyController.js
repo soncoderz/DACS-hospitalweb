@@ -45,10 +45,10 @@ exports.createSpecialty = async (req, res) => {
     }
 
     // Kiểm tra độ dài mô tả nếu có
-    if (description && description.length > 1000) {
+    if (description && description.length > 10000) {
       return res.status(400).json({
         success: false,
-        message: 'Mô tả chuyên khoa không được quá 500 ký tự'
+        message: 'Mô tả chuyên khoa không được quá 10000 ký tự'
       });
     }
 

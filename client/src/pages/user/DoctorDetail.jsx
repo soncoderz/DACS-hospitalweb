@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
-import { FaHeart, FaRegHeart, FaReply, FaCalendarCheck, FaHospital } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaReply, FaCalendarCheck, FaHospital, FaStar } from 'react-icons/fa';
 
 const DoctorDetail = () => {
   const { doctorId } = useParams();
@@ -441,6 +441,7 @@ const DoctorDetail = () => {
                   {reviews.length > 3 && (
                     <div className="text-center mt-4">
                       <Link to={`/reviews/doctor/${doctor._id}`} className="text-primary hover:text-primary-dark font-medium inline-flex items-center">
+                        <FaStar className="mr-2" />
                         Xem tất cả {reviews.length} đánh giá
                       </Link>
                     </div>

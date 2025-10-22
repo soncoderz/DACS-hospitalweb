@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaFilter, FaDownload, FaUserMd, FaCalendarAlt, FaClock, FaHospital, FaExclamationCircle, FaExclamationTriangle, FaDoorOpen, FaCalendarCheck, FaTimes, FaInfoCircle } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaFilter, FaDownload, FaUserMd, FaCalendarAlt, FaClock, FaHospital, FaExclamationCircle, FaExclamationTriangle, FaDoorOpen, FaCalendarCheck, FaTimes, FaInfoCircle, FaCalendarDay } from 'react-icons/fa';
 import api from '../../utils/api';
 import { toast } from 'react-toastify';
 
@@ -14,7 +14,9 @@ const DoctorSchedules = () => {
     doctorId: 'all',
     hospitalId: 'all',
     roomId: 'all',
-    isActive: 'all'
+    isActive: 'all',
+    startDate: '',
+    endDate: ''
   });
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -54,9 +56,50 @@ const DoctorSchedules = () => {
 
   // Thêm danh sách các khung giờ mẫu vào component
   const timeSlotOptions = [
-    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", 
-    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", 
+    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", 
     "15:00", "15:30", "16:00", "16:30", "17:00"
+  ];
+  
+  // Thêm các cặp khung giờ phổ biến
+  const commonTimeSlotGroups = [
+    { name: "Buổi sáng (8h-12h)", slots: [
+      { startTime: "08:00", endTime: "08:30" },
+      { startTime: "08:30", endTime: "09:00" },
+      { startTime: "09:00", endTime: "09:30" },
+      { startTime: "09:30", endTime: "10:00" },
+      { startTime: "10:00", endTime: "10:30" },
+      { startTime: "10:30", endTime: "11:00" },
+      { startTime: "11:00", endTime: "11:30" },
+      { startTime: "11:30", endTime: "12:00" }
+    ]},
+    { name: "Buổi chiều (13h-17h)", slots: [
+      { startTime: "13:00", endTime: "13:30" },
+      { startTime: "13:30", endTime: "14:00" },
+      { startTime: "14:00", endTime: "14:30" },
+      { startTime: "14:30", endTime: "15:00" },
+      { startTime: "15:00", endTime: "15:30" },
+      { startTime: "15:30", endTime: "16:00" },
+      { startTime: "16:00", endTime: "16:30" },
+      { startTime: "16:30", endTime: "17:00" }
+    ]},
+    { name: "Cả ngày (8h-17h)", slots: [
+      { startTime: "08:00", endTime: "08:30" },
+      { startTime: "08:30", endTime: "09:00" },
+      { startTime: "09:00", endTime: "09:30" },
+      { startTime: "09:30", endTime: "10:00" },
+      { startTime: "10:00", endTime: "10:30" },
+      { startTime: "10:30", endTime: "11:00" },
+      { startTime: "11:00", endTime: "11:30" },
+      { startTime: "11:30", endTime: "12:00" },
+      { startTime: "13:00", endTime: "13:30" },
+      { startTime: "13:30", endTime: "14:00" },
+      { startTime: "14:00", endTime: "14:30" },
+      { startTime: "14:30", endTime: "15:00" },
+      { startTime: "15:00", endTime: "15:30" },
+      { startTime: "15:30", endTime: "16:00" },
+      { startTime: "16:00", endTime: "16:30" },
+      { startTime: "16:30", endTime: "17:00" }
+    ]}
   ];
 
   // Log userInfo để kiểm tra token
@@ -111,6 +154,8 @@ const DoctorSchedules = () => {
       if (filter.hospitalId !== 'all') queryParams += `&hospitalId=${filter.hospitalId}`;
       if (filter.roomId !== 'all') queryParams += `&roomId=${filter.roomId}`;
       if (filter.isActive !== 'all') queryParams += `&isActive=${filter.isActive}`;
+      if (filter.startDate) queryParams += `&startDate=${filter.startDate}`;
+      if (filter.endDate) queryParams += `&endDate=${filter.endDate}`;
       if (searchTerm) queryParams += `&search=${searchTerm}`;
       
       console.log('Fetching schedules with URL:', `/admin/schedules?${queryParams}`);
@@ -173,13 +218,17 @@ const DoctorSchedules = () => {
         const doctorsData = res.data.data || [];
         console.log('Loaded doctors:', doctorsData.length);
         setDoctors(Array.isArray(doctorsData) ? doctorsData : []);
+        return doctorsData;
       } else {
+        console.error('Failed to fetch doctors:', res.data.message);
         setDoctors([]);
+        return [];
       }
     } catch (error) {
       console.error('Error fetching doctors:', error);
       toast.error('Không thể tải danh sách bác sĩ');
       setDoctors([]);
+      return [];
     }
   };
 
@@ -473,6 +522,20 @@ const DoctorSchedules = () => {
       ]
     });
   };
+  
+  // Function to add multiple time slots at once
+  const addPredefinedTimeSlots = (slots) => {
+    // Replace existing time slots with the predefined ones
+    setFormData({
+      ...formData,
+      timeSlots: slots.map(slot => ({
+        ...slot,
+        roomId: formData.roomId
+      }))
+    });
+    
+    toast.success(`Đã thêm ${slots.length} khung giờ`);
+  };
 
   const removeTimeSlot = (index) => {
     const newTimeSlots = [...formData.timeSlots];
@@ -492,7 +555,7 @@ const DoctorSchedules = () => {
     };
     
     // Đảm bảo mỗi timeSlot có roomId
-    if (field !== 'roomId' && !updatedTimeSlots[index].roomId && formData.roomId) {
+    if (field !== 'roomId' && formData.roomId) {
       updatedTimeSlots[index].roomId = formData.roomId;
     }
     
@@ -556,12 +619,13 @@ const DoctorSchedules = () => {
       // Đảm bảo mỗi timeSlot đều có roomId
       const updatedTimeSlots = formData.timeSlots.map(slot => ({
         ...slot,
-        roomId: slot.roomId || formData.roomId
+        roomId: formData.roomId // Consistently use the global roomId for all time slots
       }));
       
       const dataToSend = {
         ...formData,
         timeSlots: updatedTimeSlots,
+        roomId: formData.roomId, // Include roomId at the top level
         isActive: formData.isActive !== undefined ? formData.isActive : true
       };
       
@@ -591,6 +655,7 @@ const DoctorSchedules = () => {
         
         // Xử lý lỗi trùng lịch (HTTP 409 Conflict)
         if (error.response.status === 409 && responseData.error === 'schedule_conflict') {
+          // Lưu thông tin xung đột để hiển thị
           setConflicts(responseData.conflicts || []);
           setConflictDetails(responseData.errorDetails || null);
           
@@ -608,6 +673,24 @@ const DoctorSchedules = () => {
           errorMessage = errorMessage.replace(/, $/, '');
           
           toast.error(errorMessage, { autoClose: 5000 });
+          
+          // Thêm mới - Hiển thị từng xung đột trong thông báo riêng biệt
+          if (responseData.conflicts && responseData.conflicts.length > 0) {
+            const sampleConflicts = responseData.conflicts.slice(0, 2); // Chỉ hiển thị 2 xung đột đầu tiên
+            
+            sampleConflicts.forEach((conflict, index) => {
+              setTimeout(() => {
+                toast.warning(conflict.message || "Xung đột không xác định", { autoClose: 4000 });
+              }, 300 * (index + 1));
+            });
+            
+            if (responseData.conflicts.length > 2) {
+              setTimeout(() => {
+                toast.info(`Còn ${responseData.conflicts.length - 2} xung đột khác. Vui lòng xem chi tiết trong form.`, 
+                  { autoClose: 4000 });
+              }, 900);
+            }
+          }
         } else if (responseData.message && responseData.message.includes('đã có lịch làm việc cho ngày này')) {
           // Xử lý lỗi trùng ngày
           toast.error('Bác sĩ đã có lịch làm việc cho ngày này. Vui lòng chọn ngày khác hoặc chỉnh sửa lịch hiện có.', { autoClose: 5000 });
@@ -626,24 +709,136 @@ const DoctorSchedules = () => {
 
   // Update the ConflictAlert component with Tailwind CSS
   const ConflictAlert = ({ conflicts }) => {
+    // Phân loại xung đột để hiển thị rõ ràng hơn
+    const doctorConflicts = conflicts.filter(c => c.type === 'doctor_conflict');
+    const roomConflicts = conflicts.filter(c => c.type === 'room_conflict');
+    const otherConflicts = conflicts.filter(c => !c.type || (c.type !== 'doctor_conflict' && c.type !== 'room_conflict'));
+    
     return (
       <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-md">
         <div className="flex items-start">
           <FaExclamationTriangle className="h-5 w-5 text-yellow-600 mr-3 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-medium text-yellow-800 mb-1">Cảnh báo xung đột lịch làm việc</h3>
-            <p className="text-sm text-yellow-700 mb-2">Có {conflicts.length} xung đột lịch làm việc:</p>
-            <ul className="list-disc pl-5 text-sm text-yellow-700">
-              {conflicts.map((conflict, index) => (
-                <li key={index} className="mb-1">
-                  {conflict.message || 'Xung đột không xác định'}
-                </li>
-              ))}
-            </ul>
+          <div className="w-full">
+            <h3 className="text-sm font-medium text-yellow-800 mb-2">Cảnh báo xung đột lịch làm việc</h3>
+            <p className="text-sm text-yellow-700 mb-3">Phát hiện {conflicts.length} xung đột lịch làm việc:</p>
+            
+            {doctorConflicts.length > 0 && (
+              <div className="mb-3">
+                <h4 className="text-sm font-medium text-yellow-800 flex items-center mb-1">
+                  <FaUserMd className="mr-1.5" /> {doctorConflicts.length} xung đột về lịch bác sĩ
+                </h4>
+                <ul className="list-disc pl-5 text-sm text-yellow-700 space-y-1">
+                  {doctorConflicts.map((conflict, index) => (
+                    <li key={`doctor-${index}`} className="mb-1">
+                      {conflict.message || 'Xung đột không xác định'}
+                      {conflict.details && (
+                        <span className="block text-xs text-yellow-600 mt-0.5 ml-1">
+                          {conflict.details}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {roomConflicts.length > 0 && (
+              <div className="mb-3">
+                <h4 className="text-sm font-medium text-yellow-800 flex items-center mb-1">
+                  <FaDoorOpen className="mr-1.5" /> {roomConflicts.length} xung đột về phòng khám
+                </h4>
+                <ul className="list-disc pl-5 text-sm text-yellow-700 space-y-1">
+                  {roomConflicts.map((conflict, index) => (
+                    <li key={`room-${index}`} className="mb-1">
+                      {conflict.message || 'Xung đột không xác định'}
+                      {conflict.details && (
+                        <span className="block text-xs text-yellow-600 mt-0.5 ml-1">
+                          {conflict.details}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {otherConflicts.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-yellow-800 flex items-center mb-1">
+                  <FaExclamationCircle className="mr-1.5" /> {otherConflicts.length} xung đột khác
+                </h4>
+                <ul className="list-disc pl-5 text-sm text-yellow-700 space-y-1">
+                  {otherConflicts.map((conflict, index) => (
+                    <li key={`other-${index}`} className="mb-1">
+                      {conflict.message || 'Xung đột không xác định'}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <div className="mt-3 pt-2 border-t border-yellow-200">
+              <p className="text-xs text-yellow-600 italic">
+                <FaInfoCircle className="inline mr-1" /> 
+                Vui lòng điều chỉnh thời gian hoặc phòng khám để tránh xung đột trước khi lưu.
+              </p>
+            </div>
           </div>
         </div>
       </div>
     );
+  };
+
+  // Format time slots in a concise way
+  const formatTimeSlots = (timeSlots) => {
+    if (!timeSlots || !Array.isArray(timeSlots) || timeSlots.length === 0) {
+      return <div className="text-sm text-gray-500">Không có khung giờ</div>;
+    }
+    
+    // Sort time slots by start time
+    const sortedSlots = [...timeSlots].sort((a, b) => {
+      return a.startTime.localeCompare(b.startTime);
+    });
+    
+    // Group consecutive time slots
+    const groups = [];
+    let currentGroup = [sortedSlots[0]];
+    
+    for (let i = 1; i < sortedSlots.length; i++) {
+      const currentSlot = sortedSlots[i];
+      const previousSlot = sortedSlots[i-1];
+      
+      // If this slot starts at the same time the previous one ends, they're consecutive
+      if (currentSlot.startTime === previousSlot.endTime) {
+        currentGroup.push(currentSlot);
+      } else {
+        groups.push([...currentGroup]);
+        currentGroup = [currentSlot];
+      }
+    }
+    groups.push(currentGroup);
+    
+    // Render each group
+    return groups.map((group, groupIndex) => {
+      const firstSlot = group[0];
+      const lastSlot = group[group.length - 1];
+      
+      return (
+        <div key={groupIndex} className="text-sm">
+          <span className="font-medium">{firstSlot.startTime} - {lastSlot.endTime}</span>
+          {group.some(slot => slot.isBooked) && (
+            <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-red-100 text-red-800">
+              Đã đặt
+            </span>
+          )}
+          {firstSlot.roomInfo && (
+            <div className="text-xs text-gray-500">
+              Phòng {firstSlot.roomInfo.number || 'N/A'}
+            </div>
+          )}
+        </div>
+      );
+    });
   };
 
   // Update the modal rendering function
@@ -776,87 +971,113 @@ const DoctorSchedules = () => {
                   </div>
                   
                   <div className="bg-green-50 p-4 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col space-y-2 mb-4">
                       <h3 className="text-md font-medium text-green-800">Khung giờ làm việc</h3>
-                      <button
-                        type="button"
-                        onClick={addTimeSlot}
-                        className="px-2 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      >
-                        + Thêm khung giờ
-                      </button>
+                      
+                      {/* Thêm các khung giờ có sẵn */}
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {commonTimeSlotGroups.map((group, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => addPredefinedTimeSlots(group.slots)}
+                            className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                          >
+                            <FaCalendarCheck className="inline-block mr-1 mb-1" />
+                            {group.name} ({group.slots.length} khung giờ)
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={addTimeSlot}
+                          className="px-3 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                          <FaPlus className="inline-block mr-1 mb-1" /> Thêm khung giờ đơn lẻ
+                        </button>
+                      </div>
                     </div>
                     
                     {formErrors.timeSlots && <p className="text-sm text-red-600 mb-2">{formErrors.timeSlots}</p>}
                     
-                    {formData.timeSlots.map((slot, index) => (
-                      <div key={index} className="mb-3 p-3 bg-white rounded-lg border border-green-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium text-sm text-green-800">Khung giờ #{index+1}</span>
-                          {formData.timeSlots.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeTimeSlot(index)}
-                              className="p-1 text-red-500 hover:text-red-700 focus:outline-none"
-                              title="Xóa khung giờ này"
-                            >
-                              <FaTimes className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
+                    <div className="mt-4">
+                      <div className="bg-white p-3 rounded-lg border border-green-200 mb-3">
+                        <h4 className="font-medium text-green-800 mb-2">Danh sách khung giờ ({formData.timeSlots.length})</h4>
                         
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label htmlFor={`startTime-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
-                              Giờ bắt đầu <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                              id={`startTime-${index}`}
-                              value={slot.startTime}
-                              onChange={(e) => handleTimeSlotChange(index, 'startTime', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              required
-                            >
-                              <option value="">-- Chọn giờ --</option>
-                              {timeSlotOptions.map((time) => (
-                                <option key={`start-${time}`} value={time}>
-                                  {time}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          
-                          <div>
-                            <label htmlFor={`endTime-${index}`} className="block text-sm font-medium text-gray-700 mb-1">
-                              Giờ kết thúc <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                              id={`endTime-${index}`}
-                              value={slot.endTime}
-                              onChange={(e) => handleTimeSlotChange(index, 'endTime', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              required
-                            >
-                              <option value="">-- Chọn giờ --</option>
-                              {timeSlotOptions.map((time) => (
-                                <option 
-                                  key={`end-${time}`} 
-                                  value={time}
-                                  disabled={slot.startTime && time <= slot.startTime}
+                        {formData.timeSlots.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {formData.timeSlots.map((slot, index) => (
+                              <div key={index} className="p-3 bg-gray-50 rounded-lg border border-green-100 relative">
+                                <button
+                                  type="button"
+                                  onClick={() => removeTimeSlot(index)}
+                                  className="absolute top-1 right-1 p-1 text-red-500 hover:text-red-700 focus:outline-none"
+                                  title="Xóa khung giờ này"
                                 >
-                                  {time}
-                                </option>
-                              ))}
-                            </select>
+                                  <FaTimes className="h-4 w-4" />
+                                </button>
+                                
+                                <div className="text-xs font-medium text-gray-500 mb-1">Khung giờ #{index+1}</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label htmlFor={`startTime-${index}`} className="block text-xs font-medium text-gray-700 mb-1">
+                                      Bắt đầu <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                      id={`startTime-${index}`}
+                                      value={slot.startTime}
+                                      onChange={(e) => handleTimeSlotChange(index, 'startTime', e.target.value)}
+                                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      required
+                                    >
+                                      <option value="">--:--</option>
+                                      {timeSlotOptions.map((time) => (
+                                        <option key={`start-${time}-${index}`} value={time}>
+                                          {time}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  
+                                  <div>
+                                    <label htmlFor={`endTime-${index}`} className="block text-xs font-medium text-gray-700 mb-1">
+                                      Kết thúc <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                      id={`endTime-${index}`}
+                                      value={slot.endTime}
+                                      onChange={(e) => handleTimeSlotChange(index, 'endTime', e.target.value)}
+                                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      required
+                                    >
+                                      <option value="">--:--</option>
+                                      {timeSlotOptions.map((time) => (
+                                        <option 
+                                          key={`end-${time}-${index}`} 
+                                          value={time}
+                                          disabled={slot.startTime && time <= slot.startTime}
+                                        >
+                                          {time}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 italic">Chưa có khung giờ nào được thêm</p>
+                        )}
                       </div>
-                    ))}
+                    </div>
                     
                     <div className="text-xs text-gray-500 mt-2">
                       <span className="flex items-center">
                         <FaInfoCircle className="h-3 w-3 mr-1" />
-                        Thêm nhiều khung giờ để tạo lịch làm việc không liên tục cho bác sĩ. Có thể xóa khung giờ không cần thiết.
+                        Chọn khung giờ có sẵn hoặc thêm từng khung giờ riêng lẻ nếu cần thiết.
                       </span>
                     </div>
                   </div>
@@ -941,8 +1162,9 @@ const DoctorSchedules = () => {
                 <button 
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={handleSaveSchedule}
+                  disabled={isSubmitting}
                 >
-                  Thêm lịch
+                  {isSubmitting ? 'Đang lưu...' : 'Thêm lịch'}
                 </button>
               )}
               
@@ -950,8 +1172,9 @@ const DoctorSchedules = () => {
                 <button 
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={handleSaveSchedule}
+                  disabled={isSubmitting}
                 >
-                  Cập nhật
+                  {isSubmitting ? 'Đang lưu...' : 'Cập nhật'}
                 </button>
               )}
               
@@ -968,58 +1191,6 @@ const DoctorSchedules = () => {
         </div>
       </div>
     );
-  };
-
-  // Format time slots in a concise way
-  const formatTimeSlots = (timeSlots) => {
-    if (!timeSlots || !Array.isArray(timeSlots) || timeSlots.length === 0) {
-      return <div className="text-sm text-gray-500">Không có khung giờ</div>;
-    }
-    
-    // Sort time slots by start time
-    const sortedSlots = [...timeSlots].sort((a, b) => {
-      return a.startTime.localeCompare(b.startTime);
-    });
-    
-    // Group consecutive time slots
-    const groups = [];
-    let currentGroup = [sortedSlots[0]];
-    
-    for (let i = 1; i < sortedSlots.length; i++) {
-      const currentSlot = sortedSlots[i];
-      const previousSlot = sortedSlots[i-1];
-      
-      // If this slot starts at the same time the previous one ends, they're consecutive
-      if (currentSlot.startTime === previousSlot.endTime) {
-        currentGroup.push(currentSlot);
-      } else {
-        groups.push([...currentGroup]);
-        currentGroup = [currentSlot];
-      }
-    }
-    groups.push(currentGroup);
-    
-    // Render each group
-    return groups.map((group, groupIndex) => {
-      const firstSlot = group[0];
-      const lastSlot = group[group.length - 1];
-      
-      return (
-        <div key={groupIndex} className="text-sm">
-          <span className="font-medium">{firstSlot.startTime} - {lastSlot.endTime}</span>
-          {group.some(slot => slot.isBooked) && (
-            <span className="ml-2 px-1.5 py-0.5 text-xs rounded bg-red-100 text-red-800">
-              Đã đặt
-            </span>
-          )}
-          {firstSlot.roomInfo && (
-            <div className="text-xs text-gray-500">
-              Phòng {firstSlot.roomInfo.number || 'N/A'}
-            </div>
-          )}
-        </div>
-      );
-    });
   };
 
   return (
@@ -1059,7 +1230,7 @@ const DoctorSchedules = () => {
           <div className="w-full lg:w-2/3 grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaFilter className="text-gray-400" />
+                <FaUserMd className="text-gray-400" />
               </div>
               <select
                 name="doctorId"
@@ -1068,17 +1239,21 @@ const DoctorSchedules = () => {
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none"
               >
                 <option value="all">Tất cả bác sĩ</option>
-                {doctors.map(doctor => (
-                  <option key={doctor._id} value={doctor._id}>
-                    {doctor.fullName}
-                  </option>
-                ))}
+                {doctors && doctors.length > 0 ? (
+                  doctors.map(doctor => (
+                    <option key={doctor._id} value={doctor._id}>
+                      {doctor.fullName || (doctor.user && doctor.user.fullName) || `BS.${doctor._id}`}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>Đang tải danh sách bác sĩ...</option>
+                )}
               </select>
             </div>
 
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaFilter className="text-gray-400" />
+                <FaHospital className="text-gray-400" />
               </div>
               <select
                 name="hospitalId"
@@ -1110,6 +1285,36 @@ const DoctorSchedules = () => {
                 <option value="false">Đã hủy</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Date filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mt-4">
+          <div className="w-full sm:w-1/2 relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <FaCalendarDay className="text-gray-400" />
+            </div>
+            <input
+              type="date"
+              name="startDate"
+              placeholder="Từ ngày"
+              value={filter.startDate}
+              onChange={handleFilterChange}
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="w-full sm:w-1/2 relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <FaCalendarDay className="text-gray-400" />
+            </div>
+            <input
+              type="date"
+              name="endDate"
+              placeholder="Đến ngày"
+              value={filter.endDate}
+              onChange={handleFilterChange}
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
         </div>
 

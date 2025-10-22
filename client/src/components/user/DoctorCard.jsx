@@ -68,23 +68,25 @@ const DoctorCard = ({ doctor }) => {
       );
     }
 
-  return (
+    return (
+      <div className="w-full h-48 bg-white flex items-center justify-center">
         <img 
-        src={avatarUrl} 
+          src={avatarUrl} 
           alt={safeGet(doctor, 'user.fullName', 'Doctor')} 
-        className="w-full h-48 object-cover object-center transition-transform group-hover:scale-105" 
+          className="h-full object-contain" 
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = '/avatars/default-avatar.png';
           }}
         />
+      </div>
     );
   };
             
             return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 h-full flex flex-col border border-gray-100 hover:-translate-y-1 group">
-      <Link to={`/doctors/${doctor._id}`} className="relative block overflow-hidden">
-        <div className="overflow-hidden relative">
+    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 h-full flex flex-col border border-gray-100 hover:-translate-y-1 group">
+      <Link to={`/doctors/${doctor._id}`} className="relative block">
+        <div className="relative">
           {renderImage()}
           {safeGet(doctor, 'specialtyId.name') && (
             <div className="absolute top-2 right-2 bg-white/90 text-primary text-xs font-medium py-1 px-2 rounded-full shadow-sm">

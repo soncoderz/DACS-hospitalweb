@@ -85,7 +85,7 @@ const Auth = () => {
               </ul>
               <div className="mt-6 bg-blue-600/10 rounded-lg p-4 border border-blue-200">
                 <div className="font-medium text-blue-800">Cần hỗ trợ?</div>
-                <div className="text-gray-700 mt-1">Liên hệ hotline: <span className="text-blue-700 font-medium">1900 1234</span></div>
+                <div className="text-gray-700 mt-1">Liên hệ hotline: <span className="text-blue-700 font-medium">000000000000</span></div>
               </div>
             </div>
           </div>

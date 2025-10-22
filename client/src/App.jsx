@@ -18,13 +18,16 @@ import Profile from './pages/user/Profile.jsx';
 import Appointments from './pages/user/Appointments.jsx';
 import Appointment from './pages/user/Appointment.jsx';
 import AppointmentDetail from './pages/user/AppointmentDetail.jsx';
+import PaymentHistory from './pages/PaymentHistory.jsx';
+import MedicalHistory from './pages/MedicalHistory.jsx';
+import MedicalRecordDetail from './pages/MedicalRecordDetail.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-import { NotificationProvider } from './context/NotificationContext.jsx';
 import ForgotPassword from './pages/user/ForgotPassword';
 import OtpVerification from './pages/user/OtpVerification';
 import ResetPassword from './pages/user/ResetPassword';
 import VerifyEmail from './pages/user/VerifyEmail';
 import NeedVerification from './pages/user/NeedVerification';
+import PaymentResult from './pages/user/PaymentResult.jsx';
 
 // Routes protectors
 import UserRoute from './components/UserRoute';
@@ -64,11 +67,26 @@ import Hospitals from './pages/admin/Hospitals';
 import AdminDoctors from './pages/admin/Doctors';
 // Thêm các trang admin mới
 import AdminAppointments from './pages/admin/Appointments';
+import AdminAppointmentDetail from './pages/admin/AppointmentDetail';
 import AdminCoupons from './pages/admin/Coupons';
 import AdminPayments from './pages/admin/Payments';
 import AdminReviews from './pages/admin/Reviews';
 import AdminDoctorSchedules from './pages/admin/DoctorSchedules';
+import AdminMedications from './pages/admin/Medications';
+import AdminNews from './pages/admin/News';
+import VideoRoomManagement from './pages/admin/VideoRoomManagement';
+import AdminVideoCallHistory from './pages/admin/VideoCallHistory';
 
+import Facilities from './pages/user/Facilities';
+import FacilitySurgery from './pages/user/FacilitySurgery';
+import News from './pages/user/News';
+import NewsDetail from './pages/user/NewsDetail';
+import DoctorReviewsPage from './pages/reviews/DoctorReviews.jsx';
+import HospitalReviews from './pages/reviews/HospitalReviews.jsx';
+
+// Video call history pages
+import DoctorVideoCallHistory from './pages/doctor/VideoCallHistory';
+import UserVideoCallHistory from './pages/user/VideoCallHistory';
 
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
@@ -93,10 +111,15 @@ function AppContent() {
           <Route path="rooms" element={<AdminRooms />} />
           {/* Thêm routes cho các trang admin mới */}
           <Route path="appointments" element={<AdminAppointments />} />
+          <Route path="appointments/:id" element={<AdminAppointmentDetail />} />
           <Route path="coupons" element={<AdminCoupons />} />
           <Route path="payments" element={<AdminPayments />} />
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="doctor-schedules" element={<AdminDoctorSchedules />} />
+          <Route path="medications" element={<AdminMedications />} />
+          <Route path="news" element={<AdminNews />} />
+          <Route path="video-rooms" element={<VideoRoomManagement />} />
+          <Route path="video-call-history" element={<AdminVideoCallHistory />} />
         </Route>
 
         {/* Doctor Routes - No Navbar/Footer */}
@@ -110,6 +133,7 @@ function AppContent() {
           <Route path="schedule" element={<DoctorSchedule />} />
           <Route path="profile" element={<DoctorProfile />} />
           <Route path="reviews" element={<DoctorReviews />} />
+          <Route path="video-call-history" element={<DoctorVideoCallHistory />} />
         </Route>
 
         {/* Public and User Routes - With Navbar/Footer */}
@@ -131,18 +155,20 @@ function AppContent() {
                 <Route path="/facebook-callback" element={<SocialCallback />} />
                 <Route path="/doctors" element={<Doctors />} />
                 <Route path="/doctors/:doctorId" element={<DoctorDetail />} />
+                <Route path="/reviews/doctor/:doctorId" element={<DoctorReviewsPage />} />
                 <Route path="/branches" element={<Branches />} />
                 <Route path="/branches/:id" element={<BranchDetail />} />
+                <Route path="/reviews/hospital/:id" element={<HospitalReviews />} />
                 <Route path="/specialties" element={<Specialties />} />
                 <Route path="/specialties/:specialtyId" element={<SpecialtyDetail />} />
                 <Route path="/services" element={<Services />} />
                 <Route path="/services/:serviceId" element={<ServiceDetail />} />
-                <Route path="/appointment" element={<Appointment />} />
                 <Route path="/contact" element={<Contact />} />
                 
-                {/* PayPal Payment Status Routes */}
+                {/* Payment Status Routes */}
                 <Route path="/payment/paypal/success" element={<PaymentStatus />} />
                 <Route path="/payment/paypal/cancel" element={<PaymentStatus />} />
+                <Route path="/payment/result" element={<PaymentResult />} />
                 
                 {/* Redirect old routes to new auth page */}
                 <Route path="/login" element={
@@ -156,14 +182,29 @@ function AppContent() {
                 <Route element={<UserRoute />}>
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/appointments" element={<Appointments />} />
+                  <Route path="/appointment" element={<Appointment />} />
                   <Route path="/appointments/:id" element={<AppointmentDetail />} />
                   <Route path="/appointments/:id/reschedule" element={<RescheduleAppointment />} />
                   <Route path="/appointments/:id/review" element={<ReviewChoice />} />
                   <Route path="/appointments/:id/review/:type" element={<ReviewForm />} />
+                  <Route path="/payment-history" element={<PaymentHistory />} />
+                  <Route path="/medical-history" element={<MedicalHistory />} />
+                  <Route path="/medical-record/:id" element={<MedicalRecordDetail />} />
+                  <Route path="/video-call-history" element={<UserVideoCallHistory />} />
                 </Route>
                 
                 {/* New routes */}
                 <Route path="/set-social-password" element={<SetSocialPassword />} />
+                
+                {/* New facilities routes */}
+                <Route path="/facilities" element={<Facilities />} />
+                <Route path="/facilities/surgery" element={<FacilitySurgery />} />
+                
+                {/* News routes */}
+                <Route path="/news" element={<News />} />
+                <Route path="/news/:slug" element={<NewsDetail />} />
+                <Route path="/tin-tuc" element={<Navigate to="/news" />} /> 
+                <Route path="/tin-tuc/:slug" element={<NewsDetail />} />
                 
                 {/* Catch All */}
                 <Route path="*" element={<NotFound />} />
@@ -181,27 +222,25 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <NotificationProvider>
-          <AppContent />
-          <ToastContainer
-            position="top-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick={false}
-            rtl={false}
-            pauseOnFocusLoss
-            draggable={false}
-            pauseOnHover
-            theme="light"
-            limit={3}
-            style={{
-              fontSize: '16px',
-              zIndex: 9999,
-              marginTop: '4.5rem'
-            }}
-          />
-        </NotificationProvider>
+        <AppContent />
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick={false}
+          rtl={false}
+          pauseOnFocusLoss
+          draggable={false}
+          pauseOnHover
+          theme="light"
+          limit={3}
+          style={{
+            fontSize: '16px',
+            zIndex: 9999,
+            marginTop: '4.5rem'
+          }}
+        />
       </Router>
     </AuthProvider>
   );

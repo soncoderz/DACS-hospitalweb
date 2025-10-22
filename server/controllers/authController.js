@@ -25,7 +25,7 @@ const generateToken = async (userId) => {
       id: userId, 
       role: user.roleType, // Sử dụng roleType từ database thay vì 'user'
     }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
+      expiresIn: '1d' // Changed from 30d to 15m - 15 minutes
     });
     
     // Test decode token để xác nhận thông tin
@@ -37,7 +37,7 @@ const generateToken = async (userId) => {
     console.error('Error generating token:', error);
     // Return a basic token in case of error
     return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
+      expiresIn: '1d' // Changed from 30d to 15m - 15 minutes
     });
   }
 };
@@ -181,7 +181,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({
         success: false,
         field: 'email',
-        message: 'Tài khoản không tồn tại'
+        message: 'Tài khoản hoặc mật khẩu không chính xác  '
       });
     }
     
@@ -225,7 +225,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({
         success: false,
         field: 'password',
-        message: 'Mật khẩu không chính xác'
+        message: 'Tài khoản hoặc mật khẩu không chính xác'
       });
     }
     
@@ -239,7 +239,7 @@ exports.login = async (req, res) => {
         id: user._id, 
         role: 'doctor' 
       }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
+        expiresIn: '1d'
       });
       userRole = 'doctor';
       
@@ -254,7 +254,7 @@ exports.login = async (req, res) => {
         id: user._id, 
         role: userRole 
       }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
+        expiresIn: '1d'
       });
       
       console.log('Generating token for user:', {
@@ -307,90 +307,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// Upload avatar
-exports.uploadAvatar = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Vui lòng tải lên một tệp ảnh' 
-      });
-    }
-    
-    // Log the file information for debugging
-    console.log('Avatar upload request received:', {
-      filename: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: `${(req.file.size / 1024).toFixed(2)} KB`
-    });
-    
-    // Sử dụng Cloudinary để tải ảnh lên
-    const { uploadImage, deleteImage } = require('../config/cloudinary');
-    
-    // Lấy user hiện tại để kiểm tra và xóa ảnh cũ nếu cần
-    const user = await User.findById(req.user.id);
-    
-    // Xóa ảnh cũ trên Cloudinary nếu có
-    if (user.avatar && user.avatar.publicId) {
-      await deleteImage(user.avatar.publicId);
-    }
-    
-    // Tạo buffer từ dữ liệu file trong memory
-    const buffer = req.file.buffer;
-    
-    // Tạo base64 string từ buffer để tải lên Cloudinary
-    const base64String = `data:${req.file.mimetype};base64,${buffer.toString('base64')}`;
-    
-    // Tải ảnh mới lên Cloudinary sử dụng base64
-    const cloudinaryResult = await uploadImage(base64String, `avatars/${req.user.id}`);
-    
-    // Cập nhật thông tin avatar trong DB
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id,
-      { 
-        avatar: cloudinaryResult,
-        avatarUrl: cloudinaryResult.secureUrl, // Giữ lại cả avatarUrl để tương thích với code cũ
-        avatarData: null  // Xóa dữ liệu base64 cũ nếu có
-      },
-      { new: true }
-    ).select('-passwordHash');
-    
-    if (!updatedUser) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Không tìm thấy người dùng' 
-      });
-    }
-    
-    console.log('Avatar updated successfully for user:', updatedUser.email);
-    
-    // Trả về toàn bộ thông tin user đã cập nhật
-    res.status(200).json({
-      success: true,
-      data: {
-        _id: updatedUser._id,
-        fullName: updatedUser.fullName,
-        email: updatedUser.email,
-        phoneNumber: updatedUser.phoneNumber,
-        dateOfBirth: updatedUser.dateOfBirth,
-        gender: updatedUser.gender,
-        address: updatedUser.address,
-        avatarUrl: updatedUser.avatarUrl,
-        avatar: updatedUser.avatar,
-        roleType: updatedUser.roleType
-      },
-      message: 'Tải lên ảnh đại diện thành công'
-    });
-    
-  } catch (error) {
-    console.error('Avatar upload error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Lỗi khi tải lên ảnh đại diện', 
-      error: error.message 
-    });
-  }
-};
+
 
 // Forgot password - send OTP
 exports.forgotPassword = async (req, res) => {

@@ -792,7 +792,7 @@ const createAppointments = async (users, doctors, doctorSchedules, services, cou
         discount: discount,
         totalAmount: finalAmount
       },
-      paymentStatus: 'paid',
+      paymentStatus: 'completed',
       createdAt: new Date(appointmentDate.getTime() - 7 * 24 * 60 * 60 * 1000)
     });
     
@@ -900,7 +900,7 @@ const createAppointments = async (users, doctors, doctorSchedules, services, cou
         discount: discount,
         totalAmount: finalAmount
       },
-      paymentStatus: Math.random() > 0.3 ? 'paid' : 'pending',
+      paymentStatus: 'completed',
       createdAt: new Date(today.getTime() - Math.floor(Math.random() * 3) * 24 * 60 * 60 * 1000)
     });
     
@@ -924,7 +924,7 @@ const createAppointments = async (users, doctors, doctorSchedules, services, cou
       
       // Cập nhật thông tin thanh toán vào cuộc hẹn
       futureAppointment.paymentId = payment._id;
-      futureAppointment.paymentStatus = 'paid';
+      futureAppointment.paymentStatus = 'completed';
       await futureAppointment.save();
       
       // Tăng số lượng sử dụng coupon nếu có

@@ -136,8 +136,8 @@ const Contact = () => {
                   </div>
                   <div className="ml-4">
                     <h3 className="text-lg font-semibold text-gray-800">Điện Thoại</h3>
-                    <p className="text-gray-600 mt-1">(+84) 28 1234 5678</p>
-                    <p className="text-gray-600">Hotline: 1900 1234</p>
+                    <p className="text-gray-600 mt-1">(+84) 0000000000000</p>
+                    <p className="text-gray-600">Hotline: 00000000000000</p>
                   </div>
                 </div>
                 
@@ -333,7 +333,7 @@ const Contact = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Bản Đồ</h2>
             <div className="rounded-lg overflow-hidden h-96">
               <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.9551992264437!2d106.69916857465961!3d10.738023889430306!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f7dd324f527%3A0x93431a08f3c16b!2sPhu%20My%20Hung%2C%20District%207%2C%20Ho%20Chi%20Minh%20City%2C%20Vietnam!5e0!3m2!1sen!2s!4v1687759882876!5m2!1sen!2s" 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.455157071623!2d106.78275287465848!3d10.855038789303593!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x317527c3debb5aad%3A0x5fb58956eb4194d0!2zxJDhuqFpIEjhu41jIEh1dGVjaCBLaHUgRQ!5e0!3m2!1svi!2s!4v1716450086825!5m2!1svi!2s" 
                 width="100%" 
                 height="100%" 
                 style={{ border: 0 }} 

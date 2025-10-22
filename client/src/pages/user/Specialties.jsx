@@ -1,8 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
-import { FaStethoscope, FaUserMd, FaCalendarAlt, FaInfoCircle, FaArrowRight, FaSearch, FaFilter, FaChevronDown, FaTimes, FaSortAmountDown } from 'react-icons/fa';
+import { FaStethoscope, FaUserMd, FaCalendarAlt, FaInfoCircle, FaArrowRight, FaSearch, FaFilter, FaChevronDown, FaTimes, FaSortAmountDown, FaHeartbeat, FaLungs, FaBrain, FaAmbulance, FaBaby, FaTooth, FaEye, FaFileMedicalAlt, FaNotesMedical, FaXRay, FaBone, FaAllergies, FaWheelchair, FaPills, FaProcedures, FaHandHoldingMedical, FaVial, FaHospital, FaDna, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
+import { GiMedicines, GiDna1, GiMedicalPack, GiHealthNormal, GiHumanEar, GiHeartOrgan, GiChemicalDrop } from 'react-icons/gi';
+import { MdLocalHospital, MdMedicalServices, MdBloodtype, MdOutlineVaccines } from 'react-icons/md';
+import { IoNutritionOutline } from 'react-icons/io5';
 import { SpecialtyCard } from '../../components/user';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+
+// Hàm giúp lấy đúng icon component dựa trên tên icon
+export const getIconComponent = (iconName) => {
+  const iconMap = {
+    'stethoscope': FaStethoscope,
+    'heartbeat': FaHeartbeat,
+    'lungs': FaLungs,
+    'brain': FaBrain,
+    'ambulance': FaAmbulance,
+    'baby': FaBaby,
+    'tooth': FaTooth,
+    'eye': FaEye,
+    'file-medical-alt': FaFileMedicalAlt,
+    'notes-medical': FaNotesMedical,
+    'x-ray': FaXRay,
+    'bone': FaBone,
+    'allergies': FaAllergies,
+    'wheelchair': FaWheelchair,
+    'pills': FaPills,
+    'procedures': FaProcedures,
+    'hand-holding-medical': FaHandHoldingMedical,
+    'vial': FaVial,
+    'user-md': FaUserMd,
+    'hospital': FaHospital,
+    'dna': FaDna,
+    'gi-medicines': GiMedicines,
+    'gi-dna': GiDna1,
+    'gi-medical-pack': GiMedicalPack,
+    'gi-health': GiHealthNormal,
+    'gi-ear': GiHumanEar,
+    'gi-heart': GiHeartOrgan,
+    'gi-chemical': GiChemicalDrop,
+    'md-hospital': MdLocalHospital,
+    'md-medical': MdMedicalServices,
+    'md-blood': MdBloodtype,
+    'md-vaccines': MdOutlineVaccines,
+    'io-nutrition': IoNutritionOutline
+  };
+  
+  // Return the component if it exists in the map, otherwise return a default
+  return iconMap[iconName?.toLowerCase()] || FaStethoscope;
+};
 
 const Specialties = () => {
   // State for data
@@ -19,7 +66,21 @@ const Specialties = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState(0);
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const [totalPages, setTotalPages] = useState(1);
+  
   const navigate = useNavigate();
+
+  // Initialize AOS animation library
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: 'ease-out-cubic'
+    });
+  }, []);
 
   useEffect(() => {
     const fetchSpecialties = async () => {
@@ -168,6 +229,28 @@ const Specialties = () => {
     setActiveFilters(count);
   }, [selectedDoctorCount, selectedServiceCount, selectedSort]);
 
+  // Pagination logic
+  useEffect(() => {
+    // Calculate total pages based on filtered specialties
+    const total = Math.ceil(filteredSpecialties.length / itemsPerPage);
+    setTotalPages(total);
+    
+    // Reset to page 1 when filters change
+    if (currentPage > total) {
+      setCurrentPage(1);
+    }
+  }, [filteredSpecialties, itemsPerPage, currentPage]);
+
+  // Get current specialties
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSpecialties = filteredSpecialties.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const nextPage = () => setCurrentPage(prevPage => prevPage < totalPages ? prevPage + 1 : prevPage);
+  const prevPage = () => setCurrentPage(prevPage => prevPage > 1 ? prevPage - 1 : prevPage);
+
   // Handler functions
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -229,11 +312,11 @@ const Specialties = () => {
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">Chuyên Khoa</h1>
-            <p className="text-xl opacity-90 mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white" data-aos="fade-up">Chuyên Khoa</h1>
+            <p className="text-xl opacity-90 mb-8" data-aos="fade-up" data-aos-delay="100">
               Khám phá các chuyên khoa y tế của chúng tôi và tìm hiểu thêm về các dịch vụ chăm sóc sức khỏe
             </p>
-            <div className="relative max-w-xl mx-auto">
+            <div className="relative max-w-xl mx-auto" data-aos="fade-up" data-aos-delay="200">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaSearch className="h-5 w-5 text-gray-400" />
               </div>
@@ -263,7 +346,7 @@ const Specialties = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="mb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <FaUserMd />
               </div>
@@ -273,7 +356,7 @@ const Specialties = () => {
               </p>
             </div>
             
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up" data-aos-delay="100">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <FaStethoscope />
               </div>
@@ -283,7 +366,7 @@ const Specialties = () => {
               </p>
             </div>
             
-            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-blue-50 p-8 rounded-xl text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-aos="fade-up" data-aos-delay="200">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-md">
                 <FaCalendarAlt />
               </div>
@@ -295,157 +378,8 @@ const Specialties = () => {
           </div>
         </div>
 
-        {/* Mobile Filter Toggle */}
-        <div className="md:hidden mb-4">
-          <button 
-            onClick={toggleFilters}
-            className="w-full py-3 px-4 bg-white rounded-lg shadow-sm border border-gray-200 flex justify-between items-center"
-          >
-            <div className="flex items-center">
-              <FaFilter className="text-primary mr-2" />
-              <span className="font-medium">Lọc chuyên khoa</span>
-              {activeFilters > 0 && (
-                <span className="ml-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {activeFilters}
-                </span>
-              )}
-            </div>
-            <FaChevronDown className={`text-gray-500 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
-
-        {/* Filters Section */}
-        <div className={`${showFilters ? 'block' : 'hidden'} md:block mb-10`}>
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                <FaFilter className="text-primary mr-2" /> Lọc kết quả
-                {activeFilters > 0 && (
-                  <span className="ml-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {activeFilters}
-                  </span>
-                )}
-              </h2>
-              {activeFilters > 0 && (
-                <button 
-                  className="text-sm text-primary hover:text-primary-dark flex items-center"
-                  onClick={clearFilters}
-                >
-                  <FaTimes className="mr-1" />
-                  Xóa bộ lọc
-                </button>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Doctor Count Filter */}
-              <div>
-                <label htmlFor="doctorCount" className="block text-sm font-medium text-gray-700 mb-2">
-                  Số lượng bác sĩ
-                </label>
-                <select 
-                  id="doctorCount"
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary focus:border-primary"
-                  value={selectedDoctorCount}
-                  onChange={handleDoctorCountChange}
-                >
-                  <option value="">Tất cả</option>
-                  <option value="high">Nhiều bác sĩ (10+)</option>
-                  <option value="medium">Trung bình (5-9)</option>
-                  <option value="low">Ít bác sĩ (&lt; 5)</option>
-                </select>
-              </div>
-              
-              {/* Service Count Filter */}
-              <div>
-                <label htmlFor="serviceCount" className="block text-sm font-medium text-gray-700 mb-2">
-                  Số lượng dịch vụ
-                </label>
-                <select 
-                  id="serviceCount"
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary focus:border-primary"
-                  value={selectedServiceCount}
-                  onChange={handleServiceCountChange}
-                >
-                  <option value="">Tất cả</option>
-                  <option value="high">Nhiều dịch vụ (10+)</option>
-                  <option value="medium">Trung bình (5-9)</option>
-                  <option value="low">Ít dịch vụ (&lt; 5)</option>
-                </select>
-              </div>
-              
-              {/* Sort Filter */}
-              <div>
-                <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-2">
-                  Sắp xếp theo
-                </label>
-                <select 
-                  id="sort"
-                  className="w-full p-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary focus:border-primary"
-                  value={selectedSort}
-                  onChange={handleSortChange}
-                >
-                  <option value="">Mặc định</option>
-                  <option value="name-asc">Tên A-Z</option>
-                  <option value="name-desc">Tên Z-A</option>
-                  <option value="doctors-high">Nhiều bác sĩ nhất</option>
-                  <option value="services-high">Nhiều dịch vụ nhất</option>
-                </select>
-              </div>
-            </div>
-            
-            {/* Active Filters */}
-            {activeFilters > 0 && (
-              <div className="mt-6 flex flex-wrap gap-2">
-                {selectedDoctorCount && (
-                  <div className="inline-flex items-center bg-blue-50 text-blue-800 text-xs font-medium rounded-full px-3 py-1.5">
-                    {selectedDoctorCount === 'high' ? 'Nhiều bác sĩ (10+)' : 
-                     selectedDoctorCount === 'medium' ? 'Trung bình (5-9)' : 
-                     'Ít bác sĩ (< 5)'}
-                    <button 
-                      className="ml-1.5 text-blue-600 hover:text-blue-800"
-                      onClick={() => setSelectedDoctorCount('')}
-                    >
-                      <FaTimes />
-                    </button>
-                  </div>
-                )}
-                
-                {selectedServiceCount && (
-                  <div className="inline-flex items-center bg-green-50 text-green-800 text-xs font-medium rounded-full px-3 py-1.5">
-                    {selectedServiceCount === 'high' ? 'Nhiều dịch vụ (10+)' : 
-                     selectedServiceCount === 'medium' ? 'Trung bình (5-9)' : 
-                     'Ít dịch vụ (< 5)'}
-                    <button 
-                      className="ml-1.5 text-green-600 hover:text-green-800"
-                      onClick={() => setSelectedServiceCount('')}
-                    >
-                      <FaTimes />
-                    </button>
-                  </div>
-                )}
-                
-                {selectedSort && (
-                  <div className="inline-flex items-center bg-purple-50 text-purple-800 text-xs font-medium rounded-full px-3 py-1.5">
-                    {selectedSort === 'name-asc' ? 'Tên A-Z' : 
-                     selectedSort === 'name-desc' ? 'Tên Z-A' : 
-                     selectedSort === 'doctors-high' ? 'Nhiều bác sĩ nhất' : 
-                     'Nhiều dịch vụ nhất'}
-                    <button 
-                      className="ml-1.5 text-purple-600 hover:text-purple-800"
-                      onClick={() => setSelectedSort('')}
-                    >
-                      <FaTimes />
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="mb-10">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6" data-aos="fade-up">
             <h2 className="text-2xl font-bold text-gray-800 flex items-center">
               <FaStethoscope className="text-primary mr-2" />
               Danh Sách Chuyên Khoa
@@ -458,11 +392,74 @@ const Specialties = () => {
         </div>
 
         {filteredSpecialties.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {filteredSpecialties.map(specialty => (
-                <SpecialtyCard key={specialty._id} specialty={specialty} />
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+              {currentSpecialties.map((specialty, index) => (
+                <div key={specialty._id} data-aos="fade-up" data-aos-delay={index % 3 * 100}>
+                  <SpecialtyCard specialty={specialty} />
+                </div>
               ))}
             </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mb-16 items-center" data-aos="fade-up">
+                <button 
+                  onClick={prevPage} 
+                  disabled={currentPage === 1}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg mr-2 ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:bg-primary/10'}`}
+                >
+                  <FaAngleLeft />
+                </button>
+                
+                <div className="flex space-x-1">
+                  {[...Array(totalPages).keys()].map(number => {
+                    // Show current page, first, last, and pages around current
+                    if (
+                      number + 1 === 1 || 
+                      number + 1 === totalPages || 
+                      (number + 1 >= currentPage - 1 && number + 1 <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={number}
+                          onClick={() => paginate(number + 1)}
+                          className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+                            currentPage === number + 1
+                              ? 'bg-primary text-white'
+                              : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {number + 1}
+                        </button>
+                      );
+                    } else if (
+                      number + 1 === currentPage - 2 || 
+                      number + 1 === currentPage + 2
+                    ) {
+                      return (
+                        <span 
+                          key={number} 
+                          className="w-10 h-10 flex items-center justify-center text-gray-400"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+                
+                <button 
+                  onClick={nextPage} 
+                  disabled={currentPage === totalPages}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg ml-2 ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:bg-primary/10'}`}
+                >
+                  <FaAngleRight />
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center mb-16">
             <h3 className="text-2xl text-gray-700 mb-4">Không tìm thấy chuyên khoa</h3>
@@ -483,7 +480,7 @@ const Specialties = () => {
         )}
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden" data-aos="fade-up" data-aos-delay="100">
           <div className="absolute inset-0 opacity-10">
             <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
               <defs>

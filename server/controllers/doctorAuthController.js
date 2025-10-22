@@ -13,7 +13,7 @@ const generateDoctorToken = async (doctorId, userId) => {
       doctorId: doctorId,
       role: 'doctor' // Gán vai trò doctor
     }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
+      expiresIn: '1d'
     });
     
     return token;
@@ -21,7 +21,7 @@ const generateDoctorToken = async (doctorId, userId) => {
     console.error('Error generating doctor token:', error);
     // Return a basic token in case of error
     return jwt.sign({ id: userId, doctorId: doctorId, role: 'doctor' }, process.env.JWT_SECRET, {
-      expiresIn: '30d'
+      expiresIn: '1d'
     });
   }
 };
@@ -91,7 +91,7 @@ exports.loginDoctor = async (req, res) => {
       return res.status(401).json({
         success: false,
         field: 'password',
-        message: 'Mật khẩu không chính xác'
+        message: 'Tài khoản hoặc mật khẩu không chính xác'
       });
     }
     

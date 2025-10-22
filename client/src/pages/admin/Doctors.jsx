@@ -190,7 +190,11 @@ const Doctors = () => {
 
   const fetchAllSpecialties = async () => {
     try {
-      const res = await api.get('/admin/specialties');
+      // Using a large limit to get all specialties at once without pagination
+      const res = await api.get('/admin/specialties', {
+        params: { limit: 1000 } // Very large limit to get all specialties
+      });
+      
       if (res.data.success) {
         console.log('All Specialties API response:', res.data);
         
@@ -485,9 +489,15 @@ const Doctors = () => {
       let services = [];
       if (doctor.services) {
         if (Array.isArray(doctor.services)) {
-          services = doctor.services.map(service => 
-            typeof service === 'string' ? service : service._id
-          );
+          services = doctor.services.map(service => {
+            // Handle different formats of service data
+            if (typeof service === 'string') {
+              return service;
+            } else if (typeof service === 'object') {
+              return service._id;
+            }
+            return service;
+          });
         } else if (typeof doctor.services === 'string') {
           services = [doctor.services];
         }
@@ -608,11 +618,12 @@ const Doctors = () => {
       setFormData(prev => {
         // First filter out this ID if it somehow already exists (to avoid duplicates)
         const filteredServices = prev.services.filter(id => {
+          // Convert to string for comparison, handling both object and string IDs
           const idStr = typeof id === 'object' ? id._id : id;
           return String(idStr) !== String(serviceIdStr);
         });
         
-        // Then add the service ID
+        // Then add the service ID as a string
         return {
           ...prev,
           services: [...filteredServices, serviceIdStr]
@@ -624,6 +635,7 @@ const Doctors = () => {
       // Remove from services array
       setFormData(prev => {
         const filteredServices = prev.services.filter(id => {
+          // Convert to string for comparison, handling both object and string IDs
           const idStr = typeof id === 'object' ? id._id : id;
           return String(idStr) !== String(serviceIdStr);
         });
@@ -701,8 +713,16 @@ const Doctors = () => {
     
     setFormSubmitting(true);
     try {
-      console.log('Đang tạo bác sĩ mới với dữ liệu:', formData);
-      const res = await api.post('/admin/doctors', formData);
+      // Prepare doctor data - ensure services is properly formatted as array of IDs
+      const doctorData = {
+        ...formData,
+        services: formData.services.map(service => 
+          typeof service === 'object' ? service._id : service
+        )
+      };
+      
+      console.log('Đang tạo bác sĩ mới với dữ liệu:', doctorData);
+      const res = await api.post('/admin/doctors', doctorData);
       
       console.log('Kết quả tạo bác sĩ:', res.data);
       
@@ -750,8 +770,16 @@ const Doctors = () => {
     
     setFormSubmitting(true);
     try {
-      console.log('Đang cập nhật bác sĩ với ID:', selectedDoctor._id, 'dữ liệu:', formData);
-      const res = await api.put(`/admin/doctors/${selectedDoctor._id}`, formData);
+      // Prepare doctor data - ensure services is properly formatted as array of IDs
+      const doctorData = {
+        ...formData,
+        services: formData.services.map(service => 
+          typeof service === 'object' ? service._id : service
+        )
+      };
+      
+      console.log('Đang cập nhật bác sĩ với ID:', selectedDoctor._id, 'dữ liệu:', doctorData);
+      const res = await api.put(`/admin/doctors/${selectedDoctor._id}`, doctorData);
       
       console.log('Kết quả cập nhật bác sĩ:', res.data);
       
@@ -1500,6 +1528,60 @@ const Doctors = () => {
 
                 {(modalType === 'add' || modalType === 'edit') && (
                   <form className="space-y-6">
+                    {modalType === 'edit' && selectedDoctor && (
+                      <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+                        <h3 className="text-md font-medium text-gray-800 mb-3">Thông tin hiện tại của bác sĩ</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Chuyên khoa:</p>
+                            <div className="mt-1 text-sm">
+                              {selectedDoctor?.specialtyId ? (
+                                <div className="flex items-start">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                    {selectedDoctor.specialtyId.name}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500">Chưa có chuyên khoa</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Bệnh viện/Phòng khám:</p>
+                            <div className="mt-1 text-sm">
+                              {selectedDoctor?.hospitalId ? (
+                                <div className="flex items-start">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
+                                    {selectedDoctor.hospitalId.name}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500">Chưa có bệnh viện</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="md:col-span-2">
+                            <p className="text-sm font-medium text-gray-600">Dịch vụ hiện tại ({selectedDoctor?.services?.length || 0}):</p>
+                            <div className="mt-1">
+                              {selectedDoctor?.services && selectedDoctor.services.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedDoctor.services.map(service => (
+                                    <span key={service._id} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                      {service.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-gray-500">Chưa có dịch vụ nào</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="bg-blue-50 p-4 rounded-lg mb-6">
                       <h3 className="text-md font-medium text-blue-800 mb-2">Thông tin cơ bản</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1652,6 +1734,32 @@ const Doctors = () => {
                             placeholder="Số năm kinh nghiệm"
                           />
                         </div>
+
+                        <div>
+                          <label htmlFor="hospitalId" className="block text-sm font-medium text-gray-700 mb-1">
+                            Cơ sở y tế <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            id="hospitalId"
+                            name="hospitalId"
+                            value={formData.hospitalId}
+                            onChange={handleInputChange}
+                            className={`block w-full border ${formErrors.hospitalId ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                          >
+                            <option value="">-- Chọn cơ sở y tế --</option>
+                            {hospitals.map(hospital => (
+                              <option key={hospital._id} value={hospital._id}>
+                                {hospital.name} {modalType === 'edit' && selectedDoctor?.hospitalId?._id === hospital._id && "✓"}
+                              </option>
+                            ))}
+                          </select>
+                          {formErrors.hospitalId && <p className="mt-1 text-sm text-red-600">{formErrors.hospitalId}</p>}
+                          {modalType === 'edit' && formData.hospitalId && hospitals.find(h => h._id === formData.hospitalId) && (
+                            <p className="mt-1 text-xs text-green-600">
+                              Cơ sở y tế hiện tại: {hospitals.find(h => h._id === formData.hospitalId).name}
+                            </p>
+                          )}
+                        </div>
                         
                         <div>
                           <label htmlFor="specialtyId" className="block text-sm font-medium text-gray-700 mb-1">
@@ -1675,35 +1783,19 @@ const Doctors = () => {
                             </option>
                             {specialties.map(specialty => (
                               <option key={specialty._id} value={specialty._id}>
-                                {specialty.name}
+                                {specialty.name} {modalType === 'edit' && selectedDoctor?.specialtyId?._id === specialty._id && "✓"}
                               </option>
                             ))}
                           </select>
                           {formErrors.specialtyId && <p className="mt-1 text-sm text-red-600">{formErrors.specialtyId}</p>}
+                          {modalType === 'edit' && formData.specialtyId && specialties.find(s => s._id === formData.specialtyId) && (
+                            <p className="mt-1 text-xs text-green-600">
+                              Chuyên khoa hiện tại: {specialties.find(s => s._id === formData.specialtyId).name}
+                            </p>
+                          )}
                           {formData.hospitalId && specialties.length === 0 && (
                             <p className="mt-1 text-xs text-orange-500">Bệnh viện này chưa có chuyên khoa nào. Vui lòng chọn bệnh viện khác hoặc thêm chuyên khoa cho bệnh viện này.</p>
                           )}
-                        </div>
-                        
-                        <div>
-                          <label htmlFor="hospitalId" className="block text-sm font-medium text-gray-700 mb-1">
-                            Cơ sở y tế <span className="text-red-500">*</span>
-                          </label>
-                          <select
-                            id="hospitalId"
-                            name="hospitalId"
-                            value={formData.hospitalId}
-                            onChange={handleInputChange}
-                            className={`block w-full border ${formErrors.hospitalId ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                          >
-                            <option value="">-- Chọn cơ sở y tế --</option>
-                            {hospitals.map(hospital => (
-                              <option key={hospital._id} value={hospital._id}>
-                                {hospital.name}
-                              </option>
-                            ))}
-                          </select>
-                          {formErrors.hospitalId && <p className="mt-1 text-sm text-red-600">{formErrors.hospitalId}</p>}
                         </div>
                         
                         <div>
@@ -1841,6 +1933,11 @@ const Doctors = () => {
                           <span className="ml-2 text-xs text-blue-600">(Chọn một hoặc nhiều dịch vụ bác sĩ cung cấp)</span>
                         </label>
                         {formErrors.services && <p className="mt-1 text-sm text-red-600 mb-2">{formErrors.services}</p>}
+                        {modalType === 'edit' && selectedDoctor && (
+                          <p className="mb-2 text-sm text-green-600">
+                            Dịch vụ hiện tại: {formData.services.length} dịch vụ
+                          </p>
+                        )}
                         <div className="max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-md bg-white">
                           {availableServices.map(service => {
                             // Convert service ID to string for comparison
@@ -1864,6 +1961,9 @@ const Doctors = () => {
                                   <span className="ml-2 text-blue-600">
                                     ({new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.price || 0)})
                                   </span>
+                                  {modalType === 'edit' && isSelected && (
+                                    <span className="ml-2 text-xs text-green-600">(Đang được chọn)</span>
+                                  )}
                                 </label>
                               </div>
                             );

@@ -21,6 +21,9 @@ const ReviewForm = () => {
   const [hoverRating, setHoverRating] = useState(0);
   const [content, setContent] = useState('');
 
+  const [doctorInfo, setDoctorInfo] = useState(null);
+  const [hospitalInfo, setHospitalInfo] = useState(null);
+
   useEffect(() => {
     if (type !== 'doctor' && type !== 'hospital') {
       navigate(`/appointments/${id}/review`);
@@ -266,17 +269,24 @@ const ReviewForm = () => {
   };
 
   useEffect(() => {
-    if (appointment) {
+    if (appointment && !appointment.doctorInfo && !appointment.hospitalInfo) {
       const doctorInfo = getReviewTarget();
       const hospitalInfo = getHospitalInfo(appointment);
       
-      setAppointment({
-        ...appointment,
+      setAppointment(prevAppointment => ({
+        ...prevAppointment,
         doctorInfo,
         hospitalInfo
-      });
+      }));
     }
-  }, [appointment]);
+  }, [appointment?._id]);
+
+  useEffect(() => {
+    if (appointment) {
+      setDoctorInfo(getReviewTarget());
+      setHospitalInfo(getHospitalInfo(appointment));
+    }
+  }, [appointment?._id]);
 
   if (loading) {
     return (

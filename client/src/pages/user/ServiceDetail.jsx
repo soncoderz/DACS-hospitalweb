@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { FaStethoscope, FaUserMd, FaHospital, FaCalendarAlt, FaClock, FaMoneyBillWave, FaInfoCircle, FaArrowRight, FaStar, FaProcedures } from 'react-icons/fa';
+import { DoctorCard } from '../../components/user';
 
 import ReactDOM from 'react-dom';
 
@@ -482,13 +483,12 @@ const ServiceDetail = () => {
                     marginBottom: '0.75rem',
                     fontWeight: '600'
                   }}>{service.specialtyId.name}</h3>
-                  <p className="specialty-description" style={{
-                    fontSize: '1rem',
-                    color: '#4b5563',
-                    lineHeight: '1.6',
-                    marginBottom: '1.25rem'
-                  }}>
-                    {service.specialtyId.description || 'Không có mô tả chi tiết cho chuyên khoa này.'}
+                  <p className="text-gray-600 text-sm leading-relaxed mb-5">
+                    {service.specialtyId.description 
+                      ? (service.specialtyId.description.length > 50 
+                         ? `${service.specialtyId.description.substring(0, 50)}...` 
+                         : service.specialtyId.description)
+                      : 'Không có mô tả chi tiết cho chuyên khoa này.'}
                   </p>
                   <Link to={`/specialties/${service.specialtyId._id}`} className="btn btn-outline btn-effect" style={{
                     display: 'inline-flex',
@@ -546,149 +546,7 @@ const ServiceDetail = () => {
               gap: '1.5rem'
             }}>
               {doctors.map(doctor => (
-                <div key={doctor._id} className="doctor-card hover-card" style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: '1rem',
-                  overflow: 'hidden',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  border: '1px solid #e5e7eb',
-                  backgroundColor: 'white'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-10px)';
-                  e.currentTarget.style.boxShadow = '0 15px 30px rgba(0, 0, 0, 0.1)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}>
-                  <div className="doctor-avatar-container" style={{
-                    height: '200px',
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}>
-                    <img
-                      src={doctor.user?.avatarUrl || '/avatars/default-avatar.png'} 
-                      alt={doctor.user?.fullName || 'Bác sĩ'}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '/avatars/default-avatar.png';
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="doctor-info" style={{
-                    padding: '1.5rem',
-                    flexGrow: '1',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}>
-                    <h3 className="doctor-name" style={{
-                      fontSize: '1.2rem',
-                      color: '#1e3a8a',
-                      marginBottom: '0.5rem',
-                      fontWeight: '600'
-                    }}>{doctor.user?.fullName || 'Bác sĩ'}</h3>
-                    
-                    <div className="doctor-specialty" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      color: '#2563eb',
-                      marginBottom: '0.75rem',
-                      fontSize: '0.95rem'
-                    }}>
-                      <FaStethoscope className="specialty-icon" />
-                      <span>{service.specialtyId ? service.specialtyId.name : 'Chuyên khoa'}</span>
-                    </div>
-                    
-                    <div className="doctor-meta" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      marginBottom: '1rem',
-                      color: '#6b7280',
-                      fontSize: '0.9rem'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <FaStar style={{ color: '#f59e0b' }} />
-                        {(() => {
-                          // Xử lý tất cả các định dạng đánh giá có thể
-                          let rating = null;
-                          
-                          // Định dạng 1: ratings.average (ƯU TIÊN)
-                          if (doctor.ratings && typeof doctor.ratings.average === 'number') {
-                            rating = doctor.ratings.average;
-                          } 
-                          // Định dạng 2: averageRating trực tiếp
-                          else if (typeof doctor.averageRating === 'number') {
-                            rating = doctor.averageRating;
-                          }
-                          
-                          // Nếu có đánh giá, hiển thị với 1 chữ số thập phân
-                          return rating !== null ? <span>{rating.toFixed(1)}</span> : null;
-                        })()}
-                      </div>
-                      
-                      {doctor.experience && (
-                        <div>{doctor.experience} năm kinh nghiệm</div>
-                      )}
-                    </div>
-                    
-                    <p className="doctor-description" style={{
-                      fontSize: '0.95rem',
-                      color: '#4b5563',
-                      lineHeight: '1.6',
-                      marginBottom: '1.5rem',
-                      flexGrow: '1'
-                    }}>
-                      {doctor.description && doctor.description.length > 120
-                        ? `${doctor.description.substring(0, 120)}...`
-                        : doctor.description || `Bác sĩ có nhiều năm kinh nghiệm trong lĩnh vực ${service.specialtyId ? service.specialtyId.name : 'y tế'}.`}
-                    </p>
-                    
-                    <div className="view-profile-btn" style={{ marginTop: 'auto' }}>
-                      <Link 
-                        to={`/doctors/${doctor._id}`} 
-                        className="btn btn-primary btn-profile"
-                        style={{
-                          display: 'inline-flex',
-                          width: '100%',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          padding: '0.75rem',
-                          backgroundColor: '#2563eb',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          textDecoration: 'none',
-                          fontWeight: '500',
-                          transition: 'all 0.3s ease',
-                          border: 'none',
-                          boxShadow: '0 4px 6px rgba(37, 99, 235, 0.25)'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.backgroundColor = '#1d4ed8';
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 6px 12px rgba(37, 99, 235, 0.3)';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.backgroundColor = '#2563eb';
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 6px rgba(37, 99, 235, 0.25)';
-                        }}
-                      >
-                        Xem Hồ Sơ & Đặt Lịch
-                      </Link>
-                    </div>
-                  </div>
-                </div>
+                <DoctorCard key={doctor._id} doctor={doctor} />
               ))}
             </div>
           </div>

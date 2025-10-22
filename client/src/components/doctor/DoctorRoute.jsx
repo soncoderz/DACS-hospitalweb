@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import DoctorLayout from './DoctorLayout';
@@ -7,13 +7,27 @@ const DoctorRoute = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Debug user info for doctor route
+  useEffect(() => {
+    if (user) {
+      console.log('Doctor Route - User info:', { 
+        id: user.id,
+        role: user.role, 
+        roleType: user.roleType,
+        isDoctor: (user.role === 'doctor' || user.roleType === 'doctor')
+      });
+    } else {
+      console.log('Doctor Route - No user logged in');
+    }
+  }, [user]);
+
   if (loading) {
     return <div className="loading-app">Đang tải...</div>;
   }
 
   // Kiểm tra nếu người dùng đã xác thực
   if (!user) {
-    // Chuyển hướng đến trang đăng nhập nếu chưa xác thực
+    console.log('Doctor Route - Redirecting to login due to no user');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
@@ -21,10 +35,11 @@ const DoctorRoute = () => {
   const isDoctor = user.roleType === 'doctor' || user.role === 'doctor';
   
   if (!isDoctor) {
-    // Chuyển hướng về trang chủ nếu không phải bác sĩ
+    console.log('Doctor Route - User does not have doctor role:', user.role, user.roleType);
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
+  console.log('Doctor Route - Rendering doctor layout');
   // Hiển thị giao diện bác sĩ với các thành phần con
   return (
     <DoctorLayout>

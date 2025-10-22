@@ -535,11 +535,15 @@ const BranchDetail = () => {
                   
                   {reviews.length > 3 && (
                   <div className="text-center mt-6">
-                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors">
-                      Xem thêm đánh giá
-                    </button>
-                    </div>
-                  )}
+                    <Link 
+                      to={`/reviews/hospital/${id}`}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors inline-flex items-center"
+                    >
+                      <FaStar className="mr-2" />
+                      Xem tất cả {reviews.length} đánh giá
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
           </div>

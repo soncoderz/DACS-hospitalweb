@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaSearch, FaFilter, FaDownload, FaCalendarAlt, FaUserMd, FaUser, FaHospital } from 'react-icons/fa';
+import { FaEdit, FaSearch, FaFilter, FaDownload, FaCalendarAlt, FaUserMd, FaUser, FaHospital, FaEye } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { toast } from 'react-toastify';
 
 
 const Appointments = () => {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [hospitals, setHospitals] = useState([]);
@@ -54,7 +56,34 @@ const Appointments = () => {
         // The response format from the server has appointments in res.data.data
         if (res.data.data && Array.isArray(res.data.data)) {
           console.log(`Found ${res.data.data.length} appointments in res.data.data array`);
-          setAppointments(res.data.data);
+          
+          // Sắp xếp lịch hẹn theo ngày gần nhất với ngày hiện tại
+          const appointmentsData = [...res.data.data]; // Tạo bản sao để tránh ảnh hưởng đến dữ liệu gốc
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Reset giờ để so sánh chỉ theo ngày
+          
+          appointmentsData.sort((a, b) => {
+            const dateA = new Date(a.appointmentDate);
+            const dateB = new Date(b.appointmentDate);
+            
+            dateA.setHours(0, 0, 0, 0); // Reset giờ để so sánh chỉ theo ngày
+            dateB.setHours(0, 0, 0, 0);
+            
+            // Tính khoảng cách theo ngày
+            const distanceA = Math.abs(dateA - today);
+            const distanceB = Math.abs(dateB - today);
+            
+            // Ưu tiên các ngày trong tương lai gần nhất
+            // Nếu cả hai ngày đều trong tương lai hoặc đều trong quá khứ, lấy gần nhất
+            if ((dateA >= today && dateB >= today) || (dateA < today && dateB < today)) {
+              return distanceA - distanceB;
+            }
+            
+            // Nếu một trong tương lai và một trong quá khứ, ưu tiên ngày trong tương lai
+            return dateA >= today ? -1 : 1;
+          });
+          
+          setAppointments(appointmentsData);
           setPagination({
             ...pagination,
             totalPages: Math.ceil(res.data.total / pagination.pageSize) || 1,
@@ -375,6 +404,7 @@ const Appointments = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã đặt lịch</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT khám</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên bệnh nhân</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bác sĩ</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cơ sở y tế</th>
@@ -390,6 +420,13 @@ const Appointments = () => {
                   appointments.map((appointment) => (
                     <tr key={appointment._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.bookingCode || appointment._id.substring(0, 8)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {appointment.queueNumber > 0 ? (
+                          <span className="px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium">
+                            {appointment.queueNumber}
+                          </span>
+                        ) : 'N/A'}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.patientId ? appointment.patientId.fullName : 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.doctorId && appointment.doctorId.user ? appointment.doctorId.user.fullName : 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.hospitalId ? appointment.hospitalId.name : 'N/A'}</td>
@@ -420,13 +457,22 @@ const Appointments = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(appointment.createdAt)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          className="text-blue-600 hover:text-blue-900"
-                          onClick={() => openModal('edit', appointment)}
-                          title="Cập nhật trạng thái"
-                        >
-                          <FaEdit />
-                        </button>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            className="text-green-600 hover:text-green-900"
+                            onClick={() => navigate(`/admin/appointments/${appointment._id}`)}
+                            title="Xem chi tiết"
+                          >
+                            <FaEye />
+                          </button>
+                          <button
+                            className="text-blue-600 hover:text-blue-900"
+                            onClick={() => openModal('edit', appointment)}
+                            title="Cập nhật trạng thái"
+                          >
+                            <FaEdit />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -566,7 +612,6 @@ const Appointments = () => {
                       >
                         <option value="no-show">Không đến</option>
                         <option value="completed">Đã hoàn thành</option>
-                        <option value="cancelled">Đã hủy</option>
                       </select>
                     </div>
                     

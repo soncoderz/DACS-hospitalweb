@@ -86,7 +86,9 @@ exports.getAvailableSchedules = async (req, res) => {
     
     // Transform the results to include available slots only
     const availableSchedules = schedules.map(schedule => {
-      const availableTimeSlots = schedule.timeSlots.filter(slot => !slot.isBooked);
+      const availableTimeSlots = schedule.timeSlots.filter(slot => 
+        !slot.isBooked && (slot.bookedCount < slot.maxBookings || typeof slot.bookedCount === 'undefined')
+      );
       return {
         ...schedule.toObject(),
         timeSlots: availableTimeSlots,
@@ -257,6 +259,19 @@ const checkTimeSlotConflicts = async (doctorId, date, timeSlots, existingSchedul
   }
 
   return conflicts;
+};
+
+// Function to create formatted time slots with default maxBookings = 3
+const createFormattedTimeSlots = (timeSlots, roomId = null) => {
+  return timeSlots.map(slot => ({
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    isBooked: false,
+    bookedCount: 0,
+    maxBookings: 3,
+    appointmentIds: [],
+    roomId: slot.roomId || roomId
+  }));
 };
 
 /**
@@ -454,6 +469,9 @@ exports.createSchedule = async (req, res) => {
         startTime: slot.startTime,
         endTime: slot.endTime,
         isBooked: false,
+        bookedCount: 0,
+        maxBookings: slot.maxBookings || 3,
+        appointmentIds: [],
         roomId: slotRoomId
       });
     }
@@ -675,6 +693,9 @@ exports.updateSchedule = async (req, res) => {
       // Tìm thông tin bác sĩ
       const doctor = await Doctor.findById(schedule.doctorId);
       
+      // Tạo danh sách khung giờ đã được xác thực
+      const validatedTimeSlots = [];
+      
       for (const slot of timeSlots) {
         if (!slot.startTime || !slot.endTime) {
           return res.status(400).json({
@@ -728,14 +749,92 @@ exports.updateSchedule = async (req, res) => {
             });
           }
         }
+        
+        // Thêm vào danh sách khung giờ hợp lệ
+        validatedTimeSlots.push({
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          isBooked: slot.isBooked || false,
+          bookedCount: slot.bookedCount || 0,
+          maxBookings: slot.maxBookings || 3,
+          appointmentIds: slot.appointmentIds || [],
+          roomId: slot.roomId
+        });
       }
+      
+      // Kiểm tra xung đột lịch trực
+      const conflicts = await checkTimeSlotConflicts(schedule.doctorId, schedule.date, validatedTimeSlots, schedule._id);
+      
+      if (conflicts.length > 0) {
+        // Tổng hợp thông tin các xung đột theo loại
+        const roomConflicts = conflicts.filter(c => c.type === 'room_conflict');
+        const doctorConflicts = conflicts.filter(c => c.type === 'doctor_conflict');
+        
+        // Định dạng ngày để hiển thị thông báo lỗi
+        const formattedDate = schedule.date.toLocaleDateString('vi-VN', {
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          weekday: 'long'
+        });
+        
+        // Tạo mô tả chi tiết hơn cho lỗi
+        let errorDescription = 'Không thể cập nhật lịch làm việc do các xung đột sau:';
+        
+        if (doctorConflicts.length > 0) {
+          errorDescription += `\n- Bác sĩ đã có ${doctorConflicts.length} lịch làm việc khác trong cùng thời gian`;
+        }
+        
+        if (roomConflicts.length > 0) {
+          errorDescription += `\n- Phòng khám đã được sử dụng bởi ${roomConflicts.length} lịch làm việc khác`;
+        }
+        
+        return res.status(409).json({
+          success: false,
+          error: 'schedule_conflict',
+          message: 'Phát hiện trùng lịch làm việc',
+          conflicts: conflicts,
+          errorDetails: {
+            title: 'Không thể cập nhật lịch làm việc do trùng lịch',
+            description: errorDescription,
+            conflicts: conflicts,
+            date: formattedDate,
+            totalConflicts: conflicts.length,
+            doctorConflictsCount: doctorConflicts.length,
+            roomConflictsCount: roomConflicts.length,
+            summary: {
+              hasRoomConflicts: roomConflicts.length > 0,
+              hasDoctorConflicts: doctorConflicts.length > 0,
+              affectedTime: conflicts.map(c => `${c.details?.timeSlot?.start} - ${c.details?.timeSlot?.end}`).join(', ')
+            }
+          }
+        });
+      }
+      
+      // Nếu không có xung đột, cập nhật timeSlots bằng danh sách đã được xác thực
+      const updateData = {
+        timeSlots: validatedTimeSlots,
+        updatedBy: req.user.id
+      };
+      
+      if (req.body.status) updateData.status = req.body.status;
+      
+      const updatedSchedule = await Schedule.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      );
+      
+      return res.status(200).json({
+        success: true,
+        data: updatedSchedule,
+        message: 'Cập nhật lịch làm việc thành công'
+      });
     }
 
-    // Cập nhật lịch làm việc
-    const updateData = {};
-    if (timeSlots) updateData.timeSlots = timeSlots;
+    // Nếu không có timeSlots, chỉ cập nhật các trường khác
+    const updateData = { updatedBy: req.user.id };
     if (req.body.status) updateData.status = req.body.status;
-    updateData.updatedBy = req.user.id;
 
     const updatedSchedule = await Schedule.findByIdAndUpdate(
       id,
@@ -748,7 +847,6 @@ exports.updateSchedule = async (req, res) => {
       data: updatedSchedule,
       message: 'Cập nhật lịch làm việc thành công'
     });
-    
   } catch (error) {
     console.error('Update schedule error:', error);
     return res.status(500).json({
@@ -1245,12 +1343,17 @@ exports.getDoctorSchedules = async (req, res) => {
       // Convert to plain object
       const plainSchedule = schedule.toObject();
       
-      // Check if timeSlots have properly populated roomId
+      // Add availability status in terms of booking counts
       if (plainSchedule.timeSlots) {
         plainSchedule.timeSlots.forEach(slot => {
-          if (slot.roomId && typeof slot.roomId === 'string') {
-            console.log(`Warning: roomId is still a string: ${slot.roomId}`);
-          }
+          // Add booking info
+          slot.bookedCount = slot.bookedCount || 0;
+          slot.maxBookings = slot.maxBookings || 3;
+          slot.availableSpots = slot.maxBookings - slot.bookedCount;
+          slot.isFull = slot.bookedCount >= slot.maxBookings;
+          
+          // For backward compatibility
+          slot.isBooked = slot.isFull;
         });
       }
       
@@ -1404,7 +1507,11 @@ exports.createDoctorSchedule = async (req, res) => {
       formattedTimeSlots.push({
         startTime: slot.startTime,
         endTime: slot.endTime,
-        isBooked: false
+        isBooked: false,
+        bookedCount: 0,
+        maxBookings: slot.maxBookings || 3,
+        appointmentIds: [],
+        roomId: roomId || slot.roomId
       });
     }
     
@@ -1427,10 +1534,10 @@ exports.createDoctorSchedule = async (req, res) => {
         });
       }
       
-      if (room.hospitalId.toString() !== hospitalId) {
+      if (room.hospitalId.toString() !== doctor.hospitalId.toString()) {
         return res.status(400).json({
           success: false,
-          message: 'Phòng khám không thuộc bệnh viện này'
+          message: 'Phòng khám không thuộc bệnh viện của bác sĩ'
         });
       }
       
@@ -1471,7 +1578,7 @@ exports.updateDoctorSchedule = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { timeSlots, isActive } = req.body;
+    const { timeSlots, isActive, roomId } = req.body;
     
     // Validate id
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -1527,6 +1634,11 @@ exports.updateDoctorSchedule = async (req, res) => {
       schedule.isActive = isActive;
     }
     
+    // Cập nhật roomId nếu được cung cấp
+    if (roomId) {
+      schedule.roomId = roomId;
+    }
+    
     // Cập nhật các khung giờ nếu có
     if (timeSlots && Array.isArray(timeSlots)) {
       // Chỉ cho phép cập nhật các khung giờ chưa được đặt
@@ -1572,7 +1684,66 @@ exports.updateDoctorSchedule = async (req, res) => {
           startTime: slot.startTime,
           endTime: slot.endTime,
           isBooked: false,
-          roomId: slot.roomId || schedule.timeSlots[0]?.roomId
+          bookedCount: 0,
+          maxBookings: slot.maxBookings || 3,
+          appointmentIds: [],
+          roomId: roomId || schedule.roomId
+        });
+      }
+      
+      // Cập nhật roomId cho các slot đã đặt nếu cần
+      if (roomId) {
+        for (const slot of bookedSlots) {
+          slot.roomId = roomId;
+        }
+      }
+      
+      // Kiểm tra xung đột cho các khung giờ mới
+      const conflicts = await checkTimeSlotConflicts(doctor._id, schedule.date, updatedTimeSlots, schedule._id);
+      
+      if (conflicts.length > 0) {
+        // Tổng hợp thông tin các xung đột theo loại
+        const roomConflicts = conflicts.filter(c => c.type === 'room_conflict');
+        const doctorConflicts = conflicts.filter(c => c.type === 'doctor_conflict');
+        
+        // Định dạng ngày để hiển thị thông báo lỗi
+        const formattedDate = schedule.date.toLocaleDateString('vi-VN', {
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          weekday: 'long'
+        });
+        
+        // Tạo mô tả chi tiết hơn cho lỗi
+        let errorDescription = 'Không thể cập nhật lịch làm việc do các xung đột sau:';
+        
+        if (doctorConflicts.length > 0) {
+          errorDescription += `\n- Bác sĩ đã có ${doctorConflicts.length} lịch làm việc khác trong cùng thời gian`;
+        }
+        
+        if (roomConflicts.length > 0) {
+          errorDescription += `\n- Phòng khám đã được sử dụng bởi ${roomConflicts.length} lịch làm việc khác`;
+        }
+        
+        return res.status(409).json({
+          success: false,
+          error: 'schedule_conflict',
+          message: 'Phát hiện trùng lịch làm việc',
+          conflicts: conflicts,
+          errorDetails: {
+            title: 'Không thể cập nhật lịch làm việc do trùng lịch',
+            description: errorDescription,
+            conflicts: conflicts,
+            date: formattedDate,
+            totalConflicts: conflicts.length,
+            doctorConflictsCount: doctorConflicts.length,
+            roomConflictsCount: roomConflicts.length,
+            summary: {
+              hasRoomConflicts: roomConflicts.length > 0,
+              hasDoctorConflicts: doctorConflicts.length > 0,
+              affectedTime: conflicts.map(c => `${c.details?.timeSlot?.start} - ${c.details?.timeSlot?.end}`).join(', ')
+            }
+          }
         });
       }
       

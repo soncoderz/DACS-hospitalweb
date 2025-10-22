@@ -1,10 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { toastError, toastSuccess } from '../../utils/toast';
+import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
+import { motion } from 'framer-motion';
+import { 
+  FaEye, FaEyeSlash, FaUser, FaCalendarDay, FaMars, 
+  FaMapMarkerAlt, FaEnvelope, FaPhone, FaLock, FaCheck,
+  FaArrowLeft, FaArrowRight, FaUserLock
+} from 'react-icons/fa';
 
+// Memoized step badge component to prevent re-renders
+const StepBadge = memo(({ icon, label, active }) => (
+  <div className={`flex flex-col items-center ${active ? 'text-blue-600' : 'text-gray-400'}`}>
+    <div 
+      className={`w-10 h-10 rounded-full flex items-center justify-center border-2 z-10 shadow-sm ${active ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+    >
+      <span className={active ? 'text-white' : 'text-gray-400'}>
+        {icon}
+      </span>
+    </div>
+    <span className="mt-2 text-xs font-medium">{label}</span>
+  </div>
+));
+
+// Memoized progress indicator to prevent re-renders
+const ProgressIndicator = memo(({ step }) => (
+  <div className="mb-8">
+    <div className="relative">
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full bg-gray-200 h-1 rounded-full">
+          <div 
+            className="bg-blue-600 h-1 rounded-full"
+            style={{ width: step === 0 ? '30%' : '100%' }}
+          ></div>
+        </div>
+      </div>
+      
+      <div className="relative flex justify-between">
+        <StepBadge 
+          icon={<FaUser className="h-4 w-4" />}
+          label="Thông tin cá nhân"
+          active={step >= 0}
+        />
+        <StepBadge 
+          icon={<FaUserLock className="h-4 w-4" />}
+          label="Thông tin tài khoản"
+          active={step >= 1}
+        />
+      </div>
+    </div>
+  </div>
+));
+
+// Main component
 const Register = ({ onLoginClick }) => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -23,7 +73,8 @@ const Register = ({ onLoginClick }) => {
   
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Handle form input changes
   const handleChange = (e) => {
@@ -39,17 +90,16 @@ const Register = ({ onLoginClick }) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu không khớp');
+      toast.error('Mật khẩu không khớp');
       return;
     }
 
     if (!formData.acceptTerms) {
-      setError('Bạn phải đồng ý với các điều khoản và điều kiện');
+      toast.error('Bạn phải đồng ý với các điều khoản và điều kiện');
       return;
     }
     
     setLoading(true);
-    setError('');
     
     try {
       const response = await api.post('/auth/register', {
@@ -63,28 +113,25 @@ const Register = ({ onLoginClick }) => {
       });
       
       if (response.data.success) {
-        toastSuccess('Đăng ký thành công! Vui lòng xác thực email của bạn.');
+        toast.success('Đăng ký thành công! Vui lòng xác thực email của bạn.');
         navigate('/need-verification', { 
           state: { email: formData.email }
         });
       } else {
-        setError(response.data.message || 'Đăng ký không thành công');
+        toast.error(response.data.message || 'Đăng ký không thành công');
       }
     } catch (error) {
       console.error('Registration error:', error);
       
-      if (error.response) {
-        const { data } = error.response;
-        if (data.message) {
-          setError(data.message);
-        } else if (data.errors) {
-          const errorMessage = Object.values(data.errors)[0];
-          setError(errorMessage || 'Vui lòng kiểm tra lại thông tin đăng ký');
-        } else {
-          setError('Đăng ký không thành công. Vui lòng thử lại sau.');
-        }
+      if (error.response?.data?.field) {
+        toast.error(`${error.response.data.field}: ${error.response.data.message}`);
+      } else if (error.response?.data?.errors) {
+        const errorMessage = Object.values(error.response.data.errors)[0];
+        toast.error(errorMessage || 'Vui lòng kiểm tra lại thông tin đăng ký');
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
       } else {
-        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+        toast.error('Đăng ký không thành công. Vui lòng thử lại sau.');
       }
     } finally {
       setLoading(false);
@@ -97,104 +144,53 @@ const Register = ({ onLoginClick }) => {
     
     // Validate first step fields
     if (!formData.fullName || !formData.dateOfBirth || !formData.gender) {
-      setError('Vui lòng điền đầy đủ các trường bắt buộc');
+      toast.error('Vui lòng điền đầy đủ các trường bắt buộc');
       return;
     }
     
     setStep(1);
-    setError('');
   };
 
   // Return to previous step
   const prevStep = () => {
     setStep(0);
-    setError('');
   };
 
-      return (
+  return (
     <div className="w-full">
-      {/* Error message */}
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
-          <span className="block sm:inline">{error}</span>
-          <button 
-            className="absolute top-0 bottom-0 right-0 px-4 py-3"
-            onClick={() => setError('')}
-          >
-            <span className="sr-only">Close</span>
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Progress steps */}
-      <div className="mb-8">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full bg-gray-200 rounded-full h-1">
-              <div 
-                className="bg-blue-600 h-1 rounded-full transition-all duration-300 ease-in-out" 
-                style={{ width: step === 0 ? '33%' : '100%' }}
-              ></div>
-            </div>
-          </div>
-          <div className="relative flex justify-between">
-            <div className={`flex flex-col items-center ${step >= 0 ? 'text-blue-600' : 'text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 z-10 ${step >= 0 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <span className="mt-2 text-xs font-medium">Thông tin cá nhân</span>
-            </div>
-            <div className={`flex flex-col items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 z-10 ${step >= 1 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <span className="mt-2 text-xs font-medium">Tài khoản</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Progress steps - now uses memoized component */}
+      <ProgressIndicator step={step} />
 
       {/* Registration form */}
-      <form onSubmit={step === 0 ? nextStep : handleSubmit} className="space-y-6">
-        {step === 0 ? (
-          <>
+      {step === 0 ? (
+        <div key="step1" className="space-y-4">
+          <form onSubmit={nextStep}>
             {/* Personal Information Step */}
-            <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
+            <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 shadow-sm">
               <h3 className="text-lg font-medium text-blue-800 mb-4 pb-2 border-b border-blue-100 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                </svg>
-              Thông tin cá nhân
-            </h3>
+                <FaUser className="mr-2 text-blue-600 h-4 w-4" style={{minWidth: '1rem'}} />
+                Thông tin cá nhân
+              </h3>
             
               <div className="space-y-4">
                 {/* Full Name */}
                 <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1.5">
                     Họ và tên <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                      </svg>
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <FaUser className="text-blue-500 h-4 w-4" style={{minWidth: '1rem'}} />
                     </div>
                     <input
                       id="fullName"
-              name="fullName"
+                      name="fullName"
                       type="text"
                       required
                       value={formData.fullName}
                       onChange={handleChange}
-                      className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Nhập họ và tên" 
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Nhập họ và tên" 
                     />
                   </div>
                 </div>
@@ -202,91 +198,83 @@ const Register = ({ onLoginClick }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Date of birth */}
                   <div>
-                    <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1.5">
                       Ngày sinh <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                        </svg>
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <FaCalendarDay className="text-blue-500 h-4 w-4" style={{minWidth: '1rem'}} />
                       </div>
                       <input
                         id="dateOfBirth"
-                name="dateOfBirth"
+                        name="dateOfBirth"
                         type="date"
                         required
                         max={new Date().toISOString().split('T')[0]}
                         value={formData.dateOfBirth}
                         onChange={handleChange}
-                        className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                   </div>
 
                   {/* Gender */}
                   <div>
-                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1.5">
                       Giới tính <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                        </svg>
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <FaMars className="text-blue-500 h-4 w-4" style={{minWidth: '1rem'}} />
                       </div>
                       <select
                         id="gender"
-                name="gender"
+                        name="gender"
                         required
                         value={formData.gender}
                         onChange={handleChange}
-                        className="appearance-none block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                        <option value="">Chọn giới tính</option>
+                        className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                      >
+                        <option value="">Giới Tính</option>
                         <option value="male">Nam</option>
                         <option value="female">Nữ</option>
                         <option value="other">Khác</option>
                       </select>
                       <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                        <svg className="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <svg className="h-4 w-4 text-gray-400" style={{minWidth: '1rem'}} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
                       </div>
                     </div>
                   </div>
-            </div>
+                </div>
 
                 {/* Address */}
                 <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1.5">
                     Địa chỉ
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                      </svg>
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <FaMapMarkerAlt className="text-blue-500 h-4 w-4" style={{minWidth: '1rem'}} />
                     </div>
                     <input
                       id="address"
-              name="address"
+                      name="address"
                       type="text"
                       value={formData.address}
                       onChange={handleChange}
-                      className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Nhập địa chỉ (không bắt buộc)" 
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Nhập địa chỉ (không bắt buộc)" 
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-blue-100">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
+              <div className="mt-6 pt-4 border-t border-blue-100">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 h-5 w-5 text-blue-500">
+                    <FaCheck className="h-4 w-4" style={{minWidth: '1rem'}} />
                   </div>
                   <p className="ml-2 text-sm text-gray-600">
                     Thông tin của bạn được bảo mật và chỉ sử dụng cho mục đích y tế
@@ -295,51 +283,46 @@ const Register = ({ onLoginClick }) => {
               </div>
             </div>
             
-            <div className="flex justify-end">
+            <div className="flex justify-end mt-4">
               <button
                 type="submit"
-                className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="flex items-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
               >
                 Tiếp tục
-                <svg className="ml-2 -mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
+                <FaArrowRight className="ml-2 h-4 w-4" style={{minWidth: '1rem'}} />
               </button>
             </div>
-          </>
-        ) : (
-          <>
+          </form>
+        </div>
+      ) : (
+        <div key="step2" className="space-y-4">
+          <form onSubmit={handleSubmit}>
             {/* Account Information Step */}
-            <div className="bg-green-50 p-6 rounded-lg border border-green-100">
+            <div className="bg-green-50 p-6 rounded-lg border border-green-100 shadow-sm">
               <h3 className="text-lg font-medium text-green-800 mb-4 pb-2 border-b border-green-100 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              Thông tin tài khoản
-            </h3>
+                <FaLock className="mr-2 text-green-600 h-4 w-4" style={{minWidth: '1rem'}} />
+                Thông tin tài khoản
+              </h3>
 
               <div className="space-y-4">
                 {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
                     Email <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                      </svg>
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <FaEnvelope className="text-green-500 h-4 w-4" style={{minWidth: '1rem'}} />
                     </div>
                     <input
                       id="email"
-              name="email"
+                      name="email"
                       type="email"
                       autoComplete="email"
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="your.email@example.com"
                     />
                   </div>
@@ -347,88 +330,104 @@ const Register = ({ onLoginClick }) => {
 
                 {/* Phone Number */}
                 <div>
-                  <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1.5">
                     Số điện thoại <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                      </svg>
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <FaPhone className="text-green-500 h-4 w-4" style={{minWidth: '1rem'}} />
                     </div>
                     <input
                       id="phoneNumber"
-              name="phoneNumber"
+                      name="phoneNumber"
                       type="tel"
                       required
                       value={formData.phoneNumber}
                       onChange={handleChange}
-                      className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500"
-                placeholder="Nhập số điện thoại" 
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Nhập số điện thoại" 
                     />
                   </div>
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
                     Mật khẩu <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                      </svg>
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <FaLock className="text-green-500 h-4 w-4" style={{minWidth: '1rem'}} />
                     </div>
                     <input
                       id="password"
-              name="password"
-                      type="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
                       required
                       value={formData.password}
                       onChange={handleChange}
-                      className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                      className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="••••••••"
                       minLength={6}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                      {showPassword ? (
+                        <FaEyeSlash className="h-4 w-4" style={{minWidth: '1rem'}} />
+                      ) : (
+                        <FaEye className="h-4 w-4" style={{minWidth: '1rem'}} />
+                      )}
+                    </button>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">Mật khẩu phải có ít nhất 6 ký tự</p>
                 </div>
 
                 {/* Confirm Password */}
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1.5">
                     Xác nhận mật khẩu <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                      </svg>
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <FaLock className="text-green-500 h-4 w-4" style={{minWidth: '1rem'}} />
                     </div>
                     <input
                       id="confirmPassword"
-              name="confirmPassword"
-                      type="password"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
                       required
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                      className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="••••••••"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none"
+                    >
+                      {showConfirmPassword ? (
+                        <FaEyeSlash className="h-4 w-4" style={{minWidth: '1rem'}} />
+                      ) : (
+                        <FaEye className="h-4 w-4" style={{minWidth: '1rem'}} />
+                      )}
+                    </button>
                   </div>
                 </div>
 
                 {/* Terms & Conditions */}
-                <div className="flex items-start mt-6">
-                  <div className="flex items-center h-5">
+                <div className="flex items-start mt-6 bg-white p-4 rounded-lg">
+                  <div className="flex items-center h-5 mt-0.5">
                     <input
                       id="acceptTerms"
-              name="acceptTerms"
+                      name="acceptTerms"
                       type="checkbox"
                       checked={formData.acceptTerms}
                       onChange={handleChange}
-                      className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                   </div>
                   <div className="ml-3 text-sm">
@@ -440,25 +439,24 @@ const Register = ({ onLoginClick }) => {
               </div>
             </div>
 
-            <div className="flex justify-between">
+            <div className="flex justify-between mt-4">
               <button
                 type="button"
                 onClick={prevStep}
-                className="inline-flex items-center px-5 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="flex items-center px-5 py-2.5 border border-gray-300 shadow-sm rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <svg className="mr-2 -ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                </svg>
+                <FaArrowLeft className="mr-2 h-4 w-4" style={{minWidth: '1rem'}} />
                 Quay lại
               </button>
+              
               <button
                 type="submit"
                 disabled={loading}
-                className={`inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className="flex items-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -469,21 +467,21 @@ const Register = ({ onLoginClick }) => {
                 )}
               </button>
             </div>
-          </>
-        )}
-      </form>
+          </form>
+        </div>
+      )}
 
       {/* Sign in link */}
-      <p className="mt-8 text-center text-sm text-gray-600">
-        Đã có tài khoản?{' '}
+      <div className="mt-8 text-center">
         <button 
           type="button" 
-          onClick={onLoginClick} 
-          className="font-medium text-blue-600 hover:text-blue-500 underline focus:outline-none"
+          onClick={onLoginClick}
+          className="inline-flex items-center font-medium text-blue-600 hover:text-blue-500 hover:underline focus:outline-none"
         >
-          Đăng nhập ngay
+          <FaUser className="mr-1.5 h-4 w-4" style={{minWidth: '1rem'}} />
+          <span>Đã có tài khoản? Đăng nhập ngay</span>
         </button>
-      </p>
+      </div>
     </div>
   );
 };

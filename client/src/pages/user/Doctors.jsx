@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
 import { DoctorCard } from '../../components/user';
-import { FaSearch, FaUserMd, FaHospital, FaStethoscope, FaStar, FaFilter, FaCalendarCheck, FaChevronDown, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaUserMd, FaHospital, FaStethoscope, FaStar, FaFilter, FaCalendarCheck, FaChevronDown, FaTimes, FaAngleLeft, FaAngleRight } from 'react-icons/fa';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 const Doctors = () => {
   // Filter states
@@ -23,8 +25,22 @@ const Doctors = () => {
   const [branches, setBranches] = useState([]);
   const [activeFilters, setActiveFilters] = useState(0);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Add state for debug panel
   const [showDebug, setShowDebug] = useState(false);
+
+  // Initialize AOS animation library
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: 'ease-out-cubic'
+    });
+  }, []);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -267,6 +283,49 @@ const Doctors = () => {
     setActiveFilters(count);
   }, [selectedDepartment, selectedBranch, selectedRating, selectedExperience, selectedAvailability]);
 
+  // Pagination logic
+  useEffect(() => {
+    // For debugging
+    console.log("Filtered doctors:", filteredDoctors.length);
+    console.log("Items per page:", itemsPerPage);
+    console.log("Current page:", currentPage);
+    
+    // Calculate total pages based on filtered doctors
+    const total = Math.ceil(filteredDoctors.length / itemsPerPage);
+    console.log("Total pages calculated:", total);
+    setTotalPages(total);
+    
+    // Reset to page 1 when filters change
+    if (currentPage > total && total > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredDoctors, itemsPerPage, searchQuery, selectedDepartment, selectedBranch, selectedRating, selectedExperience, selectedAvailability]);
+
+  // Get current doctors
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentDoctors = filteredDoctors.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Change page
+  const paginate = (pageNumber) => {
+    console.log("Paginating to page:", pageNumber);
+    setCurrentPage(pageNumber);
+    // Scroll to top of results
+    window.scrollTo({ top: 500, behavior: 'smooth' });
+  };
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 500, behavior: 'smooth' });
+    }
+  };
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 500, behavior: 'smooth' });
+    }
+  };
+
   // Handle filter changes
   const handleDepartmentChange = (e) => {
     setSelectedDepartment(e.target.value);
@@ -371,11 +430,11 @@ const Doctors = () => {
         </div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">Đội Ngũ Bác Sĩ</h1>
-            <p className="text-xl opacity-90 mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white" data-aos="fade-up">Đội Ngũ Bác Sĩ</h1>
+            <p className="text-xl opacity-90 mb-8" data-aos="fade-up" data-aos-delay="100">
               Đội ngũ bác sĩ chuyên nghiệp, giàu kinh nghiệm của chúng tôi luôn sẵn sàng phục vụ quý khách
             </p>
-            <div className="relative max-w-xl mx-auto">
+            <div className="relative max-w-xl mx-auto" data-aos="fade-up" data-aos-delay="200">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaSearch className="h-5 w-5 text-gray-400" />
               </div>
@@ -404,7 +463,7 @@ const Doctors = () => {
 
       <div className="container mx-auto px-4 py-12">
         {/* Mobile Filter Toggle */}
-        <div className="md:hidden mb-4">
+        <div className="md:hidden mb-4" data-aos="fade-up">
           <button 
             onClick={toggleFilters}
             className="w-full py-3 px-4 bg-white rounded-lg shadow-sm border border-gray-200 flex justify-between items-center"
@@ -423,7 +482,7 @@ const Doctors = () => {
         </div>
 
         {/* Filters */}
-        <div className={`${showFilters ? 'block' : 'hidden'} md:block`}>
+        <div className={`${showFilters ? 'block' : 'hidden'} md:block`} data-aos="fade-up">
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center">
@@ -636,7 +695,7 @@ const Doctors = () => {
           </div>
         </div>
 
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between" data-aos="fade-up">
           <h2 className="text-2xl font-bold text-gray-800 flex items-center">
             <FaUserMd className="text-primary mr-2" />
             Danh Sách Bác Sĩ
@@ -649,11 +708,74 @@ const Doctors = () => {
 
         {/* Doctors Grid */}
         {Array.isArray(filteredDoctors) && filteredDoctors.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {filteredDoctors.map(doctor => (
-              <DoctorCard key={doctor._id} doctor={doctor} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {currentDoctors.map((doctor, index) => (
+                <div key={doctor._id} data-aos="fade-up" data-aos-delay={index % 3 * 100}>
+                  <DoctorCard doctor={doctor} />
+                </div>
+              ))}
+            </div>
+            
+            {/* Pagination Controls */}
+            {(totalPages > 1 || filteredDoctors.length > 0) && (
+              <div className="flex justify-center mb-12 items-center" data-aos="fade-up">
+                <button 
+                  onClick={prevPage} 
+                  disabled={currentPage === 1}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg mr-2 ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:bg-primary/10'}`}
+                >
+                  <FaAngleLeft />
+                </button>
+                
+                <div className="flex space-x-1">
+                  {[...Array(totalPages || 1).keys()].map(number => {
+                    // Show current page, first, last, and pages around current
+                    if (
+                      number + 1 === 1 || 
+                      number + 1 === totalPages || 
+                      (number + 1 >= currentPage - 1 && number + 1 <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={number}
+                          onClick={() => paginate(number + 1)}
+                          className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+                            currentPage === number + 1
+                              ? 'bg-primary text-white'
+                              : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {number + 1}
+                        </button>
+                      );
+                    } else if (
+                      number + 1 === currentPage - 2 || 
+                      number + 1 === currentPage + 2
+                    ) {
+                      return (
+                        <span 
+                          key={number} 
+                          className="w-10 h-10 flex items-center justify-center text-gray-400"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+                
+                <button 
+                  onClick={nextPage} 
+                  disabled={currentPage === totalPages}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg ml-2 ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:bg-primary/10'}`}
+                >
+                  <FaAngleRight />
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center mb-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -671,7 +793,7 @@ const Doctors = () => {
         )}
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-blue-700 rounded-xl p-8 md:p-12 text-white shadow-lg relative overflow-hidden" data-aos="fade-up" data-aos-delay="100">
           <div className="absolute top-0 right-0 w-64 h-64 -mt-10 -mr-20 opacity-20">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm-3.707 6.293a1 1 0 011.414 0L10 10.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -693,50 +815,6 @@ const Doctors = () => {
           </div>
         </div>
       </div>
-
-      {/* Debug Button - Fixed position at the bottom right */}
-      <button
-        onClick={toggleDebug}
-        className="fixed bottom-4 right-4 bg-gray-800 text-white p-2 rounded-full shadow-lg z-50 opacity-70 hover:opacity-100"
-        title="Debug Info"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-        </svg>
-      </button>
-
-      {/* Debug Panel */}
-      {showDebug && (
-        <div className="fixed bottom-16 right-4 bg-white p-4 rounded-md shadow-lg z-50 text-xs max-w-sm max-h-96 overflow-auto">
-          <h3 className="font-bold mb-2">Debug Info</h3>
-          <div className="space-y-2">
-            <div>
-              <p><strong>Error state:</strong> {error ? 'Yes' : 'No'}</p>
-              <p><strong>Loading state:</strong> {loading ? 'Yes' : 'No'}</p>
-              <p><strong>Active filters:</strong> {activeFilters}</p>
-            </div>
-            <div>
-              <p><strong>Departments:</strong> {departments.length}</p>
-              <p><strong>Branches:</strong> {branches.length}</p>
-              <p><strong>All Doctors:</strong> {allDoctors.length}</p>
-              <p><strong>Filtered Doctors:</strong> {filteredDoctors.length}</p>
-            </div>
-            <div>
-              <p><strong>Selected Department:</strong> {selectedDepartment || 'None'}</p>
-              <p><strong>Selected Branch:</strong> {selectedBranch || 'None'}</p>
-              <p><strong>Selected Rating:</strong> {selectedRating || 'None'}</p>
-              <p><strong>Selected Experience:</strong> {selectedExperience || 'None'}</p>
-              <p><strong>Selected Availability:</strong> {selectedAvailability || 'None'}</p>
-            </div>
-            <button 
-              onClick={toggleDebug}
-              className="mt-2 bg-gray-200 px-2 py-1 rounded text-gray-700 hover:bg-gray-300 w-full"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

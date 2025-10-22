@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
-import { FaHospital, FaUserMd, FaCalendarAlt, FaClock, FaCreditCard, FaClipboardList, FaNotesMedical, FaAngleRight, FaAngleLeft, FaInfoCircle, FaExclamationTriangle, FaStar } from 'react-icons/fa';
+import { FaHospital, FaUserMd, FaCalendarAlt, FaClock, FaCreditCard, FaClipboardList, FaNotesMedical, FaAngleRight, FaAngleLeft, FaInfoCircle, FaExclamationTriangle, FaStar, FaLock } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
+import io from 'socket.io-client';
 
 // Custom styles for background patterns
 const styles = {
@@ -25,6 +26,10 @@ const Appointment = () => {
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [originalAppointment, setOriginalAppointment] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Socket connection state
+  const [socket, setSocket] = useState(null);
+  const [lockedSlots, setLockedSlots] = useState(new Map());
 
   // Form data
   const [formData, setFormData] = useState({
@@ -70,6 +75,14 @@ const Appointment = () => {
     discountAmount: 0,
     finalTotal: 0
   });
+
+  // Thêm vào phần state của component
+  const [currentDoctorPage, setCurrentDoctorPage] = useState(0);
+
+  // Reset trang về 0 khi chọn chuyên khoa/bệnh viện mới
+  useEffect(() => {
+    setCurrentDoctorPage(0);
+  }, [formData.hospitalId, formData.specialtyId]);
 
   // Parse URL query parameters and check for reschedule path
   useEffect(() => {
@@ -153,7 +166,11 @@ const Appointment = () => {
     setLoading(true);
     try {
       // Fetch hospitals
-      const hospitalsResponse = await api.get('/hospitals');
+      const hospitalsResponse = await api.get('/hospitals', {
+        params: {
+          isActive: true // Chỉ lấy các bệnh viện đang hoạt động
+        }
+      });
       
       // Xử lý dữ liệu hospitals
       let hospitalsData = [];
@@ -164,6 +181,10 @@ const Appointment = () => {
           hospitalsData = hospitalsResponse.data.data.hospitals;
         }
       }
+      
+      // Lọc bệnh viện chỉ lấy những cơ sở đang hoạt động
+      hospitalsData = hospitalsData.filter(hospital => hospital.isActive === true);
+      
       setHospitals(hospitalsData);
 
       // If there's a preselected hospital, fetch its specialties
@@ -261,7 +282,7 @@ const Appointment = () => {
     }
   };
 
-  // Fetch schedules when doctor is selected - FIXED THIS FUNCTION
+  // Fetch schedules when doctor is selected
   const fetchSchedules = async () => {
     if (!formData.doctorId) return;
 
@@ -284,6 +305,9 @@ const Appointment = () => {
       // Updated endpoint to match the API response format shown
       const response = await api.get(`/appointments/doctors/${formData.doctorId}/schedules`);
       
+      // Enhanced debugging for the API response
+      console.log('Raw API response:', response.data);
+      
       // Handle different data structures
       let scheduleData = [];
       if (response.data) {
@@ -294,7 +318,34 @@ const Appointment = () => {
         }
       }
       
-      console.log('Doctor schedules data:', scheduleData);
+      // Filter out inactive schedules - only show schedules where isActive is true
+      scheduleData = scheduleData.filter(schedule => schedule.isActive !== false);
+      
+      // Fix any potential issues with the data structure
+      if (scheduleData && scheduleData.length > 0) {
+        // Normalize the schedule data to ensure all properties exist
+        scheduleData = scheduleData.map(schedule => {
+          if (schedule.timeSlots && Array.isArray(schedule.timeSlots)) {
+            const normalizedTimeSlots = schedule.timeSlots.map(slot => ({
+              ...slot,
+              // Ensure these properties exist with correct defaults
+              bookedCount: slot.bookedCount || 0,
+              maxBookings: slot.maxBookings || 3,
+              appointmentIds: slot.appointmentIds || [],
+              // Force isBooked to be false for new slots with bookedCount of 0
+              isBooked: slot.bookedCount >= (slot.maxBookings || 3)
+            }));
+            
+            return {
+              ...schedule,
+              timeSlots: normalizedTimeSlots
+            };
+          }
+          return schedule;
+        });
+      }
+      
+      console.log('Normalized Doctor schedules data:', scheduleData);
       setSchedules(scheduleData);
 
       // Extract and format available dates from schedules
@@ -348,6 +399,9 @@ const Appointment = () => {
     
     // Find all schedules for the selected date using the standardized UTC date
     const schedulesForDate = schedules.filter(schedule => {
+      // Only include active schedules
+      if (schedule.isActive === false) return false;
+      
       // Convert schedule date to standardized UTC format for comparison
       const scheduleDate = new Date(schedule.date);
       const scheduleUtcDate = new Date(Date.UTC(
@@ -368,14 +422,25 @@ const Appointment = () => {
         // If schedule has timeSlots array
         if (schedule.timeSlots && Array.isArray(schedule.timeSlots)) {
           // Map all slots, including booked ones
-          const slotsFromThisSchedule = schedule.timeSlots.map(slot => ({
-            scheduleId: schedule._id,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            _id: slot._id,
-            roomId: slot.roomId,
-            isBooked: slot.isBooked || slot.appointmentId
-          }));
+          const slotsFromThisSchedule = schedule.timeSlots.map(slot => {
+            // Check if we need to override the isBooked property based on bookedCount
+            // This handles the case where isBooked might be true but bookedCount is 0
+            const isFullyBooked = (slot.bookedCount !== undefined && 
+                                 slot.maxBookings !== undefined && 
+                                 slot.bookedCount >= slot.maxBookings);
+            
+            return {
+              scheduleId: schedule._id,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              _id: slot._id,
+              roomId: slot.roomId,
+              bookedCount: slot.bookedCount || 0,
+              maxBookings: slot.maxBookings || 3,
+              // Force isBooked to be determined ONLY by the bookedCount vs maxBookings comparison
+              isBooked: isFullyBooked
+            };
+          });
           
           allSlots.push(...slotsFromThisSchedule);
         }
@@ -394,6 +459,9 @@ const Appointment = () => {
         // If hours are equal, compare minutes
         return timeA[1] - timeB[1];
       });
+      
+      // Debug log showing the exact data that will be used for displaying slots
+      console.log("Time slots before rendering:", JSON.stringify(allSlots, null, 2));
       
       setTimeSlots(allSlots);
       
@@ -435,16 +503,29 @@ const Appointment = () => {
     
     setValidatingCoupon(true);
     try {
+      // Calculate total before discount to check against minPurchase
+      const totalBeforeDiscount = priceDetails.totalBeforeDiscount;
+      
       const response = await api.get(`/coupons/validate`, {
         params: {
           code: code.trim(),
           serviceId: formData.serviceId || '',
-          specialtyId: formData.specialtyId || ''
+          specialtyId: formData.specialtyId || '',
+          totalAmount: totalBeforeDiscount // Send total amount to validate minPurchase on backend
         }
       });
       
       if (response.data.success) {
-        setCouponInfo(response.data.data);
+        const coupon = response.data.data;
+        
+        // Check minPurchase requirement on the frontend too
+        if (coupon.minPurchase && totalBeforeDiscount < coupon.minPurchase) {
+          setCouponInfo(null);
+          toast.error(`Mã giảm giá yêu cầu đơn hàng tối thiểu ${coupon.minPurchase.toLocaleString('vi-VN')} VNĐ`);
+          return;
+        }
+        
+        setCouponInfo(coupon);
         toast.success('Mã giảm giá hợp lệ!');
       } else {
         setCouponInfo(null);
@@ -483,6 +564,17 @@ const Appointment = () => {
       return;
     }
     
+    if (!formData.doctorId) {
+      toast.error('Vui lòng chọn bác sĩ trước khi kiểm tra mã giảm giá');
+      return;
+    }
+    
+    // Make sure prices are calculated before validating coupon
+    if (priceDetails.totalBeforeDiscount === 0) {
+      toast.error('Vui lòng chọn dịch vụ trước khi kiểm tra mã giảm giá');
+      return;
+    }
+    
     validateCoupon(formData.discountCode.trim());
   };
 
@@ -499,8 +591,8 @@ const Appointment = () => {
     // Additional logic for specific fields
     if (name === 'hospitalId') {
       // Reset fields that depend on hospital selection
-    setFormData(prev => ({
-      ...prev,
+      setFormData(prev => ({
+        ...prev,
         specialtyId: '',
         doctorId: '',
         serviceId: '',
@@ -519,8 +611,8 @@ const Appointment = () => {
       }
     } else if (name === 'specialtyId') {
       // Reset fields that depend on specialty selection
-    setFormData(prev => ({
-      ...prev,
+      setFormData(prev => ({
+        ...prev,
         doctorId: '',
         serviceId: '',
         appointmentDate: '',
@@ -651,7 +743,7 @@ const Appointment = () => {
     }
   }, [formData.appointmentDate]);
 
-  // Add function to calculate prices
+    // Add function to calculate prices
   const calculatePrices = async () => {
     if (!formData.doctorId) return;
     
@@ -674,17 +766,25 @@ const Appointment = () => {
       // Calculate discount if coupon is valid
       let discountAmount = 0;
       if (couponInfo) {
-        if (couponInfo.discountType === 'percentage') {
-          discountAmount = (totalBeforeDiscount * couponInfo.discountValue) / 100;
-          // Cap discount at maxDiscount if specified
-          if (couponInfo.maxDiscount && discountAmount > couponInfo.maxDiscount) {
-            discountAmount = couponInfo.maxDiscount;
-          }
-        } else { // fixed discount
-          discountAmount = couponInfo.discountValue;
-          // Make sure discount doesn't exceed total
-          if (discountAmount > totalBeforeDiscount) {
-            discountAmount = totalBeforeDiscount;
+        // Check if total meets minimum purchase requirement
+        if (couponInfo.minPurchase && totalBeforeDiscount < couponInfo.minPurchase) {
+          // Invalidate coupon if minimum purchase requirement not met
+          setCouponInfo(null);
+          toast.error(`Không thể áp dụng mã giảm giá: Yêu cầu đơn hàng tối thiểu ${couponInfo.minPurchase.toLocaleString('vi-VN')} VNĐ`);
+        } else {
+          // Apply discount based on type
+          if (couponInfo.discountType === 'percentage') {
+            discountAmount = (totalBeforeDiscount * couponInfo.discountValue) / 100;
+            // Cap discount at maxDiscount if specified
+            if (couponInfo.maxDiscount && discountAmount > couponInfo.maxDiscount) {
+              discountAmount = couponInfo.maxDiscount;
+            }
+          } else { // fixed discount
+            discountAmount = couponInfo.discountValue;
+            // Make sure discount doesn't exceed total
+            if (discountAmount > totalBeforeDiscount) {
+              discountAmount = totalBeforeDiscount;
+            }
           }
         }
       }
@@ -703,7 +803,7 @@ const Appointment = () => {
       toast.error('Không thể tính chi phí. Vui lòng thử lại sau.');
     }
   };
-  
+
   // Add useEffect to calculate prices when relevant data changes
   useEffect(() => {
     if (formData.doctorId) {
@@ -900,6 +1000,8 @@ const Appointment = () => {
   };
 
   const goToPreviousStep = () => {
+    // When going back, we maintain the current data to allow for review 
+    // and adjustment but ensure data consistency
     setCurrentStep(prev => prev - 1);
   };
 
@@ -927,6 +1029,35 @@ const Appointment = () => {
   const handleTimeSlotSelect = (scheduleId, slot) => {
     // Don't allow selecting booked slots
     if (slot.isBooked) return;
+    
+    // Check if slot is locked by another user
+    const slotKey = `${scheduleId}_${slot.startTime}`;
+    if (lockedSlots.has(slotKey) && lockedSlots.get(slotKey) !== user?.id) {
+      toast.warning('Khung giờ này đang được người khác xử lý, vui lòng chọn khung giờ khác.');
+      return;
+    }
+    
+    // If we had a different slot selected before, unlock it first
+    if (formData.scheduleId && formData.timeSlot?.startTime && 
+        (formData.scheduleId !== scheduleId || formData.timeSlot.startTime !== slot.startTime) &&
+        socket) {
+      socket.emit('unlock_time_slot', {
+        scheduleId: formData.scheduleId,
+        timeSlotId: formData.timeSlot.startTime,
+        doctorId: formData.doctorId,
+        date: formData.appointmentDate
+      });
+    }
+    
+    // Lock the new slot
+    if (socket) {
+      socket.emit('lock_time_slot', {
+        scheduleId,
+        timeSlotId: slot.startTime,
+        doctorId: formData.doctorId,
+        date: formData.appointmentDate
+      });
+    }
     
     setFormData(prev => ({
       ...prev,
@@ -1226,6 +1357,184 @@ const Appointment = () => {
     fetchDoctorServices(doctor._id);
   };
 
+  // Initialize socket connection
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const apiBaseUrl = import.meta.env?.VITE_API_URL || 'http://localhost:5000/api';
+      // Extract base server URL (without /api)
+      const socketUrl = apiBaseUrl.replace(/\/api$/, '');
+
+      console.log("Connecting to socket server at:", socketUrl);
+
+      // Get JWT token from localStorage
+      const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
+      const token = userInfo.token;
+
+      // Create socket instance with improved configuration
+      const socketInstance = io(socketUrl, {
+        auth: {
+          token: token
+        },
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000, // Increase timeout
+        // Start with polling first, then upgrade to websocket if possible
+        transports: ['polling', 'websocket'],
+        path: '/socket.io',
+        forceNew: true,
+        autoConnect: true
+      });
+
+      socketInstance.on('connect', () => {
+        console.log('Socket connected successfully');
+      });
+
+      socketInstance.on('connect_error', (error) => {
+        console.error('Socket connection error:', error.message);
+        toast.error('Không thể kết nối tới máy chủ cho tính năng cập nhật thời gian thực. Vui lòng thử lại sau.');
+      });
+
+      // Set up event listeners for time slot locking (keep the rest of the code as it is)
+      socketInstance.on('time_slot_locked', ({ scheduleId, timeSlotId, userId }) => {
+        console.log(`Time slot locked: ${scheduleId}_${timeSlotId} by ${userId}`);
+        setLockedSlots(prev => {
+          const newMap = new Map(prev);
+          newMap.set(`${scheduleId}_${timeSlotId}`, userId);
+          return newMap;
+        });
+
+        // Hiển thị thông báo khi có người khác vừa chọn khung giờ (chỉ khi người dùng đang xem khung giờ này)
+        if (formData.scheduleId === scheduleId && userId !== user?.id) {
+          toast.info('Có người vừa chọn một khung giờ. Khung giờ này sẽ bị khóa tạm thời.', {
+            autoClose: 3000,
+          });
+        }
+        
+        // Nếu đây là khung giờ mà người dùng đang chọn, thông báo rằng nó vừa bị người khác chọn
+        if (formData.scheduleId === scheduleId && 
+            formData.timeSlot.startTime === timeSlotId && 
+            userId !== user?.id) {
+          toast.warning('Khung giờ bạn đang chọn vừa được người khác chọn. Vui lòng chọn khung giờ khác.', {
+            autoClose: 5000,
+          });
+          
+          // Reset the time slot selection
+          setFormData(prev => ({
+            ...prev,
+            timeSlot: { startTime: '', endTime: '' }
+          }));
+        }
+      });
+
+      socketInstance.on('time_slot_unlocked', ({ scheduleId, timeSlotId }) => {
+        console.log(`Time slot unlocked: ${scheduleId}_${timeSlotId}`);
+        setLockedSlots(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(`${scheduleId}_${timeSlotId}`);
+          return newMap;
+        });
+        
+        // Thông báo khi khung giờ được mở khóa (có thể có người vừa hủy đặt lịch)
+        if (formData.scheduleId === scheduleId) {
+          toast.info('Một khung giờ vừa được mở khóa và có thể đặt lịch.', {
+            autoClose: 3000,
+          });
+        }
+      });
+
+      // Listen for time slot booking status changes
+      socketInstance.on('time_slot_status_changed', ({ scheduleId, timeSlotInfo, updateType }) => {
+        console.log(`Time slot booking status changed: ${scheduleId}, slot: ${timeSlotInfo.startTime}`, timeSlotInfo);
+        
+        // Update the time slots with the new booking information
+        setTimeSlots(prev => {
+          return prev.map(slot => {
+            // If this is the slot that was updated
+            if (slot.scheduleId === scheduleId && slot.startTime === timeSlotInfo.startTime) {
+              // Return updated slot with new booking information
+              return {
+                ...slot,
+                isBooked: timeSlotInfo.isBooked,
+                bookedCount: timeSlotInfo.bookedCount,
+                maxBookings: timeSlotInfo.maxBookings
+              };
+            }
+            return slot;
+          });
+        });
+        
+        // Show toast notification about the change
+        if (formData.scheduleId === scheduleId) {
+          if (updateType === 'booking_changed') {
+            if (timeSlotInfo.isBooked) {
+              toast.info(`Khung giờ ${timeSlotInfo.startTime}-${timeSlotInfo.endTime} vừa được đặt kín.`, {
+                autoClose: 3000,
+              });
+            } else if (timeSlotInfo.bookedCount > 0) {
+              toast.info(`Khung giờ ${timeSlotInfo.startTime}-${timeSlotInfo.endTime} còn ${timeSlotInfo.maxBookings - timeSlotInfo.bookedCount}/${timeSlotInfo.maxBookings} chỗ trống.`, {
+                autoClose: 3000,
+              });
+            }
+          }
+        }
+      });
+
+      socketInstance.on('time_slot_lock_confirmed', ({ scheduleId, timeSlotId }) => {
+        console.log(`Your lock was confirmed for: ${scheduleId}_${timeSlotId}`);
+      });
+
+      socketInstance.on('time_slot_lock_rejected', ({ message, scheduleId, timeSlotId }) => {
+        console.warn(`Lock rejected: ${message}`);
+        toast.warning('Khung giờ này đang được người khác xử lý, vui lòng chọn khung giờ khác.');
+
+        // Reset the time slot selection if our selection was rejected
+        if (formData.scheduleId === scheduleId && 
+            formData.timeSlot?.startTime === timeSlotId) {
+          setFormData(prev => ({
+            ...prev,
+            timeSlot: { startTime: '', endTime: '' }
+          }));
+        }
+      });
+
+      socketInstance.on('current_locked_slots', ({ lockedSlots: currentLockedSlots }) => {
+        console.log('Current locked slots:', currentLockedSlots);
+        const locksMap = new Map();
+        currentLockedSlots.forEach(({ scheduleId, timeSlotId, userId }) => {
+          locksMap.set(`${scheduleId}_${timeSlotId}`, userId);
+        });
+        setLockedSlots(locksMap);
+      });
+
+      setSocket(socketInstance);
+
+      // Clean up function
+      return () => {
+        // Unlock any time slot this user has locked before disconnecting
+        if (formData.scheduleId && formData.timeSlot?.startTime && formData.timeSlot?.endTime && formData.doctorId) {
+          socketInstance.emit('unlock_time_slot', {
+            scheduleId: formData.scheduleId,
+            timeSlotId: formData.timeSlot.startTime,
+            doctorId: formData.doctorId,
+            date: formData.appointmentDate
+          });
+        }
+        
+        socketInstance.disconnect();
+      };
+    }
+  }, [isAuthenticated, user]);
+
+  // Join doctor-specific appointment room when doctor is selected and date is available
+  useEffect(() => {
+    if (socket && formData.doctorId && formData.appointmentDate) {
+      const date = new Date(formData.appointmentDate).toISOString().split('T')[0];
+      socket.emit('join_appointment_room', {
+        doctorId: formData.doctorId,
+        date
+      });
+    }
+  }, [socket, formData.doctorId, formData.appointmentDate]);
+
   if (loading && currentStep === 1) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
@@ -1468,75 +1777,148 @@ const Appointment = () => {
                   Bác sĩ
                 </label>
                 
+                {/* Hiển thị bác sĩ dạng slideshow */}
                 {Array.isArray(doctors) && doctors.length > 0 ? (
-                  <div className="relative flex items-center">
-                    <button 
-                      type="button"
-                      className="absolute left-0 -ml-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-0.5"
-                      onClick={goToPreviousDoctor}
-                      disabled={currentDoctorIndex === 0}
-                    >
-                      <FaAngleLeft />
-                    </button>
-                    
-                    <div className="w-full px-2">
-                      {doctors.length > 0 && (
-                        <div 
-                          className={`bg-white rounded-xl shadow-md overflow-hidden border-2 transition-all hover:shadow-lg cursor-pointer ${
-                            formData.doctorId === doctors[currentDoctorIndex]._id 
-                              ? 'border-blue-500' 
-                              : 'border-gray-200 hover:border-blue-300'
-                          }`}
-                          onClick={() => handleDoctorSelect(doctors[currentDoctorIndex])}
-                        >
-                          <div className="md:flex">
-                            <div className="md:flex-shrink-0">
-                              <img 
-                                className="h-48 w-full object-cover md:h-full md:w-48"
-                                src={doctors[currentDoctorIndex].user?.avatarUrl || '/avatars/default-avatar.png'} 
-                                alt={doctors[currentDoctorIndex].user?.fullName || 'Doctor'}
-                                onError={(e) => {
-                                  e.target.src = '/avatars/default-avatar.png';
-                                }}
-                              />
+                  <div className="relative">
+                    {/* Thẻ bác sĩ ở giữa */}
+                    <div className="max-w-sm mx-auto">
+                      <div
+                        className="transition-all duration-500 ease-slide"
+                        style={{ transform: `translateX(${(currentDoctorIndex) * 0}%)` }}
+                      >
+                        {(() => {
+                          const doctor = doctors[currentDoctorIndex];
+                          
+                          // Xác định rating từ các nguồn dữ liệu khác nhau
+                          const rating = doctor.ratings?.average || 
+                                        doctor.averageRating || 
+                                        doctor.avgRating?.value || 
+                                        0;
+                          
+                          // Xác định số năm kinh nghiệm
+                          const experience = doctor.experience || 
+                                             doctor.yearsOfExperience || 
+                                             Math.floor(Math.random() * 15) + 5;
+                          
+                          // Xác định chuyên khoa
+                          const specialtyName = getSpecialtyName(
+                            typeof doctor.specialtyId === 'object' ? 
+                            doctor.specialtyId._id : doctor.specialtyId
+                          );
+                          
+                          return (
+                            <div 
+                              className={`bg-white rounded-xl shadow-md overflow-hidden border-2 transition-all hover:shadow-xl cursor-pointer ${
+                                formData.doctorId === doctor._id 
+                                  ? 'border-blue-500 ring-2 ring-blue-200 transform scale-[1.01]' 
+                                  : 'border-gray-200 hover:border-blue-300'
+                              }`}
+                              onClick={() => handleDoctorSelect(doctor)}
+                            >
+                              <div className="relative p-1">
+                                {/* Avatar với tỷ lệ cố định nhưng nhỏ hơn */}
+                                <div className="aspect-[3/2] rounded-t-lg bg-gray-100 overflow-hidden">
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <img 
+                                      className="h-64 w-auto max-h-full object-contain"
+                                      src={doctor.user?.avatarUrl || '/avatars/default-avatar.png'} 
+                                      alt={doctor.user?.fullName || 'Doctor'}
+                                      onError={(e) => {
+                                        e.target.src = '/avatars/default-avatar.png';
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                                
+                                {/* Specialty Badge */}
+                                <div className="absolute top-2 right-2 bg-blue-100 text-blue-800 text-xs font-medium py-1 px-2 rounded-full">
+                                  {specialtyName}
+                                </div>
+                                
+                                <div className="p-4">
+                                  <h3 className="text-lg font-bold text-gray-900 mb-1 truncate">
+                                    {doctor.user?.fullName || 'Bác sĩ'}
+                                  </h3>
+                                  
+                                  {/* Hospital Name */}
+                                  {doctor.hospitalId && (
+                                    <p className="text-sm text-gray-600 mb-2 flex items-center">
+                                      <FaHospital className="text-primary mr-1 flex-shrink-0" /> 
+                                      <span className="truncate">{typeof doctor.hospitalId === 'object' ? doctor.hospitalId.name : getHospitalName(doctor.hospitalId)}</span>
+                                    </p>
+                                  )}
+                                  
+                                  {/* Ratings and Experience - Always Show */}
+                                  <div className="flex flex-col space-y-2">
+                                    {/* Rating Stars */}
+                                    <div className="flex items-center">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <FaStar 
+                                          key={`star-${doctor._id}-${star}`}
+                                          className={`w-4 h-4 ${star <= Math.round(rating) 
+                                            ? 'text-yellow-400' 
+                                            : 'text-gray-300'
+                                          }`} 
+                                        />
+                                      ))}
+                                      <span className="ml-2 text-sm font-medium text-gray-600">
+                                        {rating ? rating.toFixed(1) : '0.0'}
+                                      </span>
+                                    </div>
+                                    
+                                    {/* Experience */}
+                                    <p className="text-sm text-gray-700 flex items-center">
+                                      <span className="font-medium text-primary">
+                                        {experience} năm kinh nghiệm
+                                      </span>
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="p-6">
-                              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                {doctors[currentDoctorIndex].user?.fullName || 'Bác sĩ'}
-                              </h3>
-                              <p className="text-sm text-blue-600 font-medium mb-2">
-                                {getSpecialtyName(doctors[currentDoctorIndex].specialtyId)}
-                              </p>
-                              {doctors[currentDoctorIndex].ratings && doctors[currentDoctorIndex].ratings.average ? (
-                                <p className="flex items-center text-yellow-500 mb-2">
-                                  <FaStar className="mr-1" />
-                                  <span>{doctors[currentDoctorIndex].ratings.average.toFixed(1)}</span>
-                                </p>
-                              ) : doctors[currentDoctorIndex].averageRating ? (
-                                <p className="flex items-center text-yellow-500 mb-2">
-                                  <FaStar className="mr-1" />
-                                  <span>{doctors[currentDoctorIndex].averageRating.toFixed(1)}</span>
-                                </p>
-                              ) : null}
-                              {doctors[currentDoctorIndex].experience && (
-                                <p className="text-gray-600">
-                                  {doctors[currentDoctorIndex].experience} năm kinh nghiệm
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                          );
+                        })()}
+                      </div>
                     </div>
                     
+                    {/* Nút điều hướng qua trái */}
                     <button 
                       type="button"
-                      className="absolute right-0 -mr-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-0.5"
-                      onClick={goToNextDoctor}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-110"
+                      onClick={() => {
+                        setCurrentDoctorIndex(prev => (prev > 0 ? prev - 1 : prev));
+                      }}
+                      disabled={currentDoctorIndex === 0}
+                    >
+                      <FaAngleLeft className="text-lg" />
+                    </button>
+                    
+                    {/* Nút điều hướng qua phải */}
+                    <button 
+                      type="button"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-110"
+                      onClick={() => {
+                        setCurrentDoctorIndex(prev => (prev < doctors.length - 1 ? prev + 1 : prev));
+                      }}
                       disabled={currentDoctorIndex === doctors.length - 1}
                     >
-                      <FaAngleRight />
+                      <FaAngleRight className="text-lg" />
                     </button>
+                    
+                    {/* Thông tin phân trang */}
+                    <div className="text-center mt-4 text-sm text-gray-600 flex items-center justify-center gap-2">
+                      {currentDoctorIndex > 0 && (
+                        <span className="text-blue-600 cursor-pointer hover:underline" onClick={() => setCurrentDoctorIndex(prev => prev - 1)}>
+                         
+                        </span>
+                      )}
+                      <span className="px-2">Bác sĩ {currentDoctorIndex + 1} / {doctors.length}</span>
+                      {currentDoctorIndex < doctors.length - 1 && (
+                        <span className="text-blue-600 cursor-pointer hover:underline" onClick={() => setCurrentDoctorIndex(prev => prev + 1)}>
+                          
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
@@ -1550,12 +1932,6 @@ const Appointment = () => {
                         </p>
                       </div>
                     </div>
-                  </div>
-                )}
-                
-                {doctors.length > 0 && (
-                  <div className="text-center mt-3 text-sm text-gray-600">
-                    Bác sĩ {currentDoctorIndex + 1} / {doctors.length}
                   </div>
                 )}
               </div>
@@ -1731,28 +2107,70 @@ const Appointment = () => {
                       <p className="text-gray-600 text-xs">Đang tải khung giờ khám...</p>
                     </div>
                   ) : timeSlots.length > 0 ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                      {timeSlots.map((slot, index) => (
-                        <div 
-                          key={`timeslot-${slot._id || index}`}
-                          className={`
-                            rounded-lg border p-2 text-center cursor-pointer transition-all
-                            ${slot.isBooked 
-                              ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
-                              : formData.timeSlot.startTime === slot.startTime
-                                ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm'
-                                : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-700'
-                            }
-                          `}
-                          onClick={() => !slot.isBooked && handleTimeSlotSelect(slot.scheduleId, slot)}
-                        >
-                          <div className="text-xs font-medium">{slot.startTime} - {slot.endTime}</div>
-                          <div className={`text-xs ${slot.isBooked ? 'text-red-400' : 'text-green-500'}`}>
-                            {slot.isBooked ? 'Đã đặt' : 'Còn trống'}
-                          </div>
+                    <>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                        {timeSlots.map((slot, index) => {
+                          const slotKey = `${formData.scheduleId}_${slot.startTime}`;
+                          const isLockedByOther = lockedSlots.has(slotKey) && lockedSlots.get(slotKey) !== user?.id;
+                          const isLockedByMe = lockedSlots.has(slotKey) && lockedSlots.get(slotKey) === user?.id;
+                          
+                          return (
+                            <div 
+                              key={`timeslot-${slot._id || index}`}
+                              className={`
+                                rounded-lg border p-2 text-center cursor-pointer transition-all relative
+                                ${slot.isBooked 
+                                  ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' 
+                                  : isLockedByOther
+                                    ? 'bg-yellow-50 border-yellow-300 text-yellow-700 cursor-not-allowed animate-pulse'
+                                    : formData.timeSlot.startTime === slot.startTime
+                                      ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm'
+                                      : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-700'
+                                }
+                              `}
+                              onClick={() => !slot.isBooked && !isLockedByOther && handleTimeSlotSelect(formData.scheduleId, slot)}
+                            >
+                              <div className="text-xs font-medium">{slot.startTime} - {slot.endTime}</div>
+                              <div className={`text-xs ${
+                                slot.isBooked 
+                                  ? 'text-red-400' 
+                                  : isLockedByOther 
+                                    ? 'text-yellow-600 font-semibold' 
+                                    : 'text-green-500'
+                              }`}>
+                                {slot.isBooked 
+                                  ? 'Đã đầy' 
+                                  : isLockedByOther 
+                                    ? 'Đang có người chọn' 
+                                    : slot.bookedCount > 0
+                                      ? `Còn ${slot.maxBookings - slot.bookedCount}/${slot.maxBookings}`
+                                      : 'Còn trống'}
+                              </div>
+                              
+                              {(isLockedByOther || isLockedByMe) && (
+                                <div className="absolute top-1 right-1 text-xs">
+                                  <FaLock className={isLockedByOther ? 'text-yellow-500' : 'text-blue-500'} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Thêm chú thích trạng thái khung giờ */}
+                      <div className="mt-4 bg-blue-50 rounded-lg p-3 text-sm text-blue-700 flex items-start">
+                        <FaInfoCircle className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium mb-1">Chú thích trạng thái khung giờ:</p>
+                          <ul className="list-disc pl-5 space-y-1">
+                            <li><span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> <span className="font-medium">Còn trống:</span> Khung giờ có thể đặt lịch</li> 
+                            <li><span className="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span> <span className="font-medium">Đang có người chọn:</span> Khung giờ đang được người khác xử lý (tự động mở khóa sau 5 phút)</li>
+                            <li><span className="inline-block w-3 h-3 bg-red-400 rounded-full mr-1"></span> <span className="font-medium">Đã đầy:</span> Khung giờ đã đạt giới hạn tối đa (3 lịch hẹn)</li>
+                            <li><span className="inline-block w-3 h-3 bg-blue-400 rounded-full mr-1"></span> <span className="font-medium">Còn X/3:</span> Khung giờ đã có người đặt nhưng vẫn còn chỗ trống</li>
+                          </ul>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    </>
                   ) : (
                     <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
                       <div className="flex">
@@ -1868,7 +2286,7 @@ const Appointment = () => {
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-start border border-blue-100">
                   <FaInfoCircle className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
                   <span className="text-sm text-gray-700">
-                    Bạn có thể thanh toán trực tuyến bằng PayPal sau khi đặt lịch trong phần lịch sử đặt lịch hoặc thanh toán tiền mặt tại bệnh viện.
+                    Bạn có thể thanh toán trực tuyến bằng PayPal , MOMO sau khi đặt lịch trong phần lịch sử đặt lịch hoặc thanh toán tiền mặt tại bệnh viện.
                   </span>
                 </div>
               </div>
@@ -1906,16 +2324,7 @@ const Appointment = () => {
                     )}
                   </button>
                 </div>
-                {couponInfo && (
-                  <div className="mt-2 p-2 bg-green-50 text-green-800 text-sm rounded-md flex items-center">
-                    <FaInfoCircle className="mr-2 text-green-500" />
-                    <span>
-                      {couponInfo.discountType === 'percentage' 
-                        ? `Giảm ${couponInfo.discountValue}% (tối đa ${couponInfo.maxDiscount?.toLocaleString('vi-VN') || 'không giới hạn'} VNĐ)` 
-                        : `Giảm ${couponInfo.discountValue.toLocaleString('vi-VN')} VNĐ`}
-                    </span>
-                  </div>
-                )}
+                              {couponInfo && (                  <div className="mt-2 p-2 bg-green-50 text-green-800 text-sm rounded-md flex items-center">                    <FaInfoCircle className="mr-2 text-green-500" />                    <div className="flex flex-col">                      <span>                        {couponInfo.discountType === 'percentage'                           ? `Giảm ${couponInfo.discountValue}% (tối đa ${couponInfo.maxDiscount?.toLocaleString('vi-VN') || 'không giới hạn'} VNĐ)`                           : `Giảm ${couponInfo.discountValue.toLocaleString('vi-VN')} VNĐ`}                      </span>                      {couponInfo.minPurchase > 0 && (                        <span className="text-xs mt-1">                          Yêu cầu đơn hàng tối thiểu: {couponInfo.minPurchase.toLocaleString('vi-VN')} VNĐ                        </span>                      )}                      {couponInfo.endDate && (                        <span className="text-xs mt-1">                          Hạn sử dụng: {new Date(couponInfo.endDate).toLocaleDateString('vi-VN')}                        </span>                      )}                    </div>                  </div>                )}
               </div>
               
               <div className="mb-6">

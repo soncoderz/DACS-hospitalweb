@@ -5,11 +5,12 @@ import {
   FaNotesMedical, FaClipboardCheck, FaTimesCircle, FaCheckCircle,
   FaArrowLeft, FaFileAlt, FaPrint, FaExclamationCircle,
   FaClock, FaStethoscope, FaRegHospital, FaInfoCircle,
-  FaPhoneAlt, FaEnvelope, FaHome, FaDoorOpen
+  FaPhoneAlt, FaEnvelope, FaHome, FaDoorOpen, FaVideo, FaPlus, FaTimes
 } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 
 import api from '../../utils/api';
+import VideoCallButton from '../../components/VideoCallButton';
 
 const AppointmentDetail = () => {
   const { id } = useParams();
@@ -490,7 +491,17 @@ const AppointmentDetail = () => {
             </button>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Chi tiết lịch hẹn</h1>
-              <div className="text-xs sm:text-sm text-gray-500 mt-1">Mã lịch hẹn: <span className="font-medium text-primary">{appointment.bookingCode || 'N/A'}</span></div>
+              <div className="flex flex-wrap items-center gap-3 mt-1">
+                <div className="text-xs sm:text-sm text-gray-500">Mã lịch hẹn: <span className="font-medium text-primary">{appointment.bookingCode || 'N/A'}</span></div>
+                {appointment.queueNumber > 0 && (
+                  <div className="inline-flex items-center px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded text-xs sm:text-sm font-medium">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 11h.01M7 15h.01M11 7h6M11 11h6M11 15h6" />
+                    </svg>
+                    STT khám: {appointment.queueNumber}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div>
@@ -501,6 +512,15 @@ const AppointmentDetail = () => {
         {/* Actions */}
         <div className="px-4 sm:px-6 py-4 bg-gray-50 flex flex-wrap gap-3 justify-between border-b border-gray-100">
           <div className="flex flex-wrap gap-2 sm:gap-3">
+            {/* Video Call Button for confirmed appointments */}
+            {appointment.status === 'confirmed' && (
+              <VideoCallButton 
+                appointmentId={appointment._id}
+                userRole="doctor"
+                appointmentStatus={appointment.status}
+              />
+            )}
+            
             {appointment.status === 'pending' && (
               <>
                 <button 

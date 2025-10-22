@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  FaCalendarAlt, FaUserInjured, FaClipboardList, 
-  FaUserMd, FaClock, FaSignOutAlt, FaChartLine, 
-  FaTachometerAlt, FaCommentMedical, FaBell,
-  FaBars, FaTimes
+import {
+  FaCalendarAlt, FaUserInjured, FaClipboardList,
+  FaUserMd, FaClock, FaSignOutAlt, FaChartLine,
+  FaTachometerAlt, FaCommentMedical,
+  FaBars, FaTimes, FaHistory
 } from 'react-icons/fa';
 
 const DoctorLayout = ({ children }) => {
@@ -43,6 +43,7 @@ const DoctorLayout = ({ children }) => {
     { path: '/doctor/patients', label: 'Bệnh nhân', icon: <FaUserInjured /> },
     { path: '/doctor/schedule', label: 'Quản lý lịch trực', icon: <FaClock /> },
     { path: '/doctor/medical-records', label: 'Hồ sơ y tế', icon: <FaClipboardList /> },
+    { path: '/doctor/video-call-history', label: 'Lịch sử Video Call', icon: <FaHistory /> },
     { path: '/doctor/reviews', label: 'Đánh giá', icon: <FaCommentMedical /> },
     { path: '/doctor/profile', label: 'Hồ sơ cá nhân', icon: <FaUserMd /> },
   ];
@@ -61,7 +62,7 @@ const DoctorLayout = ({ children }) => {
       <aside className={`bg-gradient-to-br from-primary via-blue-600 to-primary-dark text-white flex flex-col fixed lg:sticky top-0 z-40 h-screen w-[280px] shadow-xl transition-all duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo/Brand */}
         <div className="px-6 py-8 border-b border-white/20">
-          <Link to="/" className="flex items-center space-x-3 transition-transform hover:scale-105">
+          <Link to="/doctor/dashboard" className="flex items-center space-x-3 transition-transform hover:scale-105">
             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
               <FaUserMd className="text-2xl text-white" />
             </div>
@@ -85,11 +86,6 @@ const DoctorLayout = ({ children }) => {
                 >
                   <span className={`text-lg ${location.pathname === item.path ? 'text-white' : 'text-white/80 group-hover:text-white'}`}>{item.icon}</span>
                   <span>{item.label}</span>
-                  {item.label === 'Lịch hẹn' && (
-                    <span className="flex-shrink-0 ml-auto bg-red-500 text-white text-xs font-medium px-2 py-0.5 rounded-full animate-pulse">
-                      3
-                    </span>
-                  )}
                 </Link>
               </li>
             ))}
@@ -151,10 +147,6 @@ const DoctorLayout = ({ children }) => {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-full transition-colors">
-                <FaBell className="text-xl" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              </button>
               <div className="hidden md:block">
                 <div className="flex items-center space-x-3 py-1 px-3 bg-gray-100 rounded-full">
                   <img 

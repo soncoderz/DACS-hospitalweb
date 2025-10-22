@@ -5,7 +5,6 @@ const User = require('../models/User');
 const Doctor = require('../models/Doctor');
 const Service = require('../models/Service');
 const { validationResult } = require('express-validator');
-const { paymentNotification } = require('../services/notificationService');
 
 // Get all payments with filtering options (Admin only)
 exports.getAllPayments = async (req, res) => {
@@ -231,14 +230,6 @@ exports.updatePayment = async (req, res) => {
       }
     }
 
-    // Send real-time notification for payment status change
-    try {
-      await paymentNotification(payment, req.user.id);
-    } catch (notificationError) {
-      console.error('Error sending payment update notification:', notificationError);
-      // Continue execution
-    }
-
     res.status(200).json({
       success: true,
       message: 'Payment updated successfully',
@@ -332,7 +323,7 @@ exports.createPayment = async (req, res) => {
     // Map payment status to appointment payment status
     let appointmentPaymentStatus = 'pending';
     if (initialPaymentStatus === 'completed') {
-      appointmentPaymentStatus = 'paid';
+      appointmentPaymentStatus = 'completed';
     }
 
     // Ensure appointment has a booking code
@@ -482,27 +473,45 @@ exports.createPayPalPayment = async (payment, origin) => {
  */
 exports.confirmPayPalPayment = async (req, res) => {
   try {
+    console.log('PayPal confirmation request received:', {
+      body: req.body
+    });
+    
     const { appointmentId, paymentId, paymentDetails } = req.body;
     
     // Validate required fields
     if (!appointmentId || !paymentId) {
+      console.error('Missing required fields:', { appointmentId, paymentId });
       return res.status(400).json({
         success: false,
         message: 'Thiếu ID cuộc hẹn hoặc ID thanh toán'
       });
     }
     
+    // Validate appointment ID format
+    if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+      console.error(`Invalid appointment ID format: ${appointmentId}`);
+      return res.status(400).json({
+        success: false,
+        message: 'ID cuộc hẹn không hợp lệ'
+      });
+    }
+    
     // Tìm bản ghi cuộc hẹn
     const appointment = await Appointment.findById(appointmentId);
     if (!appointment) {
+      console.error(`Appointment not found with ID: ${appointmentId}`);
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy thông tin cuộc hẹn'
       });
     }
     
+    console.log(`Found appointment: ${appointment._id}, status: ${appointment.status}, paymentStatus: ${appointment.paymentStatus}`);
+    
     // Kiểm tra nếu đã thanh toán
-    if (appointment.paymentStatus === 'paid') {
+    if (appointment.paymentStatus === 'completed') {
+      console.log(`Appointment ${appointmentId} is already paid`);
       return res.status(400).json({
         success: false,
         message: 'Cuộc hẹn này đã được thanh toán'
@@ -512,8 +521,11 @@ exports.confirmPayPalPayment = async (req, res) => {
     // Tìm bản ghi thanh toán theo appointmentId
     let payment = await Payment.findOne({ appointmentId });
     
+    console.log(`Payment search result:`, payment ? `Found: ${payment._id}, status: ${payment.paymentStatus}` : 'Not found');
+    
     if (!payment) {
       // Nếu không tìm thấy payment, tạo mới
+      console.log(`Creating new payment record for appointment ${appointmentId}`);
       payment = new Payment({
         appointmentId,
         userId: appointment.patientId,
@@ -530,6 +542,7 @@ exports.confirmPayPalPayment = async (req, res) => {
       });
     } else {
       // Cập nhật bản ghi payment hiện có
+      console.log(`Updating existing payment ${payment._id}`);
       payment.paymentStatus = 'completed';
       payment.transactionId = paymentId;
       payment.paymentDetails = paymentDetails;
@@ -539,20 +552,55 @@ exports.confirmPayPalPayment = async (req, res) => {
     }
     
     // Lưu thông tin thanh toán
-    await payment.save();
-    
-    // Cập nhật trạng thái thanh toán trong Appointment
-    appointment.paymentStatus = 'paid';  // Đảm bảo là 'paid', không phải 'completed'
-    appointment.paymentMethod = 'paypal';
-    appointment.paymentId = paymentId;   // Lưu ID giao dịch PayPal vào Appointment
-    
-    // Nếu cuộc hẹn đang ở trạng thái pending, tự động chuyển sang confirmed
-    if (appointment.status === 'pending') {
-      appointment.status = 'confirmed';
+    try {
+      await payment.save();
+      console.log(`Payment saved successfully: ${payment._id}`);
+    } catch (saveError) {
+      console.error(`Error saving payment:`, saveError);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi lưu thông tin thanh toán',
+        error: saveError.message
+      });
     }
     
-    // Lưu cập nhật cho cuộc hẹn
-    await appointment.save();
+    // Cập nhật trạng thái thanh toán trong Appointment
+    try {
+      appointment.paymentStatus = 'completed';
+      appointment.paymentMethod = 'paypal';
+      
+      // Store our internal payment document's ObjectId in the paymentId field
+      // This is correctly typed as an ObjectId reference to the Payment model
+      appointment.paymentId = payment._id;
+      
+      // We can store the PayPal transaction ID in a separate property if needed
+      // (check if a transactionId field exists in the schema, or use notes field)
+      
+      // Nếu cuộc hẹn đang ở trạng thái pending, tự động chuyển sang confirmed
+      if (appointment.status === 'pending') {
+        console.log(`Auto-confirming appointment ${appointmentId} due to payment completion`);
+        appointment.status = 'confirmed';
+      }
+      
+      // Lưu cập nhật cho cuộc hẹn
+      await appointment.save();
+      console.log(`Appointment updated successfully: ${appointment._id}, status: ${appointment.status}, paymentStatus: ${appointment.paymentStatus}`);
+    } catch (appointmentError) {
+      console.error(`Error updating appointment:`, appointmentError);
+      // Note: We still return success since the payment was completed
+      // but include a warning about the appointment update
+      return res.status(200).json({
+        success: true,
+        message: 'Thanh toán thành công nhưng không thể cập nhật trạng thái cuộc hẹn',
+        paymentProcessed: true,
+        warning: 'Appointment update failed: ' + appointmentError.message,
+        data: {
+          payment,
+          appointment,
+          redirectUrl: '/user/appointments'
+        }
+      });
+    }
     
     res.status(200).json({
       success: true,
@@ -665,18 +713,89 @@ exports.paypalSuccess = async (req, res) => {
   try {
     // ... existing code ...
     
-    // After successfully processing PayPal payment, add:
-    
-    // Send real-time notification
-    try {
-      await paymentNotification(payment, req.user.id);
-    } catch (notificationError) {
-      console.error('Error sending PayPal payment notification:', notificationError);
-      // Continue execution - don't fail the payment processing if notification fails
-    }
-    
     // ... existing response code ...
   } catch (error) {
     // ... existing error handling ...
+  }
+};
+
+// Get payment history for logged-in user
+exports.getPaymentHistory = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Get total count for pagination
+    const total = await Payment.countDocuments({ userId: req.user.id });
+    
+    // Fetch paginated payments
+    const payments = await Payment.find({ userId: req.user.id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .populate({
+        path: 'appointmentId',
+        select: 'appointmentDate appointmentTime serviceName _id',
+      })
+      .populate({
+        path: 'doctorId',
+        select: 'user',
+        populate: {
+          path: 'user',
+          select: 'fullName'
+        }
+      })
+      .populate({
+        path: 'serviceId',
+        select: 'name price',
+      });
+
+    // Transform data to include service name and standardize status
+    const formattedPayments = payments.map(payment => {
+      const paymentObj = payment.toObject();
+      
+      // Add service name from appointment or service
+      if (payment.appointmentId && payment.appointmentId.serviceName) {
+        paymentObj.serviceName = payment.appointmentId.serviceName;
+      } else if (payment.serviceId && payment.serviceId.name) {
+        paymentObj.serviceName = payment.serviceId.name;
+      }
+      
+      // Ensure appointmentId is available for navigation
+      if (payment.appointmentId && payment.appointmentId._id) {
+        paymentObj.appointmentId = payment.appointmentId._id;
+      }
+      
+      // Standardize doctor name format
+      if (payment.doctorId && payment.doctorId.user) {
+        paymentObj.doctorName = payment.doctorId.user.fullName;
+      }
+      
+      // Ensure status exists and is standardized for filtering
+      if (!paymentObj.status && paymentObj.paymentStatus) {
+        paymentObj.status = paymentObj.paymentStatus;
+      }
+      
+      return paymentObj;
+    });
+
+    res.status(200).json({
+      payments: formattedPayments,
+      pagination: {
+        total,
+        totalPages: Math.ceil(total / limitNum),
+        currentPage: pageNum,
+        pageSize: limitNum
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể lấy lịch sử thanh toán',
+      error: error.message
+    });
   }
 };

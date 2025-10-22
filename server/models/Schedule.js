@@ -28,11 +28,22 @@ const scheduleSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
-    appointmentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Appointment',
-      default: null
+    bookedCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 3
     },
+    maxBookings: {
+      type: Number,
+      default: 3,
+      min: 1,
+      max: 10
+    },
+    appointmentIds: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Appointment'
+    }],
     roomId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Room'

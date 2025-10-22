@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { FaUserMd, FaStethoscope, FaStar } from 'react-icons/fa';
+import { FaUserMd, FaStethoscope, FaStar, FaHeartbeat, FaLungs, FaBrain, FaAmbulance, FaBaby, FaTooth, FaEye, FaFileMedicalAlt, FaNotesMedical, FaXRay, FaBone, FaAllergies, FaWheelchair, FaPills, FaProcedures, FaHandHoldingMedical, FaVial, FaHospital, FaDna, FaFirstAid, FaBandAid, FaMicroscope, FaBed, FaVirus, FaTemperatureLow, FaHeadSideMask, FaCapsules, FaSyringe, FaPrescriptionBottle, FaFlask, FaBookMedical, FaIdCard, FaThermometer, FaHospitalUser, FaHospitalAlt, FaClinicMedical, FaHeartBroken } from 'react-icons/fa';
+import { GiMedicines, GiDna1, GiMedicalPack, GiHealthNormal, GiHumanEar, GiHeartOrgan, GiChemicalDrop } from 'react-icons/gi';
+import { MdLocalHospital, MdMedicalServices, MdBloodtype, MdOutlineVaccines } from 'react-icons/md';
+import { IoNutritionOutline } from 'react-icons/io5';
 
 const SpecialtyCard = ({ specialty }) => {
   // Skip rendering if specialty is not active
@@ -26,6 +29,69 @@ const SpecialtyCard = ({ specialty }) => {
   
   // Get review count
   const reviewCount = specialty.ratings?.count || specialty.numReviews || specialty.reviewCount || 0;
+
+  // Helper function to get icon component based on icon name
+  const getIconComponent = (iconName) => {
+    const iconMap = {
+      'stethoscope': FaStethoscope,
+      'heartbeat': FaHeartbeat,
+      'lungs': FaLungs,
+      'brain': FaBrain,
+      'ambulance': FaAmbulance,
+      'baby': FaBaby,
+      'tooth': FaTooth,
+      'eye': FaEye,
+      'file-medical-alt': FaFileMedicalAlt,
+      'notes-medical': FaNotesMedical,
+      'x-ray': FaXRay,
+      'bone': FaBone,
+      'allergies': FaAllergies,
+      'wheelchair': FaWheelchair,
+      'pills': FaPills,
+      'procedures': FaProcedures,
+      'hand-holding-medical': FaHandHoldingMedical,
+      'vial': FaVial,
+      'user-md': FaUserMd,
+      'hospital': FaHospital,
+      'dna': FaDna,
+      'first-aid': FaFirstAid,
+      'band-aid': FaBandAid,
+      'microscope': FaMicroscope,
+      'bed': FaBed,
+      'virus': FaVirus,
+      'temperature-low': FaTemperatureLow,
+      'head-side-mask': FaHeadSideMask,
+      'capsules': FaCapsules,
+      'syringe': FaSyringe,
+      'prescription-bottle': FaPrescriptionBottle,
+      'flask': FaFlask,
+      'book-medical': FaBookMedical,
+      'id-card': FaIdCard,
+      'thermometer': FaThermometer,
+      'hospital-user': FaHospitalUser,
+      'hospital-alt': FaHospitalAlt,
+      'clinic-medical': FaClinicMedical,
+      'heart-broken': FaHeartBroken,
+      'gi-medicines': GiMedicines,
+      'gi-dna': GiDna1,
+      'gi-medical-pack': GiMedicalPack,
+      'gi-health': GiHealthNormal,
+      'gi-ear': GiHumanEar,
+      'gi-heart': GiHeartOrgan,
+      'gi-chemical': GiChemicalDrop,
+      'md-hospital': MdLocalHospital,
+      'md-medical': MdMedicalServices,
+      'md-blood': MdBloodtype,
+      'md-vaccines': MdOutlineVaccines,
+      'io-nutrition': IoNutritionOutline
+    };
+    
+    // Return the component if it exists in the map, otherwise return a default
+    return iconMap[iconName?.toLowerCase()] || FaStethoscope;
+  };
+  
+  // Get the appropriate icon based on specialty.icon or default to FaStethoscope
+  const IconComponent = getIconComponent(specialty.icon);
   
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:border-primary/20 group">
@@ -42,9 +108,14 @@ const SpecialtyCard = ({ specialty }) => {
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-r from-primary/20 to-blue-500/20 flex items-center justify-center">
-            <span className="text-2xl font-semibold text-primary">
-              {specialty.name || 'Chuyên Khoa'}
-            </span>
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mb-2">
+                <IconComponent className="text-white text-3xl" />
+              </div>
+              <span className="text-xl font-semibold text-primary">
+                {specialty.name || 'Chuyên Khoa'}
+              </span>
+            </div>
           </div>
         )}
         
@@ -58,7 +129,8 @@ const SpecialtyCard = ({ specialty }) => {
       </Link>
       
       <div className="p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary transition-colors">
+        <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary transition-colors flex items-center">
+          <IconComponent className="mr-2 text-primary" />
           {specialty.name}
         </h3>
         

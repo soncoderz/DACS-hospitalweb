@@ -5,12 +5,13 @@
 /**
  * Lấy URL đầy đủ của avatar từ đường dẫn tương đối hoặc tuyệt đối
  * @param {string} avatarUrl - Đường dẫn avatar từ API
- * @param {string} defaultAvatar - Đường dẫn avatar mặc định nếu không có
+ * @param {string} userName - Tên người dùng để tạo avatar từ UI Avatars
  * @returns {string} - URL đầy đủ của avatar
  */
-export const getAvatarUrl = (avatarUrl, defaultAvatar = '/avatars/default-avatar.png') => {
+export const getAvatarUrl = (avatarUrl, userName = 'User') => {
   if (!avatarUrl) {
-    return defaultAvatar;
+    // Sử dụng UI Avatars thay vì file tĩnh
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=1AC0FF&color=fff`;
   }
 
   // Nếu là URL tuyệt đối (bắt đầu bằng http hoặc https), trả về nguyên bản
@@ -27,11 +28,12 @@ export const getAvatarUrl = (avatarUrl, defaultAvatar = '/avatars/default-avatar
 /**
  * Xử lý sự kiện lỗi khi tải avatar
  * @param {Event} event - Đối tượng sự kiện
- * @param {string} defaultAvatar - Đường dẫn avatar mặc định
+ * @param {string} userName - Tên người dùng để tạo avatar
  */
-export const handleAvatarError = (event, defaultAvatar = '/avatars/default-avatar.png') => {
-  console.error('Avatar load error, falling back to default');
-  event.target.src = defaultAvatar;
+export const handleAvatarError = (event, userName = 'User') => {
+  console.log('Avatar load error, falling back to UI Avatars');
+  // Sử dụng UI Avatars thay vì file tĩnh
+  event.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=1AC0FF&color=fff`;
   event.target.onerror = null; // Ngăn lỗi vô hạn
 };
 
@@ -42,16 +44,16 @@ export const handleAvatarError = (event, defaultAvatar = '/avatars/default-avata
  * @param {string} props.url - Đường dẫn avatar
  * @param {string} props.alt - Alt text
  * @param {string} props.className - CSS class name
- * @param {string} props.defaultAvatar - Đường dẫn avatar mặc định
+ * @param {string} props.userName - Tên người dùng để tạo avatar
  * @returns {Object} - JSX Element
  */
-export const renderAvatar = ({ url, alt = 'Avatar', className = '', defaultAvatar = '/avatars/default-avatar.png' }) => {
-  const avatarSrc = getAvatarUrl(url, defaultAvatar);
+export const renderAvatar = ({ url, alt = 'Avatar', className = '', userName = 'User' }) => {
+  const avatarSrc = getAvatarUrl(url, userName);
   
   return {
     src: avatarSrc,
     alt: alt,
     className: `avatar ${className}`.trim(),
-    onError: (e) => handleAvatarError(e, defaultAvatar)
+    onError: (e) => handleAvatarError(e, userName)
   };
 }; 
