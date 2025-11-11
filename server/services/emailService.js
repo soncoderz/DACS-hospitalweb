@@ -36,8 +36,8 @@ const initializeEmailTransport = async (useEthereal = false) => {
       // Sử dụng Gmail
       // Kiểm tra xem biến môi trường đã được đọc chưa
       console.log('Email configuration:');
-      console.log('- EMAIL_USER:', process.env.EMAIL_USER || 'Not set');
-      console.log('- EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Password is set' : 'Password is not set');
+      console.log('- EMAIL_USER:', process.env.EMAIL_USER );
+      console.log('- EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD );
       
       if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
         console.error('Thiếu thông tin đăng nhập email trong file .env');
@@ -60,14 +60,28 @@ const initializeEmailTransport = async (useEthereal = false) => {
           throw new Error('Không thể tạo tài khoản test Ethereal');
         }
       } else {
+        // Cấu hình Gmail với các tùy chọn bổ sung cho môi trường cloud
         transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASSWORD
+          },
+          // Thêm cấu hình để tránh timeout trên Railway
+          pool: true,
+          maxConnections: 5,
+          maxMessages: 100,
+          socketTimeout: 30000, // 30 seconds
+          connectionTimeout: 30000, // 30 seconds
+          // Thử các port khác nhau
+          port: 587,
+          secure: false,
+          requireTLS: true,
+          tls: {
+            rejectUnauthorized: false
           }
         });
-        console.log('Đã khởi tạo transporter Gmail thành công');
+        console.log('Đã khởi tạo transporter Gmail thành công với cấu hình cloud');
       }
     }
 
@@ -778,4 +792,4 @@ module.exports = {
   sendAppointmentRescheduleEmail,
   sendDoctorAppointmentNotificationEmail,
   initializeEmailTransport
-}; 
+};
