@@ -1,0 +1,139 @@
+import 'package:flutter/foundation.dart';
+import '../../core/errors/error_handler.dart';
+import '../../domain/entities/doctor.dart';
+import '../../domain/repositories/doctor_repository.dart';
+
+class DoctorProvider extends ChangeNotifier {
+  final DoctorRepository _doctorRepository;
+
+  DoctorProvider(this._doctorRepository);
+
+  List<Doctor> _doctors = [];
+  List<Doctor> _favoriteDoctors = [];
+  Doctor? _selectedDoctor;
+  bool _isLoading = false;
+  String? _errorMessage;
+  String? _currentSpecialtyFilter;
+  String? _currentSearchQuery;
+
+  List<Doctor> get doctors => _doctors;
+  List<Doctor> get favoriteDoctors => _favoriteDoctors;
+  Doctor? get selectedDoctor => _selectedDoctor;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
+
+  void _setError(String? message) {
+    _errorMessage = message;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  Future<void> fetchDoctors({String? specialtyId, String? search}) async {
+    _setLoading(true);
+    _setError(null);
+    _currentSpecialtyFilter = specialtyId;
+    _currentSearchQuery = search;
+
+    final result = await _doctorRepository.getDoctors(
+      specialtyId: specialtyId,
+      search: search,
+    );
+
+    result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+      },
+      (doctors) {
+        _doctors = doctors;
+        _setLoading(false);
+      },
+    );
+  }
+
+  Future<void> fetchDoctorById(String id) async {
+    _setLoading(true);
+    _setError(null);
+
+    final result = await _doctorRepository.getDoctorById(id);
+
+    result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+      },
+      (doctor) {
+        _selectedDoctor = doctor;
+        _setLoading(false);
+      },
+    );
+  }
+
+  Future<void> fetchFavoriteDoctors() async {
+    _setLoading(true);
+    _setError(null);
+
+    final result = await _doctorRepository.getFavoriteDoctors();
+
+    result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+      },
+      (doctors) {
+        _favoriteDoctors = doctors;
+        _setLoading(false);
+      },
+    );
+  }
+
+  Future<bool> toggleFavorite(String doctorId) async {
+    final isFavorite = _favoriteDoctors.any((d) => d.id == doctorId);
+
+    final result = isFavorite
+        ? await _doctorRepository.removeFromFavorites(doctorId)
+        : await _doctorRepository.addToFavorites(doctorId);
+
+    return result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        return false;
+      },
+      (_) {
+        if (isFavorite) {
+          _favoriteDoctors.removeWhere((d) => d.id == doctorId);
+        } else {
+          final doctor = _doctors.firstWhere((d) => d.id == doctorId);
+          _favoriteDoctors.add(doctor);
+        }
+        notifyListeners();
+        return true;
+      },
+    );
+  }
+
+  bool isFavorite(String doctorId) {
+    return _favoriteDoctors.any((d) => d.id == doctorId);
+  }
+
+  void clearSelectedDoctor() {
+    _selectedDoctor = null;
+    notifyListeners();
+  }
+
+  Future<void> refreshDoctors() async {
+    await fetchDoctors(
+      specialtyId: _currentSpecialtyFilter,
+      search: _currentSearchQuery,
+    );
+  }
+}

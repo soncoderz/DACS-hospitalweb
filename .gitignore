@@ -13,3 +13,13 @@ dist/
 .vscode/
 .kiro/specs/
 server/logs/
+
+# Flutter/Dart specific
+hospital_mobile_app/.dart_tool/
+hospital_mobile_app/.flutter-plugins
+hospital_mobile_app/.flutter-plugins-dependencies
+hospital_mobile_app/.packages
+hospital_mobile_app/build/
+hospital_mobile_app/.pub-cache/
+hospital_mobile_app/.pub/
+hospital_mobile_app/pubspec.lock
