@@ -62,8 +62,12 @@ class ApiConstants {
   static const String createMomoPayment = '/payments/momo/create';
   static const String momoPaymentResult = '/payments/momo/result';
   static String momoPaymentStatus(String orderId) => '/payments/momo/status/$orderId';
+  static const String checkPaymentStatus = '/payments/status';
   static const String paymentHistory = '/billing/payment-history';
   static String billingByAppointment(String appointmentId) => '/billing/appointment/$appointmentId';
+  static const String payConsultation = '/billing/pay-consultation';
+  static const String payHospitalization = '/billing/pay-hospitalization';
+  static const String payPrescription = '/billing/pay-prescription';
 
   // News Endpoints
   static const String news = '/news/all';

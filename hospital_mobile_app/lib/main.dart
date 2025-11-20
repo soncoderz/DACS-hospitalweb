@@ -12,6 +12,7 @@ import 'data/datasources/hospital_remote_data_source.dart';
 import 'data/datasources/news_remote_data_source.dart';
 import 'data/datasources/review_remote_data_source.dart';
 import 'data/datasources/statistics_remote_data_source.dart';
+import 'data/datasources/payment_remote_data_source.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/doctor_repository_impl.dart';
 import 'data/repositories/specialty_repository_impl.dart';
@@ -30,6 +31,7 @@ import 'presentation/providers/hospital_provider.dart';
 import 'presentation/providers/news_provider.dart';
 import 'presentation/providers/review_provider.dart';
 import 'presentation/providers/statistics_provider.dart';
+import 'presentation/providers/billing_provider.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
@@ -42,6 +44,7 @@ import 'presentation/screens/doctors/doctor_detail_screen.dart';
 import 'presentation/screens/appointments/appointments_screen.dart';
 import 'presentation/screens/appointments/appointment_detail_screen.dart';
 import 'presentation/screens/news/news_list_screen.dart';
+import 'presentation/screens/payment/momo_payment_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -140,6 +143,13 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
+
+        // Billing Provider
+        ChangeNotifierProvider(
+          create: (_) => BillingProvider(
+            PaymentRemoteDataSourceImpl(dioClient),
+          ),
+        ),
       ],
       child: MaterialApp(
         title: AppConstants.appName,
@@ -193,6 +203,17 @@ class MyApp extends StatelessWidget {
             final appointmentId = settings.arguments as String;
             return MaterialPageRoute(
               builder: (context) => AppointmentDetailScreen(appointmentId: appointmentId),
+            );
+          }
+          if (settings.name == '/momo-payment') {
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (context) => MomoPaymentScreen(
+                appointmentId: args['appointmentId'],
+                amount: args['amount'],
+                billType: args['billType'],
+                prescriptionId: args['prescriptionId'],
+              ),
             );
           }
           return null;

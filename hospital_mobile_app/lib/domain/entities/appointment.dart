@@ -15,6 +15,10 @@ class Appointment extends Equatable {
   final String? notes;
   final String bookingCode;
   final double? fee;
+  final int? queueNumber;
+  final String? roomInfo;
+  final String? paymentStatus;
+  final String? paymentMethod;
   final DateTime createdAt;
 
   const Appointment({
@@ -32,6 +36,10 @@ class Appointment extends Equatable {
     this.notes,
     required this.bookingCode,
     this.fee,
+    this.queueNumber,
+    this.roomInfo,
+    this.paymentStatus,
+    this.paymentMethod,
     required this.createdAt,
   });
 
@@ -51,6 +59,10 @@ class Appointment extends Equatable {
         notes,
         bookingCode,
         fee,
+        queueNumber,
+        roomInfo,
+        paymentStatus,
+        paymentMethod,
         createdAt,
       ];
 }

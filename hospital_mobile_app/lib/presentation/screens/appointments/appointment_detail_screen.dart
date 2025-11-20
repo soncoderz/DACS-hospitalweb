@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import '../../../domain/entities/appointment.dart';
 import '../../providers/appointment_provider.dart';
+import '../../providers/billing_provider.dart';
 import '../../widgets/common/custom_button.dart';
+import '../../widgets/billing/user_billing_widget.dart';
 
 class AppointmentDetailScreen extends StatefulWidget {
   final String appointmentId;
@@ -359,6 +361,13 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                       color: Colors.grey,
                     ),
                   ),
+                ),
+
+                // Billing Section
+                UserBillingWidget(
+                  appointmentId: appointment.id,
+                  appointment: appointment,
+                  onPaymentComplete: _loadAppointmentDetails,
                 ),
 
                 // Action Buttons

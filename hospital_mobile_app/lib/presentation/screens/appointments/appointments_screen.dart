@@ -192,7 +192,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
             elevation: 2,
             margin: const EdgeInsets.only(bottom: 16),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: InkWell(
               onTap: () {
@@ -202,15 +202,32 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                   arguments: appointment.id,
                 );
               },
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header with status
-                    Row(
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with status and booking code
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        // Title
+                        const Text(
+                          'Khám tổng quát',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        // Status badge
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -219,186 +236,345 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                           decoration: BoxDecoration(
                             color: _getStatusColor(appointment.status).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _getStatusColor(appointment.status).withOpacity(0.3),
+                            ),
                           ),
                           child: Text(
                             _getStatusText(appointment.status),
                             style: TextStyle(
                               color: _getStatusColor(appointment.status),
                               fontWeight: FontWeight.w600,
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
                         ),
-                        if (appointment.bookingCode != null) ...[
+                      ],
+                    ),
+                  ),
+                  
+                  // Booking code
+                  if (appointment.bookingCode != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      color: Colors.blue.shade50,
+                      child: Row(
+                        children: [
+                          Icon(Icons.qr_code, size: 16, color: Colors.blue.shade700),
                           const SizedBox(width: 8),
                           Text(
-                            '• ${appointment.bookingCode}',
+                            'Mã: ${appointment.bookingCode}',
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: Colors.blue.shade700,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    
-                    // Doctor info
-                    Row(
+                  
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
                       children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            color: Colors.blue.shade700,
-                            size: 28,
-                          ),
+                        // Doctor info
+                        _buildInfoRow(
+                          icon: Icons.person,
+                          iconColor: Colors.blue,
+                          label: 'Bác sĩ',
+                          value: appointment.doctorName ?? 'Chưa có thông tin',
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                appointment.doctorName ?? 'Bác sĩ',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                appointment.specialtyName ?? '',
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
+                        const SizedBox(height: 12),
+                        
+                        // Hospital info
+                        _buildInfoRow(
+                          icon: Icons.local_hospital,
+                          iconColor: Colors.red,
+                          label: 'Bệnh viện',
+                          value: appointment.hospitalName ?? 'Chưa có thông tin',
                         ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Colors.grey.shade400,
+                        const SizedBox(height: 12),
+                        
+                        // Date info
+                        _buildInfoRow(
+                          icon: Icons.calendar_today,
+                          iconColor: Colors.orange,
+                          label: 'Ngày khám',
+                          value: _formatDate(appointment.appointmentDate),
                         ),
-                      ],
-                    ),
-                    
-                    const Divider(height: 24),
-                    
-                    // Date and time
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _formatDate(appointment.appointmentDate),
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        const SizedBox(height: 12),
+                        
+                        // Time info
+                        _buildInfoRow(
+                          icon: Icons.access_time,
+                          iconColor: Colors.purple,
+                          label: 'Thời gian',
+                          value: appointment.timeSlot,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  appointment.timeSlot,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    // Hospital info if available
-                    if (appointment.hospitalName != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.local_hospital, size: 16, color: Colors.grey.shade600),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              appointment.hospitalName!,
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontSize: 13,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                        
+                        // Queue number if available
+                        if (appointment.queueNumber != null && appointment.queueNumber! > 0) ...[
+                          const SizedBox(height: 12),
+                          _buildInfoRow(
+                            icon: Icons.format_list_numbered,
+                            iconColor: Colors.indigo,
+                            label: 'Số thứ tự khám',
+                            value: appointment.queueNumber.toString(),
                           ),
                         ],
+                        
+                        // Room info if available
+                        if (appointment.roomInfo != null) ...[
+                          const SizedBox(height: 12),
+                          _buildInfoRow(
+                            icon: Icons.meeting_room,
+                            iconColor: Colors.teal,
+                            label: 'Phòng khám',
+                            value: appointment.roomInfo!,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  
+                  // Footer with fee, payment status and actions
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(16),
+                        bottomRight: Radius.circular(16),
                       ),
-                    ],
-                    
-                    // Fee if available
-                    if (appointment.fee != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(
-                              Icons.payments,
-                              size: 16,
-                              color: Colors.green.shade700,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              NumberFormat.currency(
-                                locale: 'vi',
-                                symbol: 'đ',
-                                decimalDigits: 0,
-                              ).format(appointment.fee),
-                              style: TextStyle(
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                            // Fee
+                            if (appointment.fee != null)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Tổng tiền',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    NumberFormat.currency(
+                                      locale: 'vi',
+                                      symbol: 'đ',
+                                      decimalDigits: 0,
+                                    ).format(appointment.fee),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              const SizedBox.shrink(),
+                            
+                            // View detail button
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/appointment-detail',
+                                  arguments: appointment.id,
+                                );
+                              },
+                              icon: const Icon(Icons.visibility, size: 16),
+                              label: const Text('Xem chi tiết'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ],
-                ),
+                        
+                        // Payment status
+                        if (appointment.paymentStatus != null) ...[
+                          const SizedBox(height: 12),
+                          _buildPaymentStatusBadge(
+                            appointment.paymentStatus!,
+                            appointment.paymentMethod,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           );
         },
       ),
     );
+  }
+  
+  Widget _buildInfoRow({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: iconColor,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildPaymentStatusBadge(String status, String? method) {
+    if (status == 'paid' || status == 'completed') {
+      // Payment method specific styling
+      Color bgColor;
+      Color textColor;
+      String methodLabel;
+      IconData methodIcon;
+      
+      switch (method) {
+        case 'momo':
+          bgColor = Colors.pink.shade50;
+          textColor = Colors.pink.shade700;
+          methodLabel = 'MoMo';
+          methodIcon = Icons.account_balance_wallet;
+          break;
+        case 'paypal':
+          bgColor = Colors.blue.shade50;
+          textColor = Colors.blue.shade700;
+          methodLabel = 'PayPal';
+          methodIcon = Icons.payment;
+          break;
+        default:
+          bgColor = Colors.green.shade50;
+          textColor = Colors.green.shade700;
+          methodLabel = 'Tiền mặt';
+          methodIcon = Icons.money;
+      }
+      
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: textColor.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, size: 16, color: textColor),
+            const SizedBox(width: 6),
+            Text(
+              'Đã thanh toán',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+            if (method != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(methodIcon, size: 12, color: textColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      methodLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: textColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.schedule, size: 16, color: Colors.orange.shade700),
+            const SizedBox(width: 6),
+            Text(
+              'Chưa thanh toán',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

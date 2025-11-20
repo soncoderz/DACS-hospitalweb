@@ -16,6 +16,10 @@ class AppointmentModel extends Appointment {
     super.notes,
     required super.bookingCode,
     super.fee,
+    super.queueNumber,
+    super.roomInfo,
+    super.paymentStatus,
+    super.paymentMethod,
     required super.createdAt,
   });
 
@@ -146,6 +150,42 @@ class AppointmentModel extends Appointment {
       
       print('[AppointmentModel] Successfully parsed appointment');
       
+      // Handle queueNumber
+      int? queueNumberValue;
+      if (json['queueNumber'] != null) {
+        if (json['queueNumber'] is int) {
+          queueNumberValue = json['queueNumber'];
+        } else if (json['queueNumber'] is String) {
+          queueNumberValue = int.tryParse(json['queueNumber']);
+        }
+      }
+      
+      // Handle roomInfo - can be String or Object
+      String? roomInfoValue;
+      final roomField = json['roomId'];
+      if (roomField is String) {
+        roomInfoValue = json['roomInfo'];
+      } else if (roomField is Map<String, dynamic>) {
+        final floor = roomField['floor'];
+        final roomName = roomField['roomName'] ?? roomField['name'];
+        if (floor != null && roomName != null) {
+          roomInfoValue = 'Tầng $floor, $roomName';
+        } else if (roomName != null) {
+          roomInfoValue = roomName;
+        }
+      }
+      
+      // Also check 'roomInfo' field directly
+      if (roomInfoValue == null && json.containsKey('roomInfo')) {
+        roomInfoValue = json['roomInfo'];
+      }
+      
+      // Handle paymentStatus
+      String? paymentStatusValue = json['paymentStatus'];
+      
+      // Handle paymentMethod
+      String? paymentMethodValue = json['paymentMethod'];
+      
       return AppointmentModel(
         id: json['_id'] ?? json['id'] ?? '',
         patientId: patientIdValue.isEmpty ? 'unknown' : patientIdValue,
@@ -161,6 +201,10 @@ class AppointmentModel extends Appointment {
         notes: json['notes'],
         bookingCode: json['bookingCode'] ?? '',
         fee: feeValue,
+        queueNumber: queueNumberValue,
+        roomInfo: roomInfoValue,
+        paymentStatus: paymentStatusValue,
+        paymentMethod: paymentMethodValue,
         createdAt: createdAtValue,
       );
     } catch (e, stackTrace) {
@@ -205,6 +249,10 @@ class AppointmentModel extends Appointment {
         notes: notes,
         bookingCode: bookingCode,
         fee: fee,
+        queueNumber: queueNumber,
+        roomInfo: roomInfo,
+        paymentStatus: paymentStatus,
+        paymentMethod: paymentMethod,
         createdAt: createdAt,
       );
 }
