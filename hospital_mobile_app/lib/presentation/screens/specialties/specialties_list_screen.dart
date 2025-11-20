@@ -21,7 +21,12 @@ class _SpecialtiesListScreenState extends State<SpecialtiesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SpecialtyProvider>(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Chuyên Khoa'),
+        centerTitle: true,
+      ),
+      body: Consumer<SpecialtyProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.specialties.isEmpty) {
             return const Center(child: CircularProgressIndicator());
@@ -157,6 +162,7 @@ class _SpecialtiesListScreenState extends State<SpecialtiesListScreen> {
             ),
           );
         },
-      );
+      ),
+    );
   }
 }

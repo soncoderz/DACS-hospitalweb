@@ -109,4 +109,63 @@ class ServiceProvider extends ChangeNotifier {
   Future<void> refreshServices() async {
     await fetchServices();
   }
+
+  void setServices(List<dynamic> servicesData) {
+    try {
+      _services = servicesData.map((data) {
+        // Handle specialtyId - can be string or object
+        String? specialtyId;
+        String? specialtyName;
+        
+        if (data['specialtyId'] != null) {
+          if (data['specialtyId'] is String) {
+            specialtyId = data['specialtyId'];
+          } else if (data['specialtyId'] is Map) {
+            specialtyId = data['specialtyId']['_id'];
+            specialtyName = data['specialtyId']['name'];
+          }
+        }
+        
+        // If specialtyName is still null, try to get it from specialtyName field
+        if (specialtyName == null && data['specialtyName'] != null) {
+          if (data['specialtyName'] is String) {
+            specialtyName = data['specialtyName'];
+          } else if (data['specialtyName'] is Map) {
+            specialtyName = data['specialtyName']['name'];
+          }
+        }
+
+        // Handle image - can be string, object, or null
+        String? imageUrl;
+        if (data['imageUrl'] != null && data['imageUrl'] is String) {
+          imageUrl = data['imageUrl'];
+        } else if (data['image'] != null) {
+          if (data['image'] is String) {
+            imageUrl = data['image'];
+          } else if (data['image'] is Map) {
+            imageUrl = data['image']['secureUrl'] ?? data['image']['url'];
+          }
+        }
+
+        return Service(
+          id: data['_id'] ?? '',
+          name: data['name'] ?? '',
+          description: data['description'] ?? '',
+          price: (data['price'] ?? 0).toDouble(),
+          image: imageUrl,
+          specialtyId: specialtyId,
+          specialtyName: specialtyName,
+          createdAt: data['createdAt'] != null 
+              ? DateTime.parse(data['createdAt'])
+              : DateTime.now(),
+        );
+      }).toList();
+      _filteredServices = _services;
+      notifyListeners();
+    } catch (e, stackTrace) {
+      print('[ERROR] setServices error: $e');
+      print('[ERROR] Stack trace: $stackTrace');
+      _setError('Lỗi parse dữ liệu dịch vụ: $e');
+    }
+  }
 }

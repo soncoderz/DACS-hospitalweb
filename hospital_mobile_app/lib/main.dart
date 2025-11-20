@@ -43,6 +43,7 @@ import 'presentation/screens/doctors/doctors_list_screen.dart';
 import 'presentation/screens/doctors/doctor_detail_screen.dart';
 import 'presentation/screens/appointments/appointments_screen.dart';
 import 'presentation/screens/appointments/appointment_detail_screen.dart';
+import 'presentation/screens/appointment/appointment_booking_screen.dart';
 import 'presentation/screens/news/news_list_screen.dart';
 import 'presentation/screens/payment/momo_payment_screen.dart';
 
@@ -174,6 +175,7 @@ class MyApp extends StatelessWidget {
           '/home': (context) => const MainScreen(),
           '/doctors': (context) => const DoctorsListScreen(),
           '/appointments': (context) => const AppointmentsScreen(),
+          '/appointment-booking': (context) => const AppointmentBookingScreen(),
           '/news': (context) => const NewsListScreen(),
         },
         onGenerateRoute: (settings) {

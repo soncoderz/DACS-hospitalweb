@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/doctors');
+                        Navigator.pushNamed(context, '/appointment-booking');
                       },
                       icon: const Icon(Icons.calendar_today),
                       label: const Text('Đặt Lịch Khám'),

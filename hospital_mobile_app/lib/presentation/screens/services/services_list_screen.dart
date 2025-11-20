@@ -21,7 +21,12 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ServiceProvider>(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dịch Vụ Y Tế'),
+        centerTitle: true,
+      ),
+      body: Consumer<ServiceProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.services.isEmpty) {
             return const Center(child: CircularProgressIndicator());
@@ -201,6 +206,7 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
             ),
           );
         },
-      );
+      ),
+    );
   }
 }

@@ -47,4 +47,18 @@ class SpecialtyProvider extends ChangeNotifier {
   Future<void> refreshSpecialties() async {
     await fetchSpecialties();
   }
+
+  void setSpecialties(List<dynamic> specialtiesData) {
+    _specialties = specialtiesData.map((data) {
+      return Specialty(
+        id: data['_id'] ?? '',
+        name: data['name'] ?? '',
+        description: data['description'],
+        icon: data['icon'],
+        imageUrl: data['imageUrl'],
+        doctorCount: data['doctorCount'] ?? 0,
+      );
+    }).toList();
+    notifyListeners();
+  }
 }

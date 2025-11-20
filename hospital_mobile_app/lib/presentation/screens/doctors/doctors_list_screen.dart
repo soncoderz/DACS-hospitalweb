@@ -54,7 +54,12 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Danh Sách Bác Sĩ'),
+        centerTitle: true,
+      ),
+      body: Column(
         children: [
           // Search bar
           Padding(
@@ -193,6 +198,7 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
             ),
           ),
         ],
-      );
+      ),
+    );
   }
 }
