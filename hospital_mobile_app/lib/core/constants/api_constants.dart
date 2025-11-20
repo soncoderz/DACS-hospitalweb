@@ -1,9 +1,26 @@
+import 'dart:io';
+
 /// API Constants for the Hospital Mobile App
 /// Contains all API endpoints and base URLs
 class ApiConstants {
-  // Base URLs
-  static const String baseUrl = 'http://10.0.2.2:5000/api';
-  static const String socketUrl = 'http://10.0.2.2:5000';
+  // Base URLs - Change this IP to your computer's IP address when testing on real device
+  // For emulator: use 10.0.2.2
+  // For real device: use your computer's IP (e.g., 192.168.1.100)
+  static const String _localIpForRealDevice = '192.168.1.100'; // TODO: Change this to your computer's IP
+  static const String _emulatorIp = '10.0.2.2';
+  
+  // Auto-detect: Use emulator IP for Android emulator, otherwise use local IP
+  static String get _host {
+    // You can manually override this by setting an environment variable
+    const envHost = String.fromEnvironment('API_HOST');
+    if (envHost.isNotEmpty) return envHost;
+    
+    // Default: use emulator IP (change _localIpForRealDevice above for real devices)
+    return _emulatorIp;
+  }
+  
+  static String get baseUrl => 'http://$_host:5000/api';
+  static String get socketUrl => 'http://$_host:5000';
 
   // Auth Endpoints
   static const String register = '/auth/register';
@@ -85,7 +102,7 @@ class ApiConstants {
   static const String appointmentStats = '/statistics/appointments';
 
   // Timeout durations
-  static const Duration connectTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 30);
-  static const Duration sendTimeout = Duration(seconds: 30);
+  static const Duration connectTimeout = Duration(seconds: 60);
+  static const Duration receiveTimeout = Duration(seconds: 60);
+  static const Duration sendTimeout = Duration(seconds: 60);
 }

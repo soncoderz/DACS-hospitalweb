@@ -85,7 +85,7 @@ const createAdminAccount = async () => {
 
     // Kiểm tra nếu đã có tài khoản admin
     const adminExists = await User.findOne({ roleType: 'admin' });
-    
+
     if (adminExists) {
       console.log('Admin account already exists:', adminExists.email);
       return;
@@ -124,7 +124,7 @@ const io = initializeSocket(server);
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL ,
+  origin: process.env.FRONTEND_URL,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -136,7 +136,7 @@ app.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { 
+  cookie: {
     secure: process.env.NODE_ENV === 'production',
     maxAge: 24 * 60 * 60 * 1000 // 1 day
   }
@@ -158,11 +158,11 @@ const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 phút
   max: 20, // Cho phép 20 yêu cầu mỗi 15 phút cho mỗi IP
   message: {
-      success: false,
-      message: 'Bạn đã gửi quá nhiều yêu cầu, vui lòng thử lại sau 15 phút.'
+    success: false,
+    message: 'Bạn đã gửi quá nhiều yêu cầu, vui lòng thử lại sau 15 phút.'
   },
-  standardHeaders: true, 
-  legacyHeaders: false, 
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Routes
@@ -209,22 +209,22 @@ app.get('/', (req, res) => {
     const state = req.query.state || '';
     const authuser = req.query.authuser || '';
     const prompt = req.query.prompt || '';
-    
-    console.log('Received OAuth callback at root URL with parameters:', { 
+
+    console.log('Received OAuth callback at root URL with parameters:', {
       code: code.substring(0, 10) + '...',  // Chỉ log một phần của code vì lý do bảo mật
-      scope, 
-      state, 
-      authuser, 
-      prompt 
+      scope,
+      state,
+      authuser,
+      prompt
     });
-    
+
     // Tạo URL chuyển hướng với tất cả tham số
     let redirectUrl = `/api/auth/handle-root-callback?code=${encodeURIComponent(code)}&scope=${encodeURIComponent(scope)}`;
-    
+
     if (state) redirectUrl += `&state=${encodeURIComponent(state)}`;
     if (authuser) redirectUrl += `&authuser=${encodeURIComponent(authuser)}`;
     if (prompt) redirectUrl += `&prompt=${encodeURIComponent(prompt)}`;
-    
+
     // Chuyển hướng đến handler thích hợp
     return res.redirect(redirectUrl);
   } else {
@@ -249,30 +249,33 @@ const startServer = async () => {
   try {
     // Kết nối đến MongoDB và tạo admin khi kết nối thành công
     await connectDB(createAdminAccount);
-    
+
     // Khởi tạo cron jobs sau khi kết nối thành công
     initCronJobs();
-    
+
     // Khởi động server
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => { // Use server instead of app
-      console.log(`Server running on port ${PORT}`);
+    const HOST = '0.0.0.0'; // Listen on all network interfaces
+    server.listen(PORT, HOST, () => { // Use server instead of app
+      console.log(`Server running on ${HOST}:${PORT}`);
       console.log(`Socket.io initialized and running`);
+      console.log(`Access from local machine: http://localhost:${PORT}`);
+      console.log(`Access from mobile device: http://[YOUR_IP]:${PORT}`);
     });
-    
+
     // Xử lý tắt server
     process.on('SIGINT', async () => {
       console.log('SIGINT signal received: closing HTTP server and MongoDB connection');
       await disconnectDB();
       process.exit(0);
     });
-    
+
     process.on('SIGTERM', async () => {
       console.log('SIGTERM signal received: closing HTTP server and MongoDB connection');
       await disconnectDB();
       process.exit(0);
     });
-    
+
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);

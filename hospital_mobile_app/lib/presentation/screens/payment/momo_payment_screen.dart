@@ -82,15 +82,76 @@ class _MomoPaymentScreenState extends State<MomoPaymentScreen> {
     try {
       final uri = Uri.parse(payUrl);
       
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
+      debugPrint('Opening MoMo payment URL: $payUrl');
+      
+      // Try to launch MoMo app first using deep link
+      bool launched = false;
+      
+      // First try: Check if MoMo app is installed and try to open it
+      final momoScheme = Uri.parse('momo://app');
+      if (await canLaunchUrl(momoScheme)) {
+        debugPrint('MoMo app is installed, trying to open...');
+        try {
+          // Try to open the payment URL in MoMo app
+          launched = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          debugPrint('Launched in MoMo app: $launched');
+        } catch (e) {
+          debugPrint('Failed to launch in MoMo app: $e');
+        }
       } else {
-        throw 'Không thể mở ứng dụng MoMo';
+        debugPrint('MoMo app is not installed');
+      }
+      
+      // Second try: Open in external browser if MoMo app failed
+      if (!launched) {
+        debugPrint('Trying to open in external browser...');
+        try {
+          launched = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          debugPrint('Launched in external browser: $launched');
+        } catch (e) {
+          debugPrint('Failed to launch in external browser: $e');
+        }
+      }
+      
+      // Third try: Platform default
+      if (!launched) {
+        debugPrint('Trying platform default...');
+        try {
+          launched = await launchUrl(
+            uri,
+            mode: LaunchMode.platformDefault,
+          );
+          debugPrint('Launched with platform default: $launched');
+        } catch (e) {
+          debugPrint('Failed to launch with platform default: $e');
+        }
+      }
+      
+      // Fourth try: In-app web view as last resort
+      if (!launched) {
+        debugPrint('Trying in-app webview...');
+        try {
+          launched = await launchUrl(
+            uri,
+            mode: LaunchMode.inAppWebView,
+          );
+          debugPrint('Launched in webview: $launched');
+        } catch (e) {
+          debugPrint('Failed to launch in webview: $e');
+        }
+      }
+      
+      if (!launched) {
+        throw 'Không thể mở trang thanh toán MoMo. Vui lòng cài đặt ứng dụng MoMo hoặc kiểm tra kết nối internet.';
       }
     } catch (e) {
+      debugPrint('Error opening MoMo payment: $e');
       _showError('Không thể mở MoMo: ${e.toString()}');
     }
   }
