@@ -7,8 +7,8 @@ import '../../providers/hospital_provider.dart';
 import '../../providers/news_provider.dart';
 import '../../providers/review_provider.dart';
 import '../../providers/statistics_provider.dart';
-import '../../widgets/custom/doctor_card.dart';
 import '../../../domain/entities/doctor.dart';
+import '../news/news_detail_screen.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -37,48 +37,36 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.user;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Trang Chủ'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      drawer: _buildDrawer(context),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await Future.wait([
-            context.read<DoctorProvider>().refreshDoctors(),
-            context.read<SpecialtyProvider>().refreshSpecialties(),
-            context.read<HospitalProvider>().refreshHospitals(),
-            context.read<NewsProvider>().refreshNews(),
-            context.read<ReviewProvider>().refreshReviews(),
-            context.read<StatisticsProvider>().refreshStatistics(),
-          ]);
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeroBanner(context, user),
-              const SizedBox(height: 24),
-              _buildStatistics(context),
-              const SizedBox(height: 24),
-              _buildSpecialties(context),
-              const SizedBox(height: 24),
-              _buildFeaturedDoctors(context),
-              const SizedBox(height: 24),
-              _buildHospitals(context),
-              const SizedBox(height: 24),
-              _buildNews(context),
-              const SizedBox(height: 24),
-              _buildReviews(context),
-              const SizedBox(height: 24),
-            ],
-          ),
+    return RefreshIndicator(
+      onRefresh: () async {
+        await Future.wait([
+          context.read<DoctorProvider>().refreshDoctors(),
+          context.read<SpecialtyProvider>().refreshSpecialties(),
+          context.read<HospitalProvider>().refreshHospitals(),
+          context.read<NewsProvider>().refreshNews(),
+          context.read<ReviewProvider>().refreshReviews(),
+          context.read<StatisticsProvider>().refreshStatistics(),
+        ]);
+      },
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeroBanner(context, user),
+            const SizedBox(height: 24),
+            _buildStatistics(context),
+            const SizedBox(height: 24),
+            _buildSpecialties(context),
+            const SizedBox(height: 24),
+            _buildFeaturedDoctors(context),
+            const SizedBox(height: 24),
+            _buildHospitals(context),
+            const SizedBox(height: 24),
+            _buildNews(context),
+            const SizedBox(height: 24),
+            _buildReviews(context),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
@@ -100,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Image.network(
               'https://img.freepik.com/free-photo/team-young-specialist-doctors-standing-corridor-hospital_1303-21199.jpg',
               fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withAlpha(51),
               colorBlendMode: BlendMode.darken,
             ),
           ),
@@ -113,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.5),
+                    color: Colors.blue.withAlpha(127),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(
@@ -252,13 +240,13 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[300]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-          ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withAlpha(26),
+              spreadRadius: 1,
+              blurRadius: 4,
+            ),
+          ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -267,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withAlpha(26),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -688,6 +676,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildNews(BuildContext context) {
     final newsProvider = context.watch<NewsProvider>();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
 
     if (newsProvider.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -702,72 +692,112 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Tin Tức Y Tế',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Tin Tức Y Tế',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Switch to news tab (index 4 in MainScreen)
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                  // You might need to implement a way to change tab in MainScreen
+                  // For now, we keep this simple
+                },
+                child: const Text('Xem tất cả'),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Column(
             children: newsProvider.news.map((news) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (news.imageUrl != null)
-                      ClipRRect(
-                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-                        child: Image.network(
-                          news.imageUrl!,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 100,
-                              height: 100,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.article, size: 40),
-                            );
-                          },
-                        ),
-                      ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              news.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              DateFormat('dd/MM/yyyy').format(news.createdAt),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+              return InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NewsDetailScreen(newsId: news.id),
                     ),
-                  ],
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (news.imageUrl != null)
+                        ClipRRect(
+                          borderRadius: const BorderRadius.horizontal(
+                            left: Radius.circular(12),
+                          ),
+                          child: Image.network(
+                            news.imageUrl!,
+                            width: isSmallScreen ? 90 : 100,
+                            height: isSmallScreen ? 90 : 100,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: isSmallScreen ? 90 : 100,
+                                height: isSmallScreen ? 90 : 100,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.article, size: 40),
+                              );
+                            },
+                          ),
+                        ),
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.all(isSmallScreen ? 10.0 : 12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                news.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 13 : 14,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.3,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: isSmallScreen ? 11 : 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    DateFormat('dd/MM/yyyy')
+                                        .format(news.createdAt),
+                                    style: TextStyle(
+                                      fontSize: isSmallScreen ? 11 : 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }).toList(),
@@ -872,76 +902,5 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDrawer(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.user;
 
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(
-              color: Colors.blue,
-            ),
-            accountName: Text(user?.fullName ?? 'User'),
-            accountEmail: Text(user?.email ?? ''),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(
-                (user?.fullName != null && user!.fullName.isNotEmpty)
-                    ? user.fullName.substring(0, 1).toUpperCase()
-                    : 'U',
-                style: const TextStyle(
-                  fontSize: 40,
-                  color: Colors.blue,
-                ),
-              ),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Trang chủ'),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Hồ sơ'),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.calendar_today),
-            title: const Text('Lịch hẹn của tôi'),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Cài đặt'),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              'Đăng xuất',
-              style: TextStyle(color: Colors.red),
-            ),
-            onTap: () async {
-              await authProvider.logout();
-              if (!context.mounted) return;
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -158,7 +158,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                               ),
                             ),
                             Text(
-                              '${doctor.consultationFee.toStringAsFixed(0)} VNĐ',
+                              '$doctor.consultationFee.toStringAsFixed(0) VNĐ',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -246,7 +246,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withAlpha(26),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),

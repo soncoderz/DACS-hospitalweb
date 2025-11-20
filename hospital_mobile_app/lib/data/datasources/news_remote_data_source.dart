@@ -19,20 +19,34 @@ class NewsRemoteDataSource {
         queryParameters: queryParams,
       );
 
-      final data = response.data;
       List<dynamic> newsJson = [];
 
-      if (data['news'] != null) {
-        if (data['news'] is List) {
-          newsJson = data['news'];
+      // Handle different API response structures
+      if (response.data is List) {
+        newsJson = response.data as List<dynamic>;
+      } else if (response.data is Map<String, dynamic>) {
+        final mapData = response.data as Map<String, dynamic>;
+        if (mapData.containsKey('news') && mapData['news'] is List) {
+          newsJson = mapData['news'] as List<dynamic>;
+        } else if (mapData.containsKey('data') && mapData['data'] is List) {
+          newsJson = mapData['data'] as List<dynamic>;
         }
       }
 
-      return newsJson
-          .map((json) => NewsModel.fromJson(json))
-          .toList();
+      if (newsJson.isEmpty) {
+        return [];
+      }
+
+      return newsJson.map((json) {
+        if (json is Map<String, dynamic>) {
+          return NewsModel.fromJson(json);
+        }
+        throw Exception('Định dạng dữ liệu tin tức không hợp lệ');
+      }).toList();
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Failed to fetch news');
+    } catch (e) {
+      throw Exception('Lỗi khi lấy danh sách tin tức: ${e.toString()}');
     }
   }
 }

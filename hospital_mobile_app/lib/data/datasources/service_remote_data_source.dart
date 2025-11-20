@@ -19,8 +19,30 @@ class ServiceRemoteDataSourceImpl implements ServiceRemoteDataSource {
       final response = await _dioClient.get(ApiConstants.services);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['services'] ?? response.data;
-        return data.map((json) => ServiceModel.fromJson(json)).toList();
+        List<dynamic> data = [];
+        
+        // Handle different API response structures
+        if (response.data is List) {
+          data = response.data as List<dynamic>;
+        } else if (response.data is Map<String, dynamic>) {
+          final mapData = response.data as Map<String, dynamic>;
+          if (mapData.containsKey('services') && mapData['services'] is List) {
+            data = mapData['services'] as List<dynamic>;
+          } else if (mapData.containsKey('data') && mapData['data'] is List) {
+            data = mapData['data'] as List<dynamic>;
+          }
+        }
+        
+        if (data.isEmpty) {
+          return [];
+        }
+        
+        return data.map((json) {
+          if (json is Map<String, dynamic>) {
+            return ServiceModel.fromJson(json);
+          }
+          throw ServerException('Định dạng dữ liệu dịch vụ không hợp lệ');
+        }).toList();
       } else {
         throw ServerException('Lấy danh sách dịch vụ thất bại');
       }

@@ -6,17 +6,18 @@ class PaymentFailureScreen extends StatelessWidget {
   final String orderId;
 
   const PaymentFailureScreen({
-    Key? key,
+    super.key,
     required this.message,
     required this.orderId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        _navigateBack(context);
-        return false;
+    return PopScope(
+      onPopInvoked: (bool didPop) {
+        if (!didPop) {
+          _navigateBack(context);
+        }
       },
       child: Scaffold(
         body: SafeArea(

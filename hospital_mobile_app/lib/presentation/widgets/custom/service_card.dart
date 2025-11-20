@@ -17,6 +17,9 @@ class ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    
     return Card(
       elevation: AppConstants.cardElevation,
       shape: RoundedRectangleBorder(
@@ -36,16 +39,18 @@ class ServiceCard extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: service.image ?? AppConstants.defaultServiceImageUrl,
                 width: double.infinity,
-                height: 150,
+                height: isSmallScreen ? 120 : 150,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   color: Colors.grey[200],
+                  height: isSmallScreen ? 120 : 150,
                   child: const Center(
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
                 errorWidget: (context, url, error) => Container(
                   color: Colors.grey[200],
+                  height: isSmallScreen ? 120 : 150,
                   child: const Icon(Icons.medical_services, size: 60),
                 ),
               ),
@@ -53,14 +58,14 @@ class ServiceCard extends StatelessWidget {
 
             // Content
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     service.name,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: isSmallScreen ? 15 : 16,
                       fontWeight: FontWeight.bold,
                     ),
                     maxLines: 2,
@@ -70,7 +75,7 @@ class ServiceCard extends StatelessWidget {
                   Text(
                     service.description,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: isSmallScreen ? 13 : 14,
                       color: Colors.grey[600],
                     ),
                     maxLines: 2,
@@ -79,26 +84,37 @@ class ServiceCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        '${service.price.toStringAsFixed(0)} VNĐ',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green[700],
+                      Flexible(
+                        child: Text(
+                          '${service.price.toStringAsFixed(0)} VNĐ',
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 15 : 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[700],
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       if (onBookNow != null)
                         ElevatedButton(
                           onPressed: onBookNow,
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmallScreen ? 12 : 16,
+                              vertical: isSmallScreen ? 6 : 8,
                             ),
                             minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: const Text('Đặt ngay'),
+                          child: Text(
+                            'Đặt ngay',
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 12 : 14,
+                            ),
+                          ),
                         ),
                     ],
                   ),

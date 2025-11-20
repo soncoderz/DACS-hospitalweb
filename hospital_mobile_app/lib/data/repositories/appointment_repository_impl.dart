@@ -128,19 +128,4 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
       return Left(ErrorHandler.handleException(e as Exception));
     }
   }
-
-  @override
-  Future<Either<Failure, List<Appointment>>> getAppointmentHistory() async {
-    try {
-      final hasConnection = await ErrorHandler.hasNetworkConnection();
-      if (!hasConnection) {
-        return const Left(NetworkFailure('Không có kết nối internet'));
-      }
-
-      final appointments = await _remoteDataSource.getAppointmentHistory();
-      return Right(appointments.map((model) => model.toEntity()).toList());
-    } catch (e) {
-      return Left(ErrorHandler.handleException(e as Exception));
-    }
-  }
 }

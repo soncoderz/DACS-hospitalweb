@@ -35,7 +35,16 @@ abstract class AuthRepository {
     required String newPassword,
   });
 
+  Future<Either<Failure, void>> verifyEmail({
+    required String token,
+  });
+
+  Future<Either<Failure, void>> resendVerification({
+    required String email,
+  });
+
   Future<Either<Failure, User>> getCurrentUser();
 
   Future<Either<Failure, void>> logout();
 }
+

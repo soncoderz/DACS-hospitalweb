@@ -7,6 +7,7 @@ class Appointment extends Equatable {
   final String doctorId;
   final String doctorName;
   final String specialtyName;
+  final String? hospitalName;
   final DateTime appointmentDate;
   final String timeSlot;
   final String status;
@@ -23,6 +24,7 @@ class Appointment extends Equatable {
     required this.doctorId,
     required this.doctorName,
     required this.specialtyName,
+    this.hospitalName,
     required this.appointmentDate,
     required this.timeSlot,
     required this.status,
@@ -41,6 +43,7 @@ class Appointment extends Equatable {
         doctorId,
         doctorName,
         specialtyName,
+        hospitalName,
         appointmentDate,
         timeSlot,
         status,

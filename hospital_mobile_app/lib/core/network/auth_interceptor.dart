@@ -13,6 +13,13 @@ class AuthInterceptor extends Interceptor {
     // Get token from secure storage
     final token = await _tokenStorage.getToken();
 
+    // Debug logging
+    print('[AuthInterceptor] Request to: ${options.path}');
+    print('[AuthInterceptor] Token exists: ${token != null && token.isNotEmpty}');
+    if (token != null && token.isNotEmpty) {
+      print('[AuthInterceptor] Token preview: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+    }
+
     // Add token to headers if it exists
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';

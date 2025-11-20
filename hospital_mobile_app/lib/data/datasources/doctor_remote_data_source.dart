@@ -46,7 +46,7 @@ class DoctorRemoteDataSourceImpl implements DoctorRemoteDataSource {
   @override
   Future<DoctorModel> getDoctorById(String id) async {
     try {
-      final response = await _dioClient.get(ApiConstants.doctorById(id));
+      final response = await _dioClient.get(ApiConstants.doctorDetail(id));
 
       if (response.statusCode == 200) {
         return DoctorModel.fromJson(

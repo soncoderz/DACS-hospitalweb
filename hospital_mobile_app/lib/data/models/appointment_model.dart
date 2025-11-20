@@ -8,6 +8,7 @@ class AppointmentModel extends Appointment {
     required super.doctorId,
     required super.doctorName,
     required super.specialtyName,
+    super.hospitalName,
     required super.appointmentDate,
     required super.timeSlot,
     required super.status,
@@ -19,24 +20,155 @@ class AppointmentModel extends Appointment {
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
-    return AppointmentModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      patientId: json['patient']?['_id'] ?? json['patientId'] ?? '',
-      patientName: json['patient']?['fullName'] ?? json['patientName'] ?? '',
-      doctorId: json['doctor']?['_id'] ?? json['doctorId'] ?? '',
-      doctorName: json['doctor']?['fullName'] ?? json['doctorName'] ?? '',
-      specialtyName: json['specialty']?['name'] ?? json['specialtyName'] ?? '',
-      appointmentDate: DateTime.parse(json['appointmentDate']),
-      timeSlot: json['timeSlot'] ?? '',
-      status: json['status'] ?? 'pending',
-      reason: json['reason'],
-      notes: json['notes'],
-      bookingCode: json['bookingCode'] ?? '',
-      fee: json['fee']?.toDouble(),
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
-    );
+    try {
+      print('[AppointmentModel] Parsing appointment: ${json['_id'] ?? json['id']}');
+      
+      // Handle timeSlot - can be String or Object
+      String timeSlotValue = '';
+      final timeSlotField = json['timeSlot'];
+      if (timeSlotField is String) {
+        timeSlotValue = timeSlotField;
+      } else if (timeSlotField is Map<String, dynamic>) {
+        // If timeSlot is an object, try to extract time string
+        timeSlotValue = timeSlotField['time'] ?? 
+                        timeSlotField['startTime'] ?? 
+                        timeSlotField.toString();
+      }
+    
+    // Handle doctorId - can be String or Object
+    String doctorIdValue = '';
+    String doctorNameValue = '';
+    final doctorField = json['doctorId'];
+    if (doctorField is String) {
+      doctorIdValue = doctorField;
+      doctorNameValue = json['doctorName'] ?? '';
+    } else if (doctorField is Map<String, dynamic>) {
+      doctorIdValue = doctorField['_id'] ?? doctorField['id'] ?? '';
+      doctorNameValue = doctorField['fullName'] ?? doctorField['user']?['fullName'] ?? '';
+    }
+    
+    // Also check 'doctor' field
+    if (json.containsKey('doctor') && json['doctor'] is Map<String, dynamic>) {
+      final doctor = json['doctor'] as Map<String, dynamic>;
+      doctorIdValue = doctor['_id'] ?? doctor['id'] ?? doctorIdValue;
+      doctorNameValue = doctor['fullName'] ?? doctor['user']?['fullName'] ?? doctorNameValue;
+    }
+    
+    // Handle specialtyName - can be String or Object
+    String specialtyNameValue = '';
+    final specialtyField = json['specialtyId'];
+    if (specialtyField is String) {
+      specialtyNameValue = json['specialtyName'] ?? '';
+    } else if (specialtyField is Map<String, dynamic>) {
+      specialtyNameValue = specialtyField['name'] ?? '';
+    }
+    
+    // Also check 'specialty' field
+    if (json.containsKey('specialty') && json['specialty'] is Map<String, dynamic>) {
+      final specialty = json['specialty'] as Map<String, dynamic>;
+      specialtyNameValue = specialty['name'] ?? specialtyNameValue;
+    }
+    
+    // Handle patientId and patientName
+    String patientIdValue = '';
+    String patientNameValue = '';
+    final patientField = json['patientId'];
+    if (patientField is String) {
+      patientIdValue = patientField;
+      patientNameValue = json['patientName'] ?? '';
+    } else if (patientField is Map<String, dynamic>) {
+      patientIdValue = patientField['_id'] ?? patientField['id'] ?? '';
+      patientNameValue = patientField['fullName'] ?? '';
+    }
+    
+    // Also check 'patient' field
+    if (json.containsKey('patient') && json['patient'] is Map<String, dynamic>) {
+      final patient = json['patient'] as Map<String, dynamic>;
+      patientIdValue = patient['_id'] ?? patient['id'] ?? patientIdValue;
+      patientNameValue = patient['fullName'] ?? patientNameValue;
+    }
+    
+    // Handle hospitalName
+    String? hospitalNameValue;
+    final hospitalField = json['hospitalId'];
+    if (hospitalField is String) {
+      hospitalNameValue = json['hospitalName'];
+    } else if (hospitalField is Map<String, dynamic>) {
+      hospitalNameValue = hospitalField['name'];
+    }
+    
+    // Also check 'hospital' field
+    if (json.containsKey('hospital') && json['hospital'] is Map<String, dynamic>) {
+      final hospital = json['hospital'] as Map<String, dynamic>;
+      hospitalNameValue = hospital['name'] ?? hospitalNameValue;
+    }
+    
+    // Handle fee - can be number or object
+    double? feeValue;
+    final feeField = json['fee'];
+    if (feeField is num) {
+      feeValue = feeField.toDouble();
+    } else if (feeField is Map<String, dynamic>) {
+      // If fee is an object, try to extract totalAmount or amount
+      final amount = feeField['totalAmount'] ?? feeField['amount'] ?? feeField['consultationFee'];
+      if (amount is num) {
+        feeValue = amount.toDouble();
+      }
+    }
+    
+    // Also check totalAmount field directly
+    if (feeValue == null && json.containsKey('totalAmount')) {
+      final totalAmount = json['totalAmount'];
+      if (totalAmount is num) {
+        feeValue = totalAmount.toDouble();
+      }
+    }
+    
+      // Parse appointmentDate safely
+      DateTime appointmentDateValue;
+      try {
+        appointmentDateValue = DateTime.parse(json['appointmentDate']);
+      } catch (e) {
+        print('[AppointmentModel] Error parsing appointmentDate: $e');
+        appointmentDateValue = DateTime.now();
+      }
+      
+      // Parse createdAt safely
+      DateTime createdAtValue;
+      try {
+        createdAtValue = json['createdAt'] != null
+            ? DateTime.parse(json['createdAt'])
+            : DateTime.now();
+      } catch (e) {
+        print('[AppointmentModel] Error parsing createdAt: $e');
+        createdAtValue = DateTime.now();
+      }
+      
+      print('[AppointmentModel] Successfully parsed appointment');
+      
+      return AppointmentModel(
+        id: json['_id'] ?? json['id'] ?? '',
+        patientId: patientIdValue.isEmpty ? 'unknown' : patientIdValue,
+        patientName: patientNameValue.isEmpty ? 'Bệnh nhân' : patientNameValue,
+        doctorId: doctorIdValue.isEmpty ? 'unknown' : doctorIdValue,
+        doctorName: doctorNameValue.isEmpty ? 'Bác sĩ' : doctorNameValue,
+        specialtyName: specialtyNameValue.isEmpty ? 'Chuyên khoa' : specialtyNameValue,
+        hospitalName: hospitalNameValue,
+        appointmentDate: appointmentDateValue,
+        timeSlot: timeSlotValue.isEmpty ? 'Chưa xác định' : timeSlotValue,
+        status: json['status'] ?? 'pending',
+        reason: json['reason'],
+        notes: json['notes'],
+        bookingCode: json['bookingCode'] ?? '',
+        fee: feeValue,
+        createdAt: createdAtValue,
+      );
+    } catch (e, stackTrace) {
+      print('[AppointmentModel] Error parsing appointment: $e');
+      print('[AppointmentModel] Stack trace: $stackTrace');
+      print('[AppointmentModel] JSON data: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -65,6 +197,7 @@ class AppointmentModel extends Appointment {
         doctorId: doctorId,
         doctorName: doctorName,
         specialtyName: specialtyName,
+        hospitalName: hospitalName,
         appointmentDate: appointmentDate,
         timeSlot: timeSlot,
         status: status,

@@ -16,11 +16,18 @@ class TokenStorageService {
   /// Save JWT token to secure storage
   Future<void> saveToken(String token) async {
     try {
+      print('[TokenStorage] Saving token: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
       await _secureStorage.write(
         key: AppConstants.jwtTokenKey,
         value: token,
       );
+      print('[TokenStorage] Token saved successfully');
+      
+      // Verify token was saved
+      final savedToken = await _secureStorage.read(key: AppConstants.jwtTokenKey);
+      print('[TokenStorage] Token verification: ${savedToken != null && savedToken.isNotEmpty}');
     } catch (e) {
+      print('[TokenStorage] Error saving token: $e');
       throw Exception('Failed to save token: $e');
     }
   }

@@ -22,15 +22,21 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
+    print('[SplashScreen] Checking authentication status...');
     final authProvider = context.read<AuthProvider>();
     await authProvider.checkAuthStatus();
 
     if (!mounted) return;
 
+    print('[SplashScreen] Is authenticated: ${authProvider.isAuthenticated}');
+    print('[SplashScreen] User: ${authProvider.user?.email ?? "null"}');
+
     if (authProvider.isAuthenticated) {
+      print('[SplashScreen] Navigating to home...');
       // Navigate to home
       Navigator.pushReplacementNamed(context, '/home');
     } else {
+      print('[SplashScreen] Navigating to login...');
       // Navigate to login
       Navigator.pushReplacementNamed(context, '/login');
     }

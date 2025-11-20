@@ -9,9 +9,9 @@ class RescheduleAppointmentScreen extends StatefulWidget {
   final Appointment appointment;
 
   const RescheduleAppointmentScreen({
-    Key? key,
+    super.key,
     required this.appointment,
-  }) : super(key: key);
+  });
 
   @override
   State<RescheduleAppointmentScreen> createState() =>

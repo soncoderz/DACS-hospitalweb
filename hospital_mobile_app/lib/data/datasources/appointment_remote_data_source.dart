@@ -14,7 +14,6 @@ abstract class AppointmentRemoteDataSource {
     DateTime newDate,
     String newTimeSlot,
   );
-  Future<List<AppointmentModel>> getAppointmentHistory();
 }
 
 class AppointmentRemoteDataSourceImpl implements AppointmentRemoteDataSource {
@@ -29,7 +28,7 @@ class AppointmentRemoteDataSourceImpl implements AppointmentRemoteDataSource {
   ) async {
     try {
       final response = await _dioClient.get(
-        ApiConstants.availableSlots(doctorId),
+        ApiConstants.doctorSchedules(doctorId),
         queryParameters: {
           'date': date.toIso8601String().split('T')[0],
         },
@@ -74,13 +73,43 @@ class AppointmentRemoteDataSourceImpl implements AppointmentRemoteDataSource {
       final response = await _dioClient.get(ApiConstants.myAppointments);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data =
-            response.data['appointments'] ?? response.data;
-        return data.map((json) => AppointmentModel.fromJson(json)).toList();
+        List<dynamic> data = [];
+        
+        // Handle different response formats
+        if (response.data is List) {
+          // Direct array response
+          data = response.data as List<dynamic>;
+        } else if (response.data is Map<String, dynamic>) {
+          final mapData = response.data as Map<String, dynamic>;
+          
+          // Try different possible keys
+          if (mapData.containsKey('appointments') && mapData['appointments'] is List) {
+            data = mapData['appointments'] as List<dynamic>;
+          } else if (mapData.containsKey('data')) {
+            if (mapData['data'] is List) {
+              data = mapData['data'] as List<dynamic>;
+            } else if (mapData['data'] is Map<String, dynamic>) {
+              final nestedData = mapData['data'] as Map<String, dynamic>;
+              if (nestedData.containsKey('appointments') && nestedData['appointments'] is List) {
+                data = nestedData['appointments'] as List<dynamic>;
+              }
+            }
+          }
+        }
+        
+        print('[AppointmentDataSource] Parsed ${data.length} appointments');
+        
+        return data.map((json) {
+          if (json is Map<String, dynamic>) {
+            return AppointmentModel.fromJson(json);
+          }
+          throw ServerException('Invalid appointment data format');
+        }).toList();
       } else {
         throw ServerException('Lấy danh sách lịch hẹn thất bại');
       }
     } catch (e) {
+      print('[AppointmentDataSource] Error: $e');
       if (e is ServerException) rethrow;
       throw ServerException('Lấy danh sách lịch hẹn thất bại: ${e.toString()}');
     }
@@ -94,13 +123,31 @@ class AppointmentRemoteDataSourceImpl implements AppointmentRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        return AppointmentModel.fromJson(
-          response.data['appointment'] ?? response.data,
-        );
+        Map<String, dynamic> appointmentData;
+        
+        // Handle different response formats
+        if (response.data is Map<String, dynamic>) {
+          final mapData = response.data as Map<String, dynamic>;
+          
+          // Check for nested data structure
+          if (mapData.containsKey('data') && mapData['data'] is Map<String, dynamic>) {
+            appointmentData = mapData['data'] as Map<String, dynamic>;
+          } else if (mapData.containsKey('appointment') && mapData['appointment'] is Map<String, dynamic>) {
+            appointmentData = mapData['appointment'] as Map<String, dynamic>;
+          } else {
+            appointmentData = mapData;
+          }
+        } else {
+          throw ServerException('Invalid response format');
+        }
+        
+        print('[AppointmentDataSource] Parsing appointment detail: ${appointmentData['_id']}');
+        return AppointmentModel.fromJson(appointmentData);
       } else {
         throw ServerException('Lấy thông tin lịch hẹn thất bại');
       }
     } catch (e) {
+      print('[AppointmentDataSource] Error getting appointment: $e');
       if (e is ServerException) rethrow;
       throw ServerException('Lấy thông tin lịch hẹn thất bại: ${e.toString()}');
     }
@@ -148,26 +195,6 @@ class AppointmentRemoteDataSourceImpl implements AppointmentRemoteDataSource {
     } catch (e) {
       if (e is ServerException) rethrow;
       throw ServerException('Đổi lịch hẹn thất bại: ${e.toString()}');
-    }
-  }
-
-  @override
-  Future<List<AppointmentModel>> getAppointmentHistory() async {
-    try {
-      final response = await _dioClient.get(
-        ApiConstants.appointmentHistory,
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data =
-            response.data['appointments'] ?? response.data;
-        return data.map((json) => AppointmentModel.fromJson(json)).toList();
-      } else {
-        throw ServerException('Lấy lịch sử lịch hẹn thất bại');
-      }
-    } catch (e) {
-      if (e is ServerException) rethrow;
-      throw ServerException('Lấy lịch sử lịch hẹn thất bại: ${e.toString()}');
     }
   }
 }

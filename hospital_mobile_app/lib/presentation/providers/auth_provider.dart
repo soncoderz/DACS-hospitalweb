@@ -197,30 +197,81 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
+  /// Verify Email
+  Future<bool> verifyEmail({
+    required String token,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+
+    final result = await _authRepository.verifyEmail(token: token);
+
+    return result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+        return false;
+      },
+      (_) {
+        _setLoading(false);
+        return true;
+      },
+    );
+  }
+
+  /// Resend Verification Email
+  Future<bool> resendVerification({
+    required String email,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+
+    final result = await _authRepository.resendVerification(email: email);
+
+    return result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+        return false;
+      },
+      (_) {
+        _setLoading(false);
+        return true;
+      },
+    );
+  }
+
   /// Check authentication status
   Future<void> checkAuthStatus() async {
     _setLoading(true);
 
+    print('[AuthProvider] Checking auth status...');
+    
     // Check if token exists
     final hasToken = await _tokenStorage.hasToken();
+    print('[AuthProvider] Has token: $hasToken');
 
     if (!hasToken) {
+      print('[AuthProvider] No token found, user not authenticated');
       _isAuthenticated = false;
       _user = null;
       _setLoading(false);
       return;
     }
 
+    print('[AuthProvider] Token found, validating with server...');
     // Validate token by getting current user
     final result = await _authRepository.getCurrentUser();
 
     result.fold(
       (failure) {
+        print('[AuthProvider] Token validation failed: ${failure.toString()}');
         _isAuthenticated = false;
         _user = null;
         _setLoading(false);
       },
       (user) {
+        print('[AuthProvider] Token valid, user authenticated: ${user.email}');
         _user = user;
         _isAuthenticated = true;
         _setLoading(false);
@@ -245,3 +296,4 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+

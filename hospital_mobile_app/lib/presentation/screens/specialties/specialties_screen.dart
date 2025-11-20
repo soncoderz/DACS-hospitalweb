@@ -181,23 +181,33 @@ class _SpecialtiesScreenState extends State<SpecialtiesScreen> {
 
                 return RefreshIndicator(
                   onRefresh: _handleRefresh,
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: filteredSpecialties.length,
-                    itemBuilder: (context, index) {
-                      final specialty = filteredSpecialties[index];
-                      return SpecialtyCard(
-                        specialty: specialty,
-                        onTap: () => _navigateToDoctorsList(
-                          specialty.id,
-                          specialty.name,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Responsive grid based on screen width
+                      final screenWidth = constraints.maxWidth;
+                      final crossAxisCount = screenWidth < 360 ? 2 : 2; // Keep 2 columns for consistency
+                      final childAspectRatio = screenWidth < 360 ? 0.75 : 0.85;
+                      final spacing = screenWidth < 360 ? 10.0 : 12.0;
+                      
+                      return GridView.builder(
+                        padding: EdgeInsets.all(screenWidth < 360 ? 12 : AppConstants.defaultPadding),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: spacing,
+                          mainAxisSpacing: spacing,
+                          childAspectRatio: childAspectRatio,
                         ),
+                        itemCount: filteredSpecialties.length,
+                        itemBuilder: (context, index) {
+                          final specialty = filteredSpecialties[index];
+                          return SpecialtyCard(
+                            specialty: specialty,
+                            onTap: () => _navigateToDoctorsList(
+                              specialty.id,
+                              specialty.name,
+                            ),
+                          );
+                        },
                       );
                     },
                   ),

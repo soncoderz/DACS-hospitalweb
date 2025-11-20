@@ -105,6 +105,20 @@ class ResetPasswordDto {
   }
 }
 
+/// Data Transfer Object for verify email request
+class VerifyEmailDto {
+  final String token;
+
+  VerifyEmailDto({required this.token});
+
+  Map<String, dynamic> toJson() {
+    return {
+      'token': token,
+    };
+  }
+}
+
+
 /// Response model for authentication
 class AuthResponse {
   final String token;
@@ -116,9 +130,33 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    // Handle different response formats
+    // Format 1: { token: "...", user: {...} }
+    // Format 2: { data: { token: "...", ...otherUserFields } }
+    
+    String token = '';
+    Map<String, dynamic> user = {};
+    
+    if (json.containsKey('data') && json['data'] is Map<String, dynamic>) {
+      // Format 2: data contains both token and user info
+      final data = json['data'] as Map<String, dynamic>;
+      token = data['token'] ?? '';
+      
+      // Extract user info (everything except token)
+      user = Map<String, dynamic>.from(data);
+      user.remove('token'); // Remove token from user data
+    } else {
+      // Format 1: token and user are separate
+      token = json['token'] ?? '';
+      user = json['user'] ?? {};
+    }
+    
+    print('[AuthResponse] Parsed token: ${token.isNotEmpty ? "${token.substring(0, token.length > 20 ? 20 : token.length)}..." : "EMPTY"}');
+    print('[AuthResponse] Parsed user: ${user.isNotEmpty ? user.keys.join(", ") : "EMPTY"}');
+    
     return AuthResponse(
-      token: json['token'] ?? '',
-      user: json['user'] ?? {},
+      token: token,
+      user: user,
     );
   }
 }

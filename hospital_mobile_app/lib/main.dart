@@ -6,6 +6,7 @@ import 'core/services/token_storage_service.dart';
 import 'data/datasources/auth_remote_data_source.dart';
 import 'data/datasources/doctor_remote_data_source.dart';
 import 'data/datasources/specialty_remote_data_source.dart';
+import 'data/datasources/service_remote_data_source.dart';
 import 'data/datasources/appointment_remote_data_source.dart';
 import 'data/datasources/hospital_remote_data_source.dart';
 import 'data/datasources/news_remote_data_source.dart';
@@ -14,6 +15,7 @@ import 'data/datasources/statistics_remote_data_source.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/doctor_repository_impl.dart';
 import 'data/repositories/specialty_repository_impl.dart';
+import 'data/repositories/service_repository_impl.dart';
 import 'data/repositories/appointment_repository_impl.dart';
 import 'data/repositories/hospital_repository_impl.dart';
 import 'data/repositories/news_repository_impl.dart';
@@ -22,6 +24,7 @@ import 'data/repositories/statistics_repository_impl.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/doctor_provider.dart';
 import 'presentation/providers/specialty_provider.dart';
+import 'presentation/providers/service_provider.dart';
 import 'presentation/providers/appointment_provider.dart';
 import 'presentation/providers/hospital_provider.dart';
 import 'presentation/providers/news_provider.dart';
@@ -36,6 +39,9 @@ import 'presentation/screens/auth/reset_password_screen.dart';
 import 'presentation/screens/main/main_screen.dart';
 import 'presentation/screens/doctors/doctors_list_screen.dart';
 import 'presentation/screens/doctors/doctor_detail_screen.dart';
+import 'presentation/screens/appointments/appointments_screen.dart';
+import 'presentation/screens/appointments/appointment_detail_screen.dart';
+import 'presentation/screens/news/news_list_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -77,6 +83,15 @@ class MyApp extends StatelessWidget {
           create: (_) => SpecialtyProvider(
             SpecialtyRepositoryImpl(
               SpecialtyRemoteDataSourceImpl(dioClient),
+            ),
+          ),
+        ),
+
+        // Service Provider
+        ChangeNotifierProvider(
+          create: (_) => ServiceProvider(
+            ServiceRepositoryImpl(
+              ServiceRemoteDataSourceImpl(dioClient),
             ),
           ),
         ),
@@ -148,6 +163,8 @@ class MyApp extends StatelessWidget {
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/home': (context) => const MainScreen(),
           '/doctors': (context) => const DoctorsListScreen(),
+          '/appointments': (context) => const AppointmentsScreen(),
+          '/news': (context) => const NewsListScreen(),
         },
         onGenerateRoute: (settings) {
           // Handle routes with arguments
@@ -170,6 +187,12 @@ class MyApp extends StatelessWidget {
             final doctorId = settings.arguments as String;
             return MaterialPageRoute(
               builder: (context) => DoctorDetailScreen(doctorId: doctorId),
+            );
+          }
+          if (settings.name == '/appointment-detail') {
+            final appointmentId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => AppointmentDetailScreen(appointmentId: appointmentId),
             );
           }
           return null;

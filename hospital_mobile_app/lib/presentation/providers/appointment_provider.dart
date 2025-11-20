@@ -209,24 +209,6 @@ class AppointmentProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> fetchAppointmentHistory() async {
-    _setLoading(true);
-    _setError(null);
-
-    final result = await _appointmentRepository.getAppointmentHistory();
-
-    result.fold(
-      (failure) {
-        _setError(ErrorHandler.getErrorMessage(failure));
-        _setLoading(false);
-      },
-      (appointments) {
-        _history = appointments;
-        _setLoading(false);
-      },
-    );
-  }
-
   void clearSelectedAppointment() {
     _selectedAppointment = null;
     notifyListeners();

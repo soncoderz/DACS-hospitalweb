@@ -61,16 +61,26 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Left(NetworkFailure('Không có kết nối internet'));
       }
 
+      print('[AuthRepository] Attempting login for: $email');
       final dto = LoginDto(email: email, password: password);
       final response = await _remoteDataSource.login(dto);
 
+      print('[AuthRepository] Login response received');
+      print('[AuthRepository] Token exists: ${response.token.isNotEmpty}');
+      print('[AuthRepository] User data: ${response.user}');
+
       // Save token
+      print('[AuthRepository] Saving token...');
       await _tokenStorage.saveToken(response.token);
+      print('[AuthRepository] Token saved successfully');
 
       // Convert to user model and entity
       final userModel = UserModel.fromJson(response.user);
+      print('[AuthRepository] User model created: ${userModel.email}');
+      
       return Right(userModel.toEntity());
     } catch (e) {
+      print('[AuthRepository] Login error: $e');
       return Left(ErrorHandler.handleException(e as Exception));
     }
   }
@@ -165,6 +175,43 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> verifyEmail({
+    required String token,
+  }) async {
+    try {
+      // Check network connectivity
+      final hasConnection = await ErrorHandler.hasNetworkConnection();
+      if (!hasConnection) {
+        return const Left(NetworkFailure('Không có kết nối internet'));
+      }
+
+      final dto = VerifyEmailDto(token: token);
+      await _remoteDataSource.verifyEmail(dto);
+      return const Right(null);
+    } catch (e) {
+      return Left(ErrorHandler.handleException(e as Exception));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resendVerification({
+    required String email,
+  }) async {
+    try {
+      // Check network connectivity
+      final hasConnection = await ErrorHandler.hasNetworkConnection();
+      if (!hasConnection) {
+        return const Left(NetworkFailure('Không có kết nối internet'));
+      }
+
+      await _remoteDataSource.resendVerification(email);
+      return const Right(null);
+    } catch (e) {
+      return Left(ErrorHandler.handleException(e as Exception));
+    }
+  }
+
+  @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
       // Check network connectivity
@@ -197,3 +244,4 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 }
+

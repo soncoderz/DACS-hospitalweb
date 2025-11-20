@@ -13,14 +13,45 @@ class ServiceModel extends Service {
   });
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
+    // Handle specialtyId - can be either String or Object
+    String? specialtyIdValue;
+    String? specialtyNameValue;
+    
+    final specialtyIdField = json['specialtyId'];
+    if (specialtyIdField is String) {
+      specialtyIdValue = specialtyIdField;
+    } else if (specialtyIdField is Map<String, dynamic>) {
+      specialtyIdValue = specialtyIdField['_id'] ?? specialtyIdField['id'];
+      specialtyNameValue = specialtyIdField['name'];
+    }
+    
+    // Also check 'specialty' field
+    final specialtyField = json['specialty'];
+    if (specialtyField is Map<String, dynamic>) {
+      specialtyIdValue ??= specialtyField['_id'] ?? specialtyField['id'];
+      specialtyNameValue ??= specialtyField['name'];
+    }
+    
+    // Handle image - can be String or Object
+    String? imageValue;
+    final imageField = json['image'];
+    if (imageField is String) {
+      imageValue = imageField;
+    } else if (imageField is Map<String, dynamic>) {
+      imageValue = imageField['secureUrl'] ?? imageField['url'];
+    }
+    
+    // Also check imageUrl field
+    imageValue ??= json['imageUrl'];
+    
     return ServiceModel(
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       price: (json['price'] ?? 0).toDouble(),
-      image: json['image'],
-      specialtyId: json['specialty']?['_id'] ?? json['specialtyId'],
-      specialtyName: json['specialty']?['name'] ?? json['specialtyName'],
+      image: imageValue,
+      specialtyId: specialtyIdValue,
+      specialtyName: specialtyNameValue,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),

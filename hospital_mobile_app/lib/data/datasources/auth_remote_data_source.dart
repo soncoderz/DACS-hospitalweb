@@ -12,6 +12,8 @@ abstract class AuthRemoteDataSource {
   Future<void> forgotPassword(ForgotPasswordDto dto);
   Future<void> verifyOtp(VerifyOtpDto dto);
   Future<void> resetPassword(ResetPasswordDto dto);
+  Future<void> verifyEmail(VerifyEmailDto dto);
+  Future<void> resendVerification(String email);
   Future<UserModel> getCurrentUser();
   Future<void> logout();
 }
@@ -74,7 +76,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: dto.toJson(),
       );
 
-      if (response.statusCode == 200) {
+     if (response.statusCode == 200) {
         return AuthResponse.fromJson(response.data);
       } else {
         throw ServerException(
@@ -149,6 +151,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<void> verifyEmail(VerifyEmailDto dto) async {
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.verifyEmail,
+        data: dto.toJson(),
+      );
+
+      if (response.statusCode != 200) {
+        throw ServerException(
+          response.data['message'] ?? 'Xác thực email thất bại',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      throw ServerException('Xác thực email thất bại: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> resendVerification(String email) async {
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.resendVerification,
+        data: {'email': email},
+      );
+
+      if (response.statusCode != 200) {
+        throw ServerException(
+          response.data['message'] ?? 'Gửi lại email xác thực thất bại',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      throw ServerException('Gửi lại email xác thực thất bại: ${e.toString()}');
+    }
+  }
+
+  @override
   Future<UserModel> getCurrentUser() async {
     try {
       final response = await _dioClient.get(ApiConstants.profile);
@@ -170,10 +212,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout() async {
     try {
-      await _dioClient.post(ApiConstants.logout);
+      // Just clear local storage, no server call needed
+      return;
     } catch (e) {
       // Logout can fail silently
-      throw ServerException('Đăng xuất thất bại: ${e.toString()}');
+      return;
     }
   }
 }

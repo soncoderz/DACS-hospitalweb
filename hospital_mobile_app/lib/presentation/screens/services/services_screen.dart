@@ -14,7 +14,6 @@ class ServicesScreen extends StatefulWidget {
 class _ServicesScreenState extends State<ServicesScreen> {
   final _minPriceController = TextEditingController();
   final _maxPriceController = TextEditingController();
-  bool _showFilterDialog = false;
 
   @override
   void initState() {
@@ -252,24 +251,31 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
           return RefreshIndicator(
             onRefresh: _handleRefresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(AppConstants.defaultPadding),
-              itemCount: serviceProvider.services.length,
-              itemBuilder: (context, index) {
-                final service = serviceProvider.services[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: ServiceCard(
-                    service: service,
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/service-detail',
-                        arguments: service.id,
-                      );
-                    },
-                    onBookNow: () => _handleBookNow(service.id),
-                  ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final screenWidth = constraints.maxWidth;
+                final isSmallScreen = screenWidth < 360;
+                
+                return ListView.builder(
+                  padding: EdgeInsets.all(isSmallScreen ? 12 : AppConstants.defaultPadding),
+                  itemCount: serviceProvider.services.length,
+                  itemBuilder: (context, index) {
+                    final service = serviceProvider.services[index];
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: isSmallScreen ? 12 : 16),
+                      child: ServiceCard(
+                        service: service,
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/service-detail',
+                            arguments: service.id,
+                          );
+                        },
+                        onBookNow: () => _handleBookNow(service.id),
+                      ),
+                    );
+                  },
                 );
               },
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import '../../../domain/entities/appointment.dart';
 import '../../providers/appointment_provider.dart';
 import '../../widgets/common/custom_button.dart';
@@ -23,6 +24,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
   @override
   void initState() {
     super.initState();
+    initializeDateFormatting('vi', null);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadAppointmentDetails();
     });
@@ -213,7 +215,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
-                  color: _getStatusColor(appointment.status).withOpacity(0.1),
+                  color: _getStatusColor(appointment.status).withAlpha(26),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -289,6 +291,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                     children: [
                       _buildInfoRow('Bác sĩ', appointment.doctorName),
                       _buildInfoRow('Chuyên khoa', appointment.specialtyName),
+                      if (appointment.hospitalName != null)
+                        _buildInfoRow('Bệnh viện', appointment.hospitalName!),
                     ],
                   ),
                 ),
@@ -424,7 +428,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withAlpha(26),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),

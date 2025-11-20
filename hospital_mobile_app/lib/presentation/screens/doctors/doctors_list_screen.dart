@@ -54,12 +54,7 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Danh Sách Bác Sĩ'),
-        centerTitle: true,
-      ),
-      body: Column(
+    return Column(
         children: [
           // Search bar
           Padding(
@@ -175,16 +170,18 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
                             );
                             if (!mounted) return;
                             if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    doctorProvider.isFavorite(doctor.id)
-                                        ? 'Đã thêm vào yêu thích'
-                                        : 'Đã xóa khỏi yêu thích',
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      doctorProvider.isFavorite(doctor.id)
+                                          ? 'Đã thêm vào yêu thích'
+                                          : 'Đã xóa khỏi yêu thích',
+                                    ),
+                                    duration: const Duration(seconds: 1),
                                   ),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
+                                );
+                              }
                             }
                           },
                         ),
@@ -196,7 +193,6 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }

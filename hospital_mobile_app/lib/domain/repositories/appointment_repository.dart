@@ -22,5 +22,4 @@ abstract class AppointmentRepository {
     DateTime newDate,
     String newTimeSlot,
   );
-  Future<Either<Failure, List<Appointment>>> getAppointmentHistory();
 }

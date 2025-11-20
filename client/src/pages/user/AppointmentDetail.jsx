@@ -4,9 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import { toast, ToastContainer } from 'react-toastify';
 
-import { FaCalendarAlt, FaClock, FaHospital, FaUserMd, FaNotesMedical, 
-         FaMoneyBillWave, FaFileMedical, FaFileDownload, FaTimesCircle, 
-         FaCalendarCheck, FaPrint, FaStar, FaArrowLeft, FaMapMarkerAlt, FaRedo, FaCheckCircle, FaExclamationTriangle, FaVideo, FaComments, FaShare } from 'react-icons/fa';
+import {
+  FaCalendarAlt, FaClock, FaHospital, FaUserMd, FaNotesMedical,
+  FaMoneyBillWave, FaFileMedical, FaFileDownload, FaTimesCircle,
+  FaCalendarCheck, FaPrint, FaStar, FaArrowLeft, FaMapMarkerAlt, FaRedo, FaCheckCircle, FaExclamationTriangle, FaVideo, FaComments, FaShare
+} from 'react-icons/fa';
 import CancelAppointmentModal from '../../components/shared/CancelAppointmentModal';
 import VideoCallButton from '../../components/VideoCallButton';
 import UserBilling from '../../components/UserBilling';
@@ -31,7 +33,7 @@ const AppointmentDetail = () => {
     try {
       setLoading(true);
       const response = await api.get(`/appointments/${id}`);
-      
+
       if (response.data.success) {
         setAppointment(response.data.data);
       } else {
@@ -60,14 +62,14 @@ const AppointmentDetail = () => {
       const response = await api.delete(`/appointments/${id}`, {
         data: { cancellationReason }
       });
-      
+
       if (response.data.success || response.data.status === 'success') {
         // Cập nhật trạng thái lịch hẹn tại chỗ
         setAppointment(prev => ({ ...prev, status: 'cancelled', cancellationReason }));
-        
+
         // Đóng modal hủy lịch
         setShowCancelModal(false);
-        
+
         // Hiển thị thông báo thành công
         toast.success('Hủy lịch hẹn thành công', {
           onClose: () => {
@@ -83,7 +85,7 @@ const AppointmentDetail = () => {
       }
     } catch (error) {
       console.error('Error cancelling appointment:', error);
-      
+
       // Xử lý lỗi chi tiết hơn
       if (error.response) {
         // Máy chủ trả về lỗi với mã trạng thái
@@ -112,7 +114,7 @@ const AppointmentDetail = () => {
     try {
       // Get doctor's user ID
       const doctorUserId = appointment?.doctorId?.user?._id || appointment?.doctorId?.user;
-      
+
       if (!doctorUserId) {
         toast.error('Không thể tìm thấy thông tin bác sĩ');
         return;
@@ -137,7 +139,7 @@ const AppointmentDetail = () => {
   const handleShareToChat = async () => {
     try {
       const doctorUserId = appointment?.doctorId?.user?._id || appointment?.doctorId?.user;
-      
+
       if (!doctorUserId) {
         toast.error('Không thể tìm thấy thông tin bác sĩ');
         return;
@@ -151,12 +153,12 @@ const AppointmentDetail = () => {
 
       if (response.data.success) {
         const conversationId = response.data.data._id;
-        
+
         // Send appointment to chat
         await api.post(`/chat/conversations/${conversationId}/send-appointment`, {
           appointmentId: appointment._id
         });
-        
+
         toast.success('Đã chia sẻ lịch hẹn vào chat');
         navigate(`/chat/${conversationId}`);
       }
@@ -172,8 +174,8 @@ const AppointmentDetail = () => {
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0
     }).format(price);
@@ -251,7 +253,7 @@ const AppointmentDetail = () => {
           text: 'text-pink-700',
           border: 'border-pink-200',
           icon: <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1.24 14.862c-.456 0-.883-.186-1.197-.528a1.91 1.91 0 0 1-.487-1.284c0-.487.171-.93.487-1.285.314-.342.74-.528 1.198-.528.457 0 .883.186 1.197.528.316.355.488.798.488 1.285 0 .486-.172.93-.488 1.284-.314.342-.74.528-1.197.528zm2.688-6.698a4.097 4.097 0 0 0-.256-.468 2.022 2.022 0 0 0-.2-.257 4.425 4.425 0 0 0-.485-.485c-.243-.196-.498-.384-.842-.554-.344-.17-.73-.313-1.186-.428a6.02 6.02 0 0 0-1.387-.17c-.499 0-.997.056-1.484.17-.486.114-.923.285-1.295.485a3.711 3.711 0 0 0-.954.77c-.258.299-.47.627-.627.981a5.28 5.28 0 0 0-.37 1.142c-.085.412-.128.84-.128 1.284v3.966h2.366v-3.966c0-.313.028-.612.114-.882.086-.27.214-.512.385-.712.172-.2.387-.355.627-.469.243-.115.5-.171.784-.171.286 0 .556.056.784.17.228.115.428.27.599.47.17.2.3.427.399.712.1.27.142.57.142.882 0 .214-.014.428-.057.627-.028.2-.086.385-.157.556-.071.17-.157.313-.243.441a7.07 7.07 0 0 1-.242.356c.228.228.485.427.755.584.271.156.543.285.784.384.114-.142.228-.313.342-.485.1-.17.2-.355.271-.54.072-.187.143-.371.187-.57.085-.397.128-.798.128-1.199 0-.441-.043-.882-.13-1.284a4.402 4.402 0 0 0-.369-1.142 5.495 5.495 0 0 0-.27-.513z"/>
+            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1.24 14.862c-.456 0-.883-.186-1.197-.528a1.91 1.91 0 0 1-.487-1.284c0-.487.171-.93.487-1.285.314-.342.74-.528 1.198-.528.457 0 .883.186 1.197.528.316.355.488.798.488 1.285 0 .486-.172.93-.488 1.284-.314.342-.74.528-1.197.528zm2.688-6.698a4.097 4.097 0 0 0-.256-.468 2.022 2.022 0 0 0-.2-.257 4.425 4.425 0 0 0-.485-.485c-.243-.196-.498-.384-.842-.554-.344-.17-.73-.313-1.186-.428a6.02 6.02 0 0 0-1.387-.17c-.499 0-.997.056-1.484.17-.486.114-.923.285-1.295.485a3.711 3.711 0 0 0-.954.77c-.258.299-.47.627-.627.981a5.28 5.28 0 0 0-.37 1.142c-.085.412-.128.84-.128 1.284v3.966h2.366v-3.966c0-.313.028-.612.114-.882.086-.27.214-.512.385-.712.172-.2.387-.355.627-.469.243-.115.5-.171.784-.171.286 0 .556.056.784.17.228.115.428.27.599.47.17.2.3.427.399.712.1.27.142.57.142.882 0 .214-.014.428-.057.627-.028.2-.086.385-.157.556-.071.17-.157.313-.243.441a7.07 7.07 0 0 1-.242.356c.228.228.485.427.755.584.271.156.543.285.784.384.114-.142.228-.313.342-.485.1-.17.2-.355.271-.54.072-.187.143-.371.187-.57.085-.397.128-.798.128-1.199 0-.441-.043-.882-.13-1.284a4.402 4.402 0 0 0-.369-1.142 5.495 5.495 0 0 0-.27-.513z" />
           </svg>
         },
         cash: {
@@ -265,14 +267,14 @@ const AppointmentDetail = () => {
           </svg>
         }
       };
-      
+
       // Get the appropriate style based on payment method, default to cash style if method not found
       const style = methodStyles[method] || methodStyles.cash;
-      
+
       return (
         <div className="flex items-center">
           <span className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium ${style.bg} ${style.text} border ${style.border}`}>
-            <FaCheckCircle className="mr-1.5" /> 
+            <FaCheckCircle className="mr-1.5" />
             Đã thanh toán
           </span>
           {method && (
@@ -284,7 +286,7 @@ const AppointmentDetail = () => {
         </div>
       );
     }
-    
+
     return (
       <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
         <FaClock className="mr-1.5" /> Chưa thanh toán
@@ -437,212 +439,211 @@ const AppointmentDetail = () => {
           <h1 className="text-2xl font-bold text-gray-800 mt-4">Chi tiết lịch hẹn</h1>
         </div>
 
-      {/* Hospitalization summary (nếu có) */}
-      {appointment.hospitalization && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
-          <div className="p-5 border-b border-gray-100">
-            <h3 className="font-semibold text-lg text-gray-800 flex items-center">
-              <FaHospital className="mr-2 text-primary" /> Thông tin nằm viện
-            </h3>
-          </div>
-          <div className="p-5">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <div className="text-gray-500 text-sm mb-1">Phòng hiện tại</div>
-                <div className="font-medium">
-                  Phòng {appointment.hospitalization.inpatientRoomId?.roomNumber || 'N/A'}
-                  {appointment.hospitalization.inpatientRoomId?.type && (
-                    <span className="ml-2 text-xs text-gray-500">
-                      ({appointment.hospitalization.inpatientRoomId.type})
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="text-gray-500 text-sm mb-1">Trạng thái</div>
-                <div className="font-medium capitalize">
-                  {appointment.hospitalization.status === 'admitted' ? 'Đang nằm viện' :
-                   appointment.hospitalization.status === 'transferred' ? 'Đã chuyển phòng' :
-                   appointment.hospitalization.status === 'discharged' ? 'Đã xuất viện' :
-                   appointment.hospitalization.status}
-                </div>
-              </div>
-              <div>
-                <div className="text-gray-500 text-sm mb-1">
-                  {appointment.hospitalization.status === 'discharged' ? 'Tổng chi phí' : 'Chi phí hiện tại'}
-                </div>
-                <div className="font-bold text-green-600">
-                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
-                    .format(appointment.hospitalization.totalAmount || appointment.hospitalization.currentInfo?.currentCost || 0)}
-                </div>
-              </div>
+        {/* Hospitalization summary (nếu có) */}
+        {appointment.hospitalization && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
+            <div className="p-5 border-b border-gray-100">
+              <h3 className="font-semibold text-lg text-gray-800 flex items-center">
+                <FaHospital className="mr-2 text-primary" /> Thông tin nằm viện
+              </h3>
             </div>
-            
-            {/* Room History */}
-            {appointment.hospitalization.roomHistory && appointment.hospitalization.roomHistory.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="text-gray-500 text-sm mb-3 font-medium">Lịch sử chuyển phòng</div>
-                <div className="space-y-3">
-                  {appointment.hospitalization.roomHistory.map((roomEntry, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-medium text-gray-800">
-                          Phòng {roomEntry.roomNumber || 'N/A'}
-                          {roomEntry.roomType && (
-                            <span className="ml-2 text-xs text-gray-500">({roomEntry.roomType})</span>
-                          )}
-                        </div>
-                        {roomEntry.amount > 0 && (
-                          <div className="text-sm font-semibold text-gray-700">
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(roomEntry.amount)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                        <div>
-                          <span className="font-medium">Vào:</span> {roomEntry.checkInTime ? new Date(roomEntry.checkInTime).toLocaleString('vi-VN') : 'N/A'}
-                        </div>
-                        <div>
-                          <span className="font-medium">Ra:</span> {roomEntry.checkOutTime ? new Date(roomEntry.checkOutTime).toLocaleString('vi-VN') : 'Đang ở'}
-                        </div>
-                        {roomEntry.hours > 0 && (
-                          <div>
-                            <span className="font-medium">Thời gian:</span> {roomEntry.hours} giờ
-                          </div>
-                        )}
-                        {roomEntry.hourlyRate > 0 && (
-                          <div>
-                            <span className="font-medium">Giá/giờ:</span> {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(roomEntry.hourlyRate)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Admission/Discharge dates */}
-            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-gray-500 mb-1">Ngày nhập viện</div>
-                <div className="font-medium">
-                  {appointment.hospitalization.admissionDate ? new Date(appointment.hospitalization.admissionDate).toLocaleString('vi-VN') : 'N/A'}
-                </div>
-              </div>
-              {appointment.hospitalization.dischargeDate && (
+            <div className="p-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <div className="text-gray-500 mb-1">Ngày xuất viện</div>
+                  <div className="text-gray-500 text-sm mb-1">Phòng hiện tại</div>
                   <div className="font-medium">
-                    {new Date(appointment.hospitalization.dischargeDate).toLocaleString('vi-VN')}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Prescriptions (nếu có) */}
-      {Array.isArray(appointment.prescriptions) && appointment.prescriptions.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
-          <div className="p-5 border-b border-gray-100">
-            <h3 className="font-semibold text-lg text-gray-800 flex items-center">
-              <FaFileMedical className="mr-2 text-primary" /> Đơn thuốc
-              <span className="ml-2 text-sm text-gray-500 font-normal">
-                ({appointment.prescriptions.length} đơn)
-              </span>
-            </h3>
-          </div>
-          <div className="p-5 space-y-4">
-            {appointment.prescriptions
-              .sort((a, b) => (a.prescriptionOrder || 1) - (b.prescriptionOrder || 1))
-              .map(p => (
-              <div key={p._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
-                      Đợt {p.prescriptionOrder || 1}
-                    </span>
-                    {p.isHospitalization && (
-                      <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">
-                        Nội trú
+                    Phòng {appointment.hospitalization.inpatientRoomId?.roomNumber || 'N/A'}
+                    {appointment.hospitalization.inpatientRoomId?.type && (
+                      <span className="ml-2 text-xs text-gray-500">
+                        ({appointment.hospitalization.inpatientRoomId.type})
                       </span>
                     )}
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      p.status === 'dispensed' ? 'bg-green-100 text-green-800' :
-                      p.status === 'verified' ? 'bg-emerald-100 text-emerald-800' :
-                      p.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {p.status === 'pending' ? 'Chờ xử lý' :
-                       p.status === 'approved' ? 'Đã kê đơn' :
-                       p.status === 'verified' ? 'Đã phê duyệt' :
-                       p.status === 'dispensed' ? 'Đã cấp thuốc' :
-                       p.status === 'completed' ? 'Hoàn thành' : p.status}
-                    </span>
                   </div>
-                  {p.totalAmount > 0 && (
-                    <div className="text-sm font-semibold text-gray-800">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.totalAmount)}
-                    </div>
-                  )}
                 </div>
-                
-                {p.diagnosis && (
-                  <div className="mb-3 pb-3 border-b border-gray-100">
-                    <div className="text-xs text-gray-500 mb-1">Chẩn đoán</div>
-                    <div className="font-medium text-gray-800">{p.diagnosis}</div>
+                <div>
+                  <div className="text-gray-500 text-sm mb-1">Trạng thái</div>
+                  <div className="font-medium capitalize">
+                    {appointment.hospitalization.status === 'admitted' ? 'Đang nằm viện' :
+                      appointment.hospitalization.status === 'transferred' ? 'Đã chuyển phòng' :
+                        appointment.hospitalization.status === 'discharged' ? 'Đã xuất viện' :
+                          appointment.hospitalization.status}
                   </div>
-                )}
-                
-                <div className="mb-3">
-                  <div className="text-xs text-gray-500 mb-2">Danh sách thuốc</div>
-                  <div className="space-y-2">
-                    {p.medications?.map((m, i) => (
-                      <div key={i} className="bg-gray-50 rounded p-3 text-sm">
-                        <div className="font-medium text-gray-800 mb-1">
-                          {m.medicationId?.name || m.medicationName}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
-                          <div><span className="font-medium">Số lượng:</span> {m.quantity} {m.medicationId?.unitTypeDisplay || 'đơn vị'}</div>
-                          <div><span className="font-medium">Liều lượng:</span> {m.dosage || '—'}</div>
-                          <div><span className="font-medium">Cách dùng:</span> {m.usage || '—'}</div>
-                          <div><span className="font-medium">Thời gian:</span> {m.duration || '—'}</div>
-                        </div>
-                        {m.totalPrice > 0 && (
-                          <div className="mt-1 text-xs text-gray-700">
-                            <span className="font-medium">Tổng tiền:</span> {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(m.totalPrice)}
+                </div>
+                <div>
+                  <div className="text-gray-500 text-sm mb-1">
+                    {appointment.hospitalization.status === 'discharged' ? 'Tổng chi phí' : 'Chi phí hiện tại'}
+                  </div>
+                  <div className="font-bold text-green-600">
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
+                      .format(appointment.hospitalization.totalAmount || appointment.hospitalization.currentInfo?.currentCost || 0)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Room History */}
+              {appointment.hospitalization.roomHistory && appointment.hospitalization.roomHistory.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="text-gray-500 text-sm mb-3 font-medium">Lịch sử chuyển phòng</div>
+                  <div className="space-y-3">
+                    {appointment.hospitalization.roomHistory.map((roomEntry, idx) => (
+                      <div key={idx} className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-medium text-gray-800">
+                            Phòng {roomEntry.roomNumber || 'N/A'}
+                            {roomEntry.roomType && (
+                              <span className="ml-2 text-xs text-gray-500">({roomEntry.roomType})</span>
+                            )}
                           </div>
-                        )}
-                        {m.notes && (
-                          <div className="mt-1 text-xs text-gray-500 italic">{m.notes}</div>
-                        )}
+                          {roomEntry.amount > 0 && (
+                            <div className="text-sm font-semibold text-gray-700">
+                              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(roomEntry.amount)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                          <div>
+                            <span className="font-medium">Vào:</span> {roomEntry.checkInTime ? new Date(roomEntry.checkInTime).toLocaleString('vi-VN') : 'N/A'}
+                          </div>
+                          <div>
+                            <span className="font-medium">Ra:</span> {roomEntry.checkOutTime ? new Date(roomEntry.checkOutTime).toLocaleString('vi-VN') : 'Đang ở'}
+                          </div>
+                          {roomEntry.hours > 0 && (
+                            <div>
+                              <span className="font-medium">Thời gian:</span> {roomEntry.hours} giờ
+                            </div>
+                          )}
+                          {roomEntry.hourlyRate > 0 && (
+                            <div>
+                              <span className="font-medium">Giá/giờ:</span> {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(roomEntry.hourlyRate)}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-                
-                {p.notes && (
-                  <div className="text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100">
-                    <span className="font-medium">Ghi chú:</span> {p.notes}
+              )}
+
+              {/* Admission/Discharge dates */}
+              <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500 mb-1">Ngày nhập viện</div>
+                  <div className="font-medium">
+                    {appointment.hospitalization.admissionDate ? new Date(appointment.hospitalization.admissionDate).toLocaleString('vi-VN') : 'N/A'}
+                  </div>
+                </div>
+                {appointment.hospitalization.dischargeDate && (
+                  <div>
+                    <div className="text-gray-500 mb-1">Ngày xuất viện</div>
+                    <div className="font-medium">
+                      {new Date(appointment.hospitalization.dischargeDate).toLocaleString('vi-VN')}
+                    </div>
                   </div>
                 )}
-                
-                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                  <span>Ngày kê đơn: {new Date(p.createdAt).toLocaleDateString('vi-VN')}</span>
-                  <Link 
-                    to={`/prescriptions/${p._id}`}
-                    className="text-primary hover:underline"
-                  >
-                    Xem chi tiết →
-                  </Link>
-                </div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Prescriptions (nếu có) */}
+        {Array.isArray(appointment.prescriptions) && appointment.prescriptions.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
+            <div className="p-5 border-b border-gray-100">
+              <h3 className="font-semibold text-lg text-gray-800 flex items-center">
+                <FaFileMedical className="mr-2 text-primary" /> Đơn thuốc
+                <span className="ml-2 text-sm text-gray-500 font-normal">
+                  ({appointment.prescriptions.length} đơn)
+                </span>
+              </h3>
+            </div>
+            <div className="p-5 space-y-4">
+              {appointment.prescriptions
+                .sort((a, b) => (a.prescriptionOrder || 1) - (b.prescriptionOrder || 1))
+                .map(p => (
+                  <div key={p._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
+                          Đợt {p.prescriptionOrder || 1}
+                        </span>
+                        {p.isHospitalization && (
+                          <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-semibold">
+                            Nội trú
+                          </span>
+                        )}
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${p.status === 'dispensed' ? 'bg-green-100 text-green-800' :
+                          p.status === 'verified' ? 'bg-emerald-100 text-emerald-800' :
+                            p.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                              'bg-yellow-100 text-yellow-800'
+                          }`}>
+                          {p.status === 'pending' ? 'Chờ xử lý' :
+                            p.status === 'approved' ? 'Đã kê đơn' :
+                              p.status === 'verified' ? 'Đã phê duyệt' :
+                                p.status === 'dispensed' ? 'Đã cấp thuốc' :
+                                  p.status === 'completed' ? 'Hoàn thành' : p.status}
+                        </span>
+                      </div>
+                      {p.totalAmount > 0 && (
+                        <div className="text-sm font-semibold text-gray-800">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.totalAmount)}
+                        </div>
+                      )}
+                    </div>
+
+                    {p.diagnosis && (
+                      <div className="mb-3 pb-3 border-b border-gray-100">
+                        <div className="text-xs text-gray-500 mb-1">Chẩn đoán</div>
+                        <div className="font-medium text-gray-800">{p.diagnosis}</div>
+                      </div>
+                    )}
+
+                    <div className="mb-3">
+                      <div className="text-xs text-gray-500 mb-2">Danh sách thuốc</div>
+                      <div className="space-y-2">
+                        {p.medications?.map((m, i) => (
+                          <div key={i} className="bg-gray-50 rounded p-3 text-sm">
+                            <div className="font-medium text-gray-800 mb-1">
+                              {m.medicationId?.name || m.medicationName}
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
+                              <div><span className="font-medium">Số lượng:</span> {m.quantity} {m.medicationId?.unitTypeDisplay || 'đơn vị'}</div>
+                              <div><span className="font-medium">Liều lượng:</span> {m.dosage || '—'}</div>
+                              <div><span className="font-medium">Cách dùng:</span> {m.usage || '—'}</div>
+                              <div><span className="font-medium">Thời gian:</span> {m.duration || '—'}</div>
+                            </div>
+                            {m.totalPrice > 0 && (
+                              <div className="mt-1 text-xs text-gray-700">
+                                <span className="font-medium">Tổng tiền:</span> {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(m.totalPrice)}
+                              </div>
+                            )}
+                            {m.notes && (
+                              <div className="mt-1 text-xs text-gray-500 italic">{m.notes}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {p.notes && (
+                      <div className="text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100">
+                        <span className="font-medium">Ghi chú:</span> {p.notes}
+                      </div>
+                    )}
+
+                    <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                      <span>Ngày kê đơn: {new Date(p.createdAt).toLocaleDateString('vi-VN')}</span>
+                      <Link
+                        to={`/prescriptions/${p._id}`}
+                        className="text-primary hover:underline"
+                      >
+                        Xem chi tiết →
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
         {/* Appointment header */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
           <div className="p-6 border-b border-gray-100">
@@ -679,13 +680,13 @@ const AppointmentDetail = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
                 {/* Chat Button - Show for pending, confirmed, or completed appointments */}
                 {(appointment.status === 'pending' || appointment.status === 'confirmed' || appointment.status === 'completed') && (
                   <>
-                    <button 
+                    <button
                       className="inline-flex items-center bg-green-100 text-green-800 hover:bg-green-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                       onClick={handleChatWithDoctor}
                     >
@@ -701,7 +702,7 @@ const AppointmentDetail = () => {
                 )}
                 {/* Video Call Button */}
                 {(appointment.status === 'confirmed') && (
-                  <VideoCallButton 
+                  <VideoCallButton
                     appointmentId={appointment._id}
                     userRole="patient"
                     appointmentStatus={appointment.status}
@@ -709,13 +710,13 @@ const AppointmentDetail = () => {
                 )}
                 {(appointment.status === 'pending' || appointment.status === 'rescheduled') && (
                   <>
-                    <button 
+                    <button
                       className="inline-flex items-center bg-blue-100 text-blue-800 hover:bg-blue-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                       onClick={handleReschedule}
                     >
                       <FaRedo className="mr-2" /> Đổi lịch
                     </button>
-                    <button 
+                    <button
                       className="inline-flex items-center bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                       onClick={() => setShowCancelModal(true)}
                     >
@@ -723,9 +724,9 @@ const AppointmentDetail = () => {
                     </button>
                   </>
                 )}
-                
+
                 {appointment.status === 'completed' && !appointment.isReviewed && (
-                  <Link 
+                  <Link
                     to={`/appointments/${appointment._id}/review`}
                     className="inline-flex items-center bg-yellow-100 text-yellow-800 hover:bg-yellow-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
@@ -801,18 +802,18 @@ const AppointmentDetail = () => {
                   <div className="text-gray-500 text-sm mb-1">Dịch vụ</div>
                   <div className="font-medium">{serviceName}</div>
                 </div>
-                
+
                 <div className="mb-4">
                   <div className="text-gray-500 text-sm mb-1">Loại khám</div>
                   <div className="font-medium">
                     {appointment.appointmentType === 'first-visit' ? 'Khám lần đầu' :
-                     appointment.appointmentType === 'follow-up' ? 'Tái khám' :
-                     appointment.appointmentType === 'consultation' ? 'Tư vấn' :
-                     appointment.appointmentType === 'emergency' ? 'Khẩn cấp' : appointment.appointmentType}
+                      appointment.appointmentType === 'follow-up' ? 'Tái khám' :
+                        appointment.appointmentType === 'consultation' ? 'Tư vấn' :
+                          appointment.appointmentType === 'emergency' ? 'Khẩn cấp' : appointment.appointmentType}
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 {appointment.symptoms && (
                   <div className="mb-4">
@@ -820,14 +821,14 @@ const AppointmentDetail = () => {
                     <div className="font-medium">{appointment.symptoms}</div>
                   </div>
                 )}
-                
+
                 {appointment.medicalHistory && (
                   <div className="mb-4">
                     <div className="text-gray-500 text-sm mb-1">Tiền sử bệnh</div>
                     <div className="font-medium">{appointment.medicalHistory}</div>
                   </div>
                 )}
-                
+
                 {appointment.notes && (
                   <div className="mb-4">
                     <div className="text-gray-500 text-sm mb-1">Ghi chú</div>
@@ -859,13 +860,13 @@ const AppointmentDetail = () => {
           </div>
         </div>
 
-        
+
         {/* Actions Footer */}
         <div className="mt-8 flex flex-wrap gap-3 justify-center md:justify-start">
           <Link to="/appointments" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors inline-flex items-center">
             <FaArrowLeft className="mr-2" /> Quay lại
           </Link>
-          
+
           {appointment.status === 'completed' && (
             <button className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors inline-flex items-center">
               <FaPrint className="mr-2" /> In lịch hẹn
