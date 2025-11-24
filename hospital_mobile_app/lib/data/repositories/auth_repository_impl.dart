@@ -228,7 +228,74 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, User>> updateProfile({
+    required String fullName,
+    String? phoneNumber,
+    String? address,
+    String? gender,
+    String? dateOfBirth,
+  }) async {
+    try {
+      // Check network connectivity
+      final hasConnection = await ErrorHandler.hasNetworkConnection();
+      if (!hasConnection) {
+        return const Left(NetworkFailure('Không có kết nối internet'));
+      }
+
+      final userModel = await _remoteDataSource.updateProfile(
+        fullName: fullName,
+        phoneNumber: phoneNumber,
+        address: address,
+        gender: gender,
+        dateOfBirth: dateOfBirth,
+      );
+      return Right(userModel.toEntity());
+    } catch (e) {
+      return Left(ErrorHandler.handleException(e as Exception));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      // Check network connectivity
+      final hasConnection = await ErrorHandler.hasNetworkConnection();
+      if (!hasConnection) {
+        return const Left(NetworkFailure('Không có kết nối internet'));
+      }
+
+      await _remoteDataSource.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(ErrorHandler.handleException(e as Exception));
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> uploadAvatar(String filePath) async {
+    try {
+      // Check network connectivity
+      final hasConnection = await ErrorHandler.hasNetworkConnection();
+      if (!hasConnection) {
+        return const Left(NetworkFailure('Không có kết nối internet'));
+      }
+
+      final userModel = await _remoteDataSource.uploadAvatar(filePath);
+      return Right(userModel.toEntity());
+    } catch (e) {
+      return Left(ErrorHandler.handleException(e as Exception));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> logout() async {
+
     try {
       // Try to call logout API
       await _remoteDataSource.logout();

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:io';
 import '../../core/errors/error_handler.dart';
 import '../../core/services/token_storage_service.dart';
 import '../../domain/entities/user.dart';
@@ -294,6 +295,86 @@ class AuthProvider extends ChangeNotifier {
   void updateUser(User user) {
     _user = user;
     notifyListeners();
+  }
+
+  /// Update user profile
+  Future<bool> updateProfile({
+    required String fullName,
+    String? phoneNumber,
+    String? address,
+    String? gender,
+    String? dateOfBirth,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+
+    final result = await _authRepository.updateProfile(
+      fullName: fullName,
+      phoneNumber: phoneNumber,
+      address: address,
+      gender: gender,
+      dateOfBirth: dateOfBirth,
+    );
+
+    return result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+        return false;
+      },
+      (user) {
+        _user = user;
+        _setLoading(false);
+        return true;
+      },
+    );
+  }
+
+  /// Change password
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+
+    final result = await _authRepository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+
+    return result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+        return false;
+      },
+      (_) {
+        _setLoading(false);
+        return true;
+      },
+    );
+  }
+
+  /// Upload avatar
+  Future<bool> uploadAvatar(File file) async {
+    _setLoading(true);
+    _setError(null);
+
+    final result = await _authRepository.uploadAvatar(file.path);
+
+    return result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+        return false;
+      },
+      (user) {
+        _user = user;
+        _setLoading(false);
+        return true;
+      },
+    );
   }
 }
 

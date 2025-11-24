@@ -45,6 +45,21 @@ abstract class AuthRepository {
 
   Future<Either<Failure, User>> getCurrentUser();
 
+  Future<Either<Failure, User>> updateProfile({
+    required String fullName,
+    String? phoneNumber,
+    String? address,
+    String? gender,
+    String? dateOfBirth,
+  });
+
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+
+  Future<Either<Failure, User>> uploadAvatar(String filePath);
+
   Future<Either<Failure, void>> logout();
 }
 

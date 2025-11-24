@@ -130,7 +130,24 @@ class DoctorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> removeFavorite(String doctorId) async {
+    final result = await _doctorRepository.removeFromFavorites(doctorId);
+    
+    return result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        return false;
+      },
+      (_) {
+        _favoriteDoctors.removeWhere((d) => d.id == doctorId);
+        notifyListeners();
+        return true;
+      },
+    );
+  }
+
   Future<void> refreshDoctors() async {
+
     await fetchDoctors(
       specialtyId: _currentSpecialtyFilter,
       search: _currentSearchQuery,
@@ -140,7 +157,22 @@ class DoctorProvider extends ChangeNotifier {
   void setDoctors(List<dynamic> doctorsData) {
     try {
       _doctors = doctorsData.map((data) {
-        print('[DEBUG] Parsing doctor: ${data['_id']}, fullName: ${data['fullName']}');
+        print('[DEBUG] Parsing doctor data: $data');
+        
+        // Handle user object - API populates user field
+        String fullName = '';
+        String email = '';
+        String? avatarUrl;
+        
+        if (data['user'] != null && data['user'] is Map) {
+          fullName = data['user']['fullName'] ?? '';
+          email = data['user']['email'] ?? '';
+          avatarUrl = data['user']['avatarUrl'];
+        } else {
+          // Fallback to direct fields
+          fullName = data['fullName'] ?? '';
+          email = data['email'] ?? '';
+        }
         
         // Handle specialtyId - can be string or object
         String specialtyId = '';
@@ -165,8 +197,7 @@ class DoctorProvider extends ChangeNotifier {
         }
 
         // Handle avatar - can be string, object, or null
-        String? avatarUrl;
-        if (data['avatar'] != null) {
+        if (avatarUrl == null && data['avatar'] != null) {
           if (data['avatar'] is String) {
             avatarUrl = data['avatar'];
           } else if (data['avatar'] is Map) {
@@ -176,8 +207,8 @@ class DoctorProvider extends ChangeNotifier {
 
         final doctor = Doctor(
           id: data['_id'] ?? '',
-          fullName: data['fullName'] ?? '',
-          email: data['email'] ?? '',
+          fullName: fullName,
+          email: email,
           avatar: avatarUrl,
           specialtyId: specialtyId,
           specialtyName: specialtyName,

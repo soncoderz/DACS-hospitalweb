@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/errors/exceptions.dart';
@@ -15,6 +16,18 @@ abstract class AuthRemoteDataSource {
   Future<void> verifyEmail(VerifyEmailDto dto);
   Future<void> resendVerification(String email);
   Future<UserModel> getCurrentUser();
+  Future<UserModel> updateProfile({
+    required String fullName,
+    String? phoneNumber,
+    String? address,
+    String? gender,
+    String? dateOfBirth,
+  });
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+  Future<UserModel> uploadAvatar(String filePath);
   Future<void> logout();
 }
 
@@ -206,6 +219,95 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       if (e is ServerException) rethrow;
       throw ServerException('Lấy thông tin người dùng thất bại: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<UserModel> updateProfile({
+    required String fullName,
+    String? phoneNumber,
+    String? address,
+    String? gender,
+    String? dateOfBirth,
+  }) async {
+    try {
+      final data = {
+        'fullName': fullName,
+        if (phoneNumber != null) 'phoneNumber': phoneNumber,
+        if (address != null) 'address': address,
+        if (gender != null) 'gender': gender,
+        if (dateOfBirth != null) 'dateOfBirth': dateOfBirth,
+      };
+
+      final response = await _dioClient.put(
+        ApiConstants.updateProfile,
+        data: data,
+      );
+
+      if (response.statusCode == 200) {
+        return UserModel.fromJson(response.data['data'] ?? response.data);
+      } else {
+        throw ServerException(
+          response.data['message'] ?? 'Cập nhật thông tin thất bại',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      throw ServerException('Cập nhật thông tin thất bại: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _dioClient.put(
+        ApiConstants.changePassword,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw ServerException(
+          response.data['message'] ?? 'Đổi mật khẩu thất bại',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      throw ServerException('Đổi mật khẩu thất bại: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<UserModel> uploadAvatar(String filePath) async {
+    try {
+      // Use dio's FormData for multipart upload
+      final formData = FormData.fromMap({
+        'avatar':  await MultipartFile.fromFile(filePath),
+      });
+
+      final response = await _dioClient.post(
+        ApiConstants.uploadAvatar,
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        return UserModel.fromJson(response.data['data'] ?? response.data);
+      } else {
+        throw ServerException(
+          response.data['message'] ?? 'Tải ảnh lên thất bại',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      throw ServerException('Tải ảnh lên thất bại: ${e.toString()}');
     }
   }
 

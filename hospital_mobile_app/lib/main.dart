@@ -46,6 +46,7 @@ import 'presentation/screens/appointments/appointment_detail_screen.dart';
 import 'presentation/screens/appointment/appointment_booking_screen.dart';
 import 'presentation/screens/news/news_list_screen.dart';
 import 'presentation/screens/payment/momo_payment_screen.dart';
+import 'presentation/screens/profile/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -177,6 +178,7 @@ class MyApp extends StatelessWidget {
           '/appointments': (context) => const AppointmentsScreen(),
           '/appointment-booking': (context) => const AppointmentBookingScreen(),
           '/news': (context) => const NewsListScreen(),
+          '/profile': (context) => const ProfileScreen(),
         },
         onGenerateRoute: (settings) {
           // Handle routes with arguments
