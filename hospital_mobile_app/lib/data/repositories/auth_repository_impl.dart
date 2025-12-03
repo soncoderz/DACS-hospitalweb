@@ -40,6 +40,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Save token
       await _tokenStorage.saveToken(response.token);
+      await _tokenStorage.saveUserData(response.user);
 
       // Convert to user model and entity
       final userModel = UserModel.fromJson(response.user);
@@ -72,6 +73,7 @@ class AuthRepositoryImpl implements AuthRepository {
       // Save token
       print('[AuthRepository] Saving token...');
       await _tokenStorage.saveToken(response.token);
+      await _tokenStorage.saveUserData(response.user);
       print('[AuthRepository] Token saved successfully');
 
       // Convert to user model and entity
@@ -101,6 +103,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Save token
       await _tokenStorage.saveToken(response.token);
+      await _tokenStorage.saveUserData(response.user);
 
       // Convert to user model and entity
       final userModel = UserModel.fromJson(response.user);
@@ -302,11 +305,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Clear token regardless of API result
       await _tokenStorage.deleteToken();
+      await _tokenStorage.deleteUserData();
 
       return const Right(null);
     } catch (e) {
       // Even if API fails, clear token locally
       await _tokenStorage.deleteToken();
+      await _tokenStorage.deleteUserData();
       return const Right(null);
     }
   }

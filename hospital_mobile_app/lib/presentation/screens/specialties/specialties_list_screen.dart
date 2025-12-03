@@ -4,7 +4,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../providers/specialty_provider.dart';
 
 class SpecialtiesListScreen extends StatefulWidget {
-  const SpecialtiesListScreen({super.key});
+  final bool showAppBar;
+
+  const SpecialtiesListScreen({super.key, this.showAppBar = true});
 
   @override
   State<SpecialtiesListScreen> createState() => _SpecialtiesListScreenState();
@@ -22,10 +24,12 @@ class _SpecialtiesListScreenState extends State<SpecialtiesListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chuyên Khoa'),
-        centerTitle: true,
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('Chuyên Khoa'),
+              centerTitle: true,
+            )
+          : null,
       body: Consumer<SpecialtyProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.specialties.isEmpty) {

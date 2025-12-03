@@ -1,9 +1,12 @@
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../../core/errors/error_handler.dart';
+import '../../core/errors/failures.dart';
 import '../../core/services/token_storage_service.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../data/models/user_model.dart';
 
 /// Auth provider for state management
 class AuthProvider extends ChangeNotifier {
@@ -249,7 +252,8 @@ class AuthProvider extends ChangeNotifier {
     print('[AuthProvider] Checking auth status...');
     
     // Check if token exists
-    final hasToken = await _tokenStorage.hasToken();
+    final token = await _tokenStorage.getToken();
+    final hasToken = token != null && token.isNotEmpty;
     print('[AuthProvider] Has token: $hasToken');
 
     if (!hasToken) {
@@ -260,6 +264,19 @@ class AuthProvider extends ChangeNotifier {
       return;
     }
 
+    // Try to load cached user to avoid forcing re-login on app restart
+    try {
+      final cachedUserJson = await _tokenStorage.getUserData();
+      if (cachedUserJson != null && cachedUserJson.isNotEmpty) {
+        final Map<String, dynamic> userMap = jsonDecode(cachedUserJson) as Map<String, dynamic>;
+        _user = UserModel.fromJson(userMap).toEntity();
+        _isAuthenticated = true;
+        print('[AuthProvider] Loaded cached user: ${_user?.email}');
+      }
+    } catch (e) {
+      print('[AuthProvider] Failed to load cached user: $e');
+    }
+
     print('[AuthProvider] Token found, validating with server...');
     // Validate token by getting current user
     final result = await _authRepository.getCurrentUser();
@@ -267,14 +284,28 @@ class AuthProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         print('[AuthProvider] Token validation failed: ${failure.toString()}');
-        _isAuthenticated = false;
-        _user = null;
-        _setLoading(false);
+        final isAuthFailure = failure is AuthenticationFailure;
+        if (isAuthFailure) {
+          _isAuthenticated = false;
+          _user = null;
+          _tokenStorage.deleteToken();
+          _tokenStorage.deleteUserData();
+        } else {
+          // Keep user authenticated if we have a token and cached user (network/server errors)
+          _isAuthenticated = _user != null;
+        }
+        _isLoading = false;
+        notifyListeners();
       },
       (user) {
         print('[AuthProvider] Token valid, user authenticated: ${user.email}');
         _user = user;
         _isAuthenticated = true;
+        // Refresh cached user
+        try {
+          final userModel = UserModel.fromEntity(user);
+          _tokenStorage.saveUserData(userModel.toJson());
+        } catch (_) {}
         _setLoading(false);
       },
     );

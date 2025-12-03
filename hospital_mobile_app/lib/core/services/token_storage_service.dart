@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
 
@@ -47,6 +48,36 @@ class TokenStorageService {
       await _secureStorage.delete(key: AppConstants.jwtTokenKey);
     } catch (e) {
       throw Exception('Failed to delete token: $e');
+    }
+  }
+
+  /// Save user data (cached profile) as JSON string
+  Future<void> saveUserData(Map<String, dynamic> userJson) async {
+    try {
+      await _secureStorage.write(
+        key: AppConstants.userDataKey,
+        value: jsonEncode(userJson),
+      );
+    } catch (e) {
+      throw Exception('Failed to save user data: $e');
+    }
+  }
+
+  /// Get cached user data JSON string
+  Future<String?> getUserData() async {
+    try {
+      return await _secureStorage.read(key: AppConstants.userDataKey);
+    } catch (e) {
+      throw Exception('Failed to get user data: $e');
+    }
+  }
+
+  /// Delete cached user data
+  Future<void> deleteUserData() async {
+    try {
+      await _secureStorage.delete(key: AppConstants.userDataKey);
+    } catch (e) {
+      throw Exception('Failed to delete user data: $e');
     }
   }
 

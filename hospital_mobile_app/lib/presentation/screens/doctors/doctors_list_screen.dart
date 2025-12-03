@@ -6,10 +6,12 @@ import '../../widgets/custom/doctor_card.dart';
 
 class DoctorsListScreen extends StatefulWidget {
   final String? specialtyId;
+  final bool showAppBar;
 
   const DoctorsListScreen({
     super.key,
     this.specialtyId,
+    this.showAppBar = true,
   });
 
   @override
@@ -55,10 +57,12 @@ class _DoctorsListScreenState extends State<DoctorsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Danh Sách Bác Sĩ'),
-        centerTitle: true,
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('Danh Sách Bác Sĩ'),
+              centerTitle: true,
+            )
+          : null,
       body: Column(
         children: [
           // Search bar

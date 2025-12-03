@@ -4,7 +4,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../providers/service_provider.dart';
 
 class ServicesListScreen extends StatefulWidget {
-  const ServicesListScreen({super.key});
+  final bool showAppBar;
+
+  const ServicesListScreen({super.key, this.showAppBar = true});
 
   @override
   State<ServicesListScreen> createState() => _ServicesListScreenState();
@@ -22,10 +24,12 @@ class _ServicesListScreenState extends State<ServicesListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dịch Vụ Y Tế'),
-        centerTitle: true,
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('Dịch Vụ Y Tế'),
+              centerTitle: true,
+            )
+          : null,
       body: Consumer<ServiceProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.services.isEmpty) {

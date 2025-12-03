@@ -302,10 +302,8 @@ const initializeSocket = (server) => {
       // Send current locked slots for this doctor and date
       const lockedSlots = [];
       for (const [key, userId] of lockedTimeSlots.entries()) {
-        if (key.startsWith(`${doctorId}_`)) {
-          const [scheduleId, timeSlotId] = key.split('_');
-          lockedSlots.push({ scheduleId, timeSlotId, userId });
-        }
+        const [scheduleId, timeSlotId] = key.split('_');
+        lockedSlots.push({ scheduleId, timeSlotId, userId });
       }
       
       if (lockedSlots.length > 0) {

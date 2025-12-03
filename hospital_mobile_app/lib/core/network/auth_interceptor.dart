@@ -30,13 +30,6 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    // Handle 401 Unauthorized - token expired or invalid
-    if (err.response?.statusCode == 401) {
-      // Clear token
-      await _tokenStorage.deleteToken();
-      // You can also trigger a logout event here if needed
-    }
-
     handler.next(err);
   }
 }
