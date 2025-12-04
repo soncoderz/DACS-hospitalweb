@@ -7,6 +7,12 @@ class Hospital extends Equatable {
   final String? address;
   final String? phone;
   final String? imageUrl;
+  final String? email;
+  final String? openingHours;
+  final Map<String, dynamic>? workingHours;
+  final int? doctorCount;
+  final int? serviceCount;
+  final int? specialtyCount;
   final bool isActive;
   final double rating;
   final int reviewCount;
@@ -18,6 +24,12 @@ class Hospital extends Equatable {
     this.address,
     this.phone,
     this.imageUrl,
+    this.email,
+    this.openingHours,
+    this.workingHours,
+    this.doctorCount,
+    this.serviceCount,
+    this.specialtyCount,
     required this.isActive,
     required this.rating,
     required this.reviewCount,
@@ -31,6 +43,12 @@ class Hospital extends Equatable {
         address,
         phone,
         imageUrl,
+        email,
+        openingHours,
+        workingHours,
+        doctorCount,
+        serviceCount,
+        specialtyCount,
         isActive,
         rating,
         reviewCount,

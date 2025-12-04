@@ -142,12 +142,11 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
                     ),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      // TODO: Navigate to hospital detail
-                      // Navigator.pushNamed(
-                      //   context,
-                      //   '/hospital-detail',
-                      //   arguments: hospital.id,
-                      // );
+                      Navigator.pushNamed(
+                        context,
+                        '/hospital-detail',
+                        arguments: hospital.id,
+                      );
                     },
                   ),
                 );

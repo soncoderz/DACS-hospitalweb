@@ -106,6 +106,22 @@ class ServiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<List<Service>> getServicesBySpecialty(String specialtyId) async {
+    final result = await _serviceRepository.getServicesBySpecialty(specialtyId);
+    return result.fold(
+      (failure) => [],
+      (services) => services,
+    );
+  }
+
+  Future<List<Service>> getServicesByHospital(String hospitalId) async {
+    final result = await _serviceRepository.getServicesByHospital(hospitalId);
+    return result.fold(
+      (failure) => [],
+      (services) => services,
+    );
+  }
+
   Future<void> refreshServices() async {
     await fetchServices();
   }
@@ -151,10 +167,19 @@ class ServiceProvider extends ChangeNotifier {
           id: data['_id'] ?? '',
           name: data['name'] ?? '',
           description: data['description'] ?? '',
+          shortDescription: data['shortDescription'],
           price: (data['price'] ?? 0).toDouble(),
           image: imageUrl,
           specialtyId: specialtyId,
           specialtyName: specialtyName,
+          duration: data['duration'] != null ? int.tryParse(data['duration'].toString()) : null,
+          type: data['type'],
+          instructions: data['instructions'],
+          preparationGuide: data['preparationGuide'],
+          aftercareInstructions: data['aftercareInstructions'],
+          requiredTests: data['requiredTests'] != null
+              ? List<String>.from(data['requiredTests'].whereType<String>())
+              : null,
           createdAt: data['createdAt'] != null 
               ? DateTime.parse(data['createdAt'])
               : DateTime.now(),

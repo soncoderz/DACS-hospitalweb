@@ -9,12 +9,18 @@ class SpecialtyProvider extends ChangeNotifier {
   SpecialtyProvider(this._specialtyRepository);
 
   List<Specialty> _specialties = [];
+  Specialty? _selectedSpecialty;
   bool _isLoading = false;
+  bool _isDetailLoading = false;
   String? _errorMessage;
+  String? _detailError;
 
   List<Specialty> get specialties => _specialties;
+  Specialty? get selectedSpecialty => _selectedSpecialty;
   bool get isLoading => _isLoading;
+  bool get isDetailLoading => _isDetailLoading;
   String? get errorMessage => _errorMessage;
+  String? get detailError => _detailError;
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -23,6 +29,11 @@ class SpecialtyProvider extends ChangeNotifier {
 
   void _setError(String? message) {
     _errorMessage = message;
+    notifyListeners();
+  }
+
+  void _setDetailError(String? message) {
+    _detailError = message;
     notifyListeners();
   }
 
@@ -46,6 +57,32 @@ class SpecialtyProvider extends ChangeNotifier {
 
   Future<void> refreshSpecialties() async {
     await fetchSpecialties();
+  }
+
+  Future<void> fetchSpecialtyById(String id) async {
+    _isDetailLoading = true;
+    _setDetailError(null);
+    _selectedSpecialty = null;
+    notifyListeners();
+
+    final result = await _specialtyRepository.getSpecialtyById(id);
+
+    result.fold(
+      (failure) => _setDetailError(ErrorHandler.getErrorMessage(failure)),
+      (specialty) {
+        _selectedSpecialty = specialty;
+        _setDetailError(null);
+      },
+    );
+
+    _isDetailLoading = false;
+    notifyListeners();
+  }
+
+  void clearSelected() {
+    _selectedSpecialty = null;
+    _detailError = null;
+    notifyListeners();
   }
 
   void setSpecialties(List<dynamic> specialtiesData) {

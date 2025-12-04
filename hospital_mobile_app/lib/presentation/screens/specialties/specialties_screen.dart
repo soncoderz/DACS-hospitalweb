@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../providers/specialty_provider.dart';
 import '../../widgets/custom/specialty_card.dart';
-import '../doctors/doctors_list_screen.dart';
 
 class SpecialtiesScreen extends StatefulWidget {
   const SpecialtiesScreen({super.key});
@@ -44,12 +43,11 @@ class _SpecialtiesScreenState extends State<SpecialtiesScreen> {
     });
   }
 
-  void _navigateToDoctorsList(String specialtyId, String specialtyName) {
-    Navigator.push(
+  void _navigateToSpecialtyDetail(String specialtyId) {
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (context) => DoctorsListScreen(specialtyId: specialtyId),
-      ),
+      '/specialty-detail',
+      arguments: specialtyId,
     );
   }
 
@@ -202,10 +200,7 @@ class _SpecialtiesScreenState extends State<SpecialtiesScreen> {
                           final specialty = filteredSpecialties[index];
                           return SpecialtyCard(
                             specialty: specialty,
-                            onTap: () => _navigateToDoctorsList(
-                              specialty.id,
-                              specialty.name,
-                            ),
+                            onTap: () => _navigateToSpecialtyDetail(specialty.id),
                           );
                         },
                       );

@@ -15,7 +15,7 @@ class ReviewModel extends Review {
     
     return ReviewModel(
       id: json['_id'] ?? json['id'] ?? '',
-      rating: json['rating'] ?? 0,
+      rating: (json['rating'] as num?)?.round() ?? 0,
       comment: json['comment'] ?? json['review'] ?? '',
       userName: user is Map ? (user['fullName'] ?? user['name'] ?? 'Anonymous') : 'Anonymous',
       userAvatar: user is Map ? user['avatarUrl'] ?? user['avatar'] : null,

@@ -6,6 +6,8 @@ import '../models/service_model.dart';
 abstract class ServiceRemoteDataSource {
   Future<List<ServiceModel>> getServices();
   Future<ServiceModel> getServiceById(String id);
+  Future<List<ServiceModel>> getServicesBySpecialty(String id);
+  Future<List<ServiceModel>> getServicesByHospital(String id);
 }
 
 class ServiceRemoteDataSourceImpl implements ServiceRemoteDataSource {
@@ -67,6 +69,46 @@ class ServiceRemoteDataSourceImpl implements ServiceRemoteDataSource {
     } catch (e) {
       if (e is ServerException) rethrow;
       throw ServerException('Lấy thông tin dịch vụ thất bại: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<ServiceModel>> getServicesBySpecialty(String id) async {
+    try {
+      final response = await _dioClient.get(ApiConstants.servicesBySpecialty(id));
+      if (response.statusCode == 200) {
+        final data = response.data['data'] ?? response.data['services'] ?? response.data;
+        if (data is List) {
+          return data
+              .whereType<Map<String, dynamic>>()
+              .map((json) => ServiceModel.fromJson(json))
+              .toList();
+        }
+      }
+      throw ServerException('Lấy danh sách dịch vụ theo chuyên khoa thất bại');
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      throw ServerException('Lấy danh sách dịch vụ theo chuyên khoa thất bại: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<ServiceModel>> getServicesByHospital(String id) async {
+    try {
+      final response = await _dioClient.get(ApiConstants.hospitalServices(id));
+      if (response.statusCode == 200) {
+        final data = response.data['data'] ?? response.data['services'] ?? response.data;
+        if (data is List) {
+          return data
+              .whereType<Map<String, dynamic>>()
+              .map((json) => ServiceModel.fromJson(json))
+              .toList();
+        }
+      }
+      throw ServerException('Lấy danh sách dịch vụ theo chi nhánh thất bại');
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      throw ServerException('Lấy danh sách dịch vụ theo chi nhánh thất bại: ${e.toString()}');
     }
   }
 }

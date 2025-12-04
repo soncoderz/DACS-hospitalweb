@@ -9,6 +9,13 @@ class ServiceModel extends Service {
     super.image,
     super.specialtyId,
     super.specialtyName,
+    super.shortDescription,
+    super.duration,
+    super.type,
+    super.instructions,
+    super.preparationGuide,
+    super.aftercareInstructions,
+    super.requiredTests,
     required super.createdAt,
   });
 
@@ -48,10 +55,19 @@ class ServiceModel extends Service {
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
       description: json['description'] ?? '',
+      shortDescription: json['shortDescription'],
       price: (json['price'] ?? 0).toDouble(),
       image: imageValue,
       specialtyId: specialtyIdValue,
       specialtyName: specialtyNameValue,
+      duration: json['duration'] != null ? int.tryParse(json['duration'].toString()) : null,
+      type: json['type'],
+      instructions: json['instructions'],
+      preparationGuide: json['preparationGuide'],
+      aftercareInstructions: json['aftercareInstructions'],
+      requiredTests: json['requiredTests'] != null
+          ? List<String>.from(json['requiredTests'].whereType<String>())
+          : null,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
@@ -67,6 +83,13 @@ class ServiceModel extends Service {
       'image': image,
       'specialtyId': specialtyId,
       'specialtyName': specialtyName,
+      'shortDescription': shortDescription,
+      'duration': duration,
+      'type': type,
+      'instructions': instructions,
+      'preparationGuide': preparationGuide,
+      'aftercareInstructions': aftercareInstructions,
+      'requiredTests': requiredTests,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -80,6 +103,13 @@ class ServiceModel extends Service {
       image: image,
       specialtyId: specialtyId,
       specialtyName: specialtyName,
+      shortDescription: shortDescription,
+      duration: duration,
+      type: type,
+      instructions: instructions,
+      preparationGuide: preparationGuide,
+      aftercareInstructions: aftercareInstructions,
+      requiredTests: requiredTests,
       createdAt: createdAt,
     );
   }

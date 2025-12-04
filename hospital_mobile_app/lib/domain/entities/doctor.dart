@@ -10,6 +10,12 @@ class Doctor extends Equatable {
   final String? bio;
   final int experience;
   final String? education;
+  final List<String> certifications;
+  final List<String> specializations;
+  final String? hospitalId;
+  final String? hospitalName;
+  final String? hospitalAddress;
+  final String? hospitalImage;
   final List<String> languages;
   final double rating;
   final int reviewCount;
@@ -27,6 +33,12 @@ class Doctor extends Equatable {
     this.bio,
     required this.experience,
     this.education,
+    this.certifications = const [],
+    this.specializations = const [],
+    this.hospitalId,
+    this.hospitalName,
+    this.hospitalAddress,
+    this.hospitalImage,
     required this.languages,
     required this.rating,
     required this.reviewCount,
@@ -46,6 +58,12 @@ class Doctor extends Equatable {
         bio,
         experience,
         education,
+        certifications,
+        specializations,
+        hospitalId,
+        hospitalName,
+        hospitalAddress,
+        hospitalImage,
         languages,
         rating,
         reviewCount,

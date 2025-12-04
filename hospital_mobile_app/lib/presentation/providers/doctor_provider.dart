@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../../core/errors/error_handler.dart';
 import '../../domain/entities/doctor.dart';
+import '../../domain/entities/review.dart';
+import '../../domain/entities/service.dart';
 import '../../domain/repositories/doctor_repository.dart';
 
 class DoctorProvider extends ChangeNotifier {
@@ -12,15 +14,23 @@ class DoctorProvider extends ChangeNotifier {
   List<Doctor> _favoriteDoctors = [];
   Doctor? _selectedDoctor;
   bool _isLoading = false;
+  bool _isDetailLoading = false;
   String? _errorMessage;
+  String? _detailError;
   String? _currentSpecialtyFilter;
   String? _currentSearchQuery;
+  List<Service> _doctorServices = [];
+  List<Review> _doctorReviews = [];
 
   List<Doctor> get doctors => _doctors;
   List<Doctor> get favoriteDoctors => _favoriteDoctors;
   Doctor? get selectedDoctor => _selectedDoctor;
   bool get isLoading => _isLoading;
+  bool get isDetailLoading => _isDetailLoading;
   String? get errorMessage => _errorMessage;
+  String? get detailError => _detailError;
+  List<Service> get doctorServices => _doctorServices;
+  List<Review> get doctorReviews => _doctorReviews;
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -32,8 +42,27 @@ class DoctorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setDetailError(String? message) {
+    _detailError = message;
+    notifyListeners();
+  }
+
+  void _setDetailLoading(bool value) {
+    _isDetailLoading = value;
+    notifyListeners();
+  }
+
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  void clearDetailState() {
+    _doctorServices = [];
+    _doctorReviews = [];
+    _selectedDoctor = null;
+    _detailError = null;
+    _isDetailLoading = false;
     notifyListeners();
   }
 
@@ -78,6 +107,45 @@ class DoctorProvider extends ChangeNotifier {
     );
   }
 
+  Future<void> fetchDoctorDetail(String id) async {
+    _setLoading(true);
+    _setDetailLoading(true);
+    _setError(null);
+    _setDetailError(null);
+    _doctorServices = [];
+    _doctorReviews = [];
+
+    final doctorResult = await _doctorRepository.getDoctorById(id);
+    doctorResult.fold(
+      (failure) {
+        final message = ErrorHandler.getErrorMessage(failure);
+        _setError(message);
+        _setDetailError(message);
+      },
+      (doctor) {
+        _selectedDoctor = doctor;
+      },
+    );
+
+    final servicesResult = await _doctorRepository.getDoctorServices(id);
+    servicesResult.fold(
+      (failure) => _setDetailError(ErrorHandler.getErrorMessage(failure)),
+      (services) {
+        _doctorServices = services;
+      },
+    );
+
+    final reviewsResult = await _doctorRepository.getDoctorReviews(id);
+    reviewsResult.fold(
+      (failure) => _setDetailError(ErrorHandler.getErrorMessage(failure)),
+      (reviews) => _doctorReviews = reviews,
+    );
+
+    _setLoading(false);
+    _setDetailLoading(false);
+    notifyListeners();
+  }
+
   Future<void> fetchFavoriteDoctors() async {
     _setLoading(true);
     _setError(null);
@@ -112,8 +180,15 @@ class DoctorProvider extends ChangeNotifier {
         if (isFavorite) {
           _favoriteDoctors.removeWhere((d) => d.id == doctorId);
         } else {
-          final doctor = _doctors.firstWhere((d) => d.id == doctorId);
-          _favoriteDoctors.add(doctor);
+          Doctor? doctor;
+          try {
+            doctor = _doctors.firstWhere((d) => d.id == doctorId);
+          } catch (_) {
+            doctor = _selectedDoctor;
+          }
+          if (doctor != null) {
+            _favoriteDoctors.add(doctor);
+          }
         }
         notifyListeners();
         return true;
@@ -151,6 +226,28 @@ class DoctorProvider extends ChangeNotifier {
     await fetchDoctors(
       specialtyId: _currentSpecialtyFilter,
       search: _currentSearchQuery,
+    );
+  }
+
+  Future<List<Doctor>> getDoctorsBySpecialty(String specialtyId) async {
+    final result = await _doctorRepository.getDoctors(specialtyId: specialtyId);
+    return result.fold(
+      (failure) {
+        _setDetailError(ErrorHandler.getErrorMessage(failure));
+        return [];
+      },
+      (doctors) => doctors,
+    );
+  }
+
+  Future<List<Doctor>> getDoctorsByService(String serviceId) async {
+    final result = await _doctorRepository.getDoctorsByService(serviceId);
+    return result.fold(
+      (failure) {
+        _setDetailError(ErrorHandler.getErrorMessage(failure));
+        return [];
+      },
+      (doctors) => doctors,
     );
   }
 
@@ -205,6 +302,34 @@ class DoctorProvider extends ChangeNotifier {
           }
         }
 
+        // Hospital information if present
+        final hospital = data['hospitalId'] ?? data['hospital'];
+        String? hospitalId;
+        String? hospitalName;
+        String? hospitalAddress;
+        String? hospitalImage;
+        if (hospital is Map) {
+          hospitalId = hospital['_id'] ?? hospital['id'];
+          hospitalName = hospital['name'];
+          hospitalAddress = hospital['address'];
+          hospitalImage = hospital['imageUrl'] ?? hospital['image'];
+        } else if (hospital is String) {
+          hospitalId = hospital;
+        }
+
+        // Ratings info with multiple possible keys
+        final ratings = data['ratings'];
+        final ratingValue = (data['rating'] ??
+                data['averageRating'] ??
+                (ratings is Map ? ratings['average'] : null) ??
+                0)
+            .toDouble();
+        final reviewCountValue = data['reviewCount'] ??
+            data['reviewsCount'] ??
+            data['numReviews'] ??
+            (ratings is Map ? ratings['count'] : null) ??
+            0;
+
         final doctor = Doctor(
           id: data['_id'] ?? '',
           fullName: fullName,
@@ -214,12 +339,32 @@ class DoctorProvider extends ChangeNotifier {
           specialtyName: specialtyName,
           bio: data['bio'] is String ? data['bio'] : null,
           experience: data['experience'] ?? 0,
-          education: data['education'] is String ? data['education'] : null,
+          education: data['education'] is String
+              ? data['education']
+              : (data['education'] is List
+                  ? (data['education'] as List)
+                      .whereType<String>()
+                      .join('\n')
+                  : null),
+          certifications: data['certifications'] != null
+              ? List<String>.from(
+                  data['certifications'].whereType<String>(),
+                )
+              : const [],
+          specializations: data['specializations'] != null
+              ? List<String>.from(
+                  data['specializations'].whereType<String>(),
+                )
+              : const [],
+          hospitalId: hospitalId,
+          hospitalName: hospitalName,
+          hospitalAddress: hospitalAddress,
+          hospitalImage: hospitalImage,
           languages: data['languages'] != null 
               ? List<String>.from(data['languages'])
               : [],
-          rating: (data['rating'] ?? 0).toDouble(),
-          reviewCount: data['reviewCount'] ?? 0,
+          rating: ratingValue,
+          reviewCount: reviewCountValue,
           consultationFee: (data['consultationFee'] ?? 0).toDouble(),
           isAvailable: data['isAvailable'] ?? true,
           createdAt: data['createdAt'] != null 

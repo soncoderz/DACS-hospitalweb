@@ -11,6 +11,12 @@ class DoctorModel extends Doctor {
     super.bio,
     required super.experience,
     super.education,
+    super.certifications = const [],
+    super.specializations = const [],
+    super.hospitalId,
+    super.hospitalName,
+    super.hospitalAddress,
+    super.hospitalImage,
     required super.languages,
     required super.rating,
     required super.reviewCount,
@@ -23,6 +29,20 @@ class DoctorModel extends Doctor {
     // Handle nested user object from server
     final user = json['user'] ?? json;
     final specialty = json['specialtyId'] ?? json['specialty'];
+    final hospital = json['hospitalId'] ?? json['hospital'];
+
+    // Handle rating fields with multiple formats
+    final ratings = json['ratings'];
+    final ratingValue = (json['averageRating'] ??
+            json['rating'] ??
+            (ratings is Map ? ratings['average'] : null) ??
+            0)
+        .toDouble();
+    final reviewCountValue = json['reviewCount'] ??
+        (ratings is Map ? ratings['count'] : null) ??
+        json['reviewsCount'] ??
+        json['numReviews'] ??
+        0;
     
     return DoctorModel(
       id: json['_id'] ?? json['id'] ?? '',
@@ -33,12 +53,30 @@ class DoctorModel extends Doctor {
       specialtyName: specialty is Map ? specialty['name'] ?? '' : '',
       bio: json['bio'] ?? json['description'],
       experience: json['experience'] ?? 0,
-      education: json['education'],
+      education: json['education'] is String
+          ? json['education']
+          : (json['education'] is List
+              ? (json['education'] as List)
+                  .whereType<String>()
+                  .join('\n')
+              : null),
+      certifications: json['certifications'] != null
+          ? List<String>.from(json['certifications'].whereType<String>())
+          : const [],
+      specializations: json['specializations'] != null
+          ? List<String>.from(json['specializations'].whereType<String>())
+          : const [],
+      hospitalId: hospital is Map ? hospital['_id'] ?? hospital['id'] : hospital,
+      hospitalName: hospital is Map ? hospital['name'] : null,
+      hospitalAddress: hospital is Map ? hospital['address'] : null,
+      hospitalImage: hospital is Map
+          ? hospital['imageUrl'] ?? hospital['image']
+          : null,
       languages: json['languages'] != null
-          ? List<String>.from(json['languages'])
+          ? List<String>.from(json['languages'].whereType<String>())
           : [],
-      rating: (json['averageRating'] ?? json['rating'] ?? 0).toDouble(),
-      reviewCount: json['reviewCount'] ?? 0,
+      rating: ratingValue,
+      reviewCount: reviewCountValue,
       consultationFee: (json['consultationFee'] ?? 0).toDouble(),
       isAvailable: json['isAvailable'] ?? true,
       createdAt: json['createdAt'] != null
@@ -58,6 +96,12 @@ class DoctorModel extends Doctor {
       'bio': bio,
       'experience': experience,
       'education': education,
+      'certifications': certifications,
+      'specializations': specializations,
+      'hospitalId': hospitalId,
+      'hospitalName': hospitalName,
+      'hospitalAddress': hospitalAddress,
+      'hospitalImage': hospitalImage,
       'languages': languages,
       'rating': rating,
       'reviewCount': reviewCount,
@@ -78,6 +122,12 @@ class DoctorModel extends Doctor {
       bio: bio,
       experience: experience,
       education: education,
+      certifications: certifications,
+      specializations: specializations,
+      hospitalId: hospitalId,
+      hospitalName: hospitalName,
+      hospitalAddress: hospitalAddress,
+      hospitalImage: hospitalImage,
       languages: languages,
       rating: rating,
       reviewCount: reviewCount,

@@ -39,4 +39,34 @@ class ServiceRepositoryImpl implements ServiceRepository {
       return Left(ErrorHandler.handleException(e as Exception));
     }
   }
+
+  @override
+  Future<Either<Failure, List<Service>>> getServicesBySpecialty(String id) async {
+    try {
+      final hasConnection = await ErrorHandler.hasNetworkConnection();
+      if (!hasConnection) {
+        return const Left(NetworkFailure('Không có kết nối internet'));
+      }
+
+      final services = await _remoteDataSource.getServicesBySpecialty(id);
+      return Right(services.map((service) => service.toEntity()).toList());
+    } catch (e) {
+      return Left(ErrorHandler.handleException(e as Exception));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Service>>> getServicesByHospital(String id) async {
+    try {
+      final hasConnection = await ErrorHandler.hasNetworkConnection();
+      if (!hasConnection) {
+        return const Left(NetworkFailure('Không có kết nối internet'));
+      }
+
+      final services = await _remoteDataSource.getServicesByHospital(id);
+      return Right(services.map((service) => service.toEntity()).toList());
+    } catch (e) {
+      return Left(ErrorHandler.handleException(e as Exception));
+    }
+  }
 }

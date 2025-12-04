@@ -150,7 +150,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
     // Navigate to book appointment screen with service pre-selected
     Navigator.pushNamed(
       context,
-      '/book-appointment',
+      '/appointment-booking',
       arguments: {'serviceId': serviceId},
     );
   }

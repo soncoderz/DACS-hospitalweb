@@ -47,6 +47,9 @@ import 'presentation/screens/appointment/appointment_booking_screen.dart';
 import 'presentation/screens/news/news_list_screen.dart';
 import 'presentation/screens/payment/momo_payment_screen.dart';
 import 'presentation/screens/profile/profile_screen.dart';
+import 'presentation/screens/services/service_detail_screen.dart';
+import 'presentation/screens/specialties/specialty_detail_screen.dart';
+import 'presentation/screens/hospitals/hospital_detail_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -176,7 +179,6 @@ class MyApp extends StatelessWidget {
           '/home': (context) => const MainScreen(),
           '/doctors': (context) => const DoctorsListScreen(),
           '/appointments': (context) => const AppointmentsScreen(),
-          '/appointment-booking': (context) => const AppointmentBookingScreen(),
           '/news': (context) => const NewsListScreen(),
           '/profile': (context) => const ProfileScreen(),
         },
@@ -201,6 +203,35 @@ class MyApp extends StatelessWidget {
             final doctorId = settings.arguments as String;
             return MaterialPageRoute(
               builder: (context) => DoctorDetailScreen(doctorId: doctorId),
+            );
+          }
+          if (settings.name == '/service-detail') {
+            final serviceId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => ServiceDetailScreen(serviceId: serviceId),
+            );
+          }
+          if (settings.name == '/specialty-detail') {
+            final specialtyId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => SpecialtyDetailScreen(specialtyId: specialtyId),
+            );
+          }
+          if (settings.name == '/hospital-detail') {
+            final hospitalId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => HospitalDetailScreen(hospitalId: hospitalId),
+            );
+          }
+          if (settings.name == '/appointment-booking') {
+            final args = settings.arguments as Map<String, dynamic>?;
+            return MaterialPageRoute(
+              builder: (context) => AppointmentBookingScreen(
+                hospitalId: args?['hospitalId'] as String?,
+                specialtyId: args?['specialtyId'] as String?,
+                doctorId: args?['doctorId'] as String?,
+                serviceId: args?['serviceId'] as String?,
+              ),
             );
           }
           if (settings.name == '/appointment-detail') {
