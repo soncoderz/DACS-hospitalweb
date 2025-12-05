@@ -60,9 +60,21 @@ class ServiceRemoteDataSourceImpl implements ServiceRemoteDataSource {
       final response = await _dioClient.get(ApiConstants.serviceById(id));
 
       if (response.statusCode == 200) {
-        return ServiceModel.fromJson(
-          response.data['service'] ?? response.data,
-        );
+        dynamic rawData = response.data;
+
+        // Normalize different response shapes to a single map
+        if (rawData is Map<String, dynamic>) {
+          rawData = rawData['data'] ??
+              rawData['service'] ??
+              rawData['result'] ??
+              rawData;
+        }
+
+        if (rawData is Map<String, dynamic>) {
+          return ServiceModel.fromJson(rawData);
+        }
+
+        throw ServerException('Định dạng dữ liệu dịch vụ không hợp lệ');
       } else {
         throw ServerException('Lấy thông tin dịch vụ thất bại');
       }

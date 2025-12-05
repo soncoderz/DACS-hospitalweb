@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../domain/entities/service.dart';
 
 class ServiceCard extends StatelessWidget {
@@ -19,6 +20,7 @@ class ServiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 360;
+    final imageUrl = _resolveImage(service.image);
     
     return Card(
       elevation: AppConstants.cardElevation,
@@ -37,7 +39,7 @@ class ServiceCard extends StatelessWidget {
                 top: Radius.circular(AppConstants.borderRadius),
               ),
               child: CachedNetworkImage(
-                imageUrl: service.image ?? AppConstants.defaultServiceImageUrl,
+                imageUrl: imageUrl,
                 width: double.infinity,
                 height: isSmallScreen ? 120 : 150,
                 fit: BoxFit.cover,
@@ -125,5 +127,11 @@ class ServiceCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _resolveImage(String? url) {
+    if (url == null || url.isEmpty) return AppConstants.defaultServiceImageUrl;
+    if (url.startsWith('http')) return url;
+    return '${ApiConstants.socketUrl}$url';
   }
 }
