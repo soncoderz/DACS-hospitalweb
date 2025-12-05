@@ -1,4 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/entities/specialty.dart';
 
@@ -61,10 +63,17 @@ class SpecialtyCard extends StatelessWidget {
     return colors[index % colors.length];
   }
 
+  String _resolveImageUrl(String? url) {
+    if (url == null || url.isEmpty) return '';
+    if (url.startsWith('http')) return url;
+    return '${ApiConstants.socketUrl}$url';
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = _getSpecialtyColor(specialty.id.hashCode);
-    
+    final imageUrl = _resolveImageUrl(specialty.imageUrl);
+
     return Card(
       elevation: AppConstants.cardElevation,
       shape: RoundedRectangleBorder(
@@ -78,20 +87,54 @@ class SpecialtyCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: color.withAlpha(26),
-                  borderRadius: BorderRadius.circular(30),
+              // Image or Icon
+              if (imageUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    width: 70,
+                    height: 70,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      width: 70,
+                      height: 70,
+                      color: color.withAlpha(20),
+                      child: Icon(
+                        _getSpecialtyIcon(specialty.icon ?? specialty.name),
+                        color: color,
+                        size: 32,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: color.withAlpha(26),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        _getSpecialtyIcon(specialty.icon ?? specialty.name),
+                        color: color,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(26),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Icon(
+                    _getSpecialtyIcon(specialty.icon ?? specialty.name),
+                    size: 32,
+                    color: color,
+                  ),
                 ),
-                child: Icon(
-                  _getSpecialtyIcon(specialty.icon ?? specialty.name),
-                  size: 32,
-                  color: color,
-                ),
-              ),
               const SizedBox(height: 12),
 
               // Name

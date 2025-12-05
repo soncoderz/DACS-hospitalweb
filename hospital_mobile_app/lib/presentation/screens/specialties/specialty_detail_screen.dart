@@ -6,6 +6,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../domain/entities/doctor.dart';
 import '../../../domain/entities/service.dart';
 import '../../../domain/entities/specialty.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/doctor_provider.dart';
 import '../../providers/service_provider.dart';
 import '../../providers/specialty_provider.dart';
@@ -40,8 +41,13 @@ class _SpecialtyDetailScreenState extends State<SpecialtyDetailScreen> {
     });
 
     final specialtyProvider = context.read<SpecialtyProvider>();
+    final authProvider = context.read<AuthProvider>();
     final doctorProvider = context.read<DoctorProvider>();
     final serviceProvider = context.read<ServiceProvider>();
+
+    if (authProvider.isAuthenticated) {
+      await doctorProvider.fetchFavoriteDoctors();
+    }
 
     await specialtyProvider.fetchSpecialtyById(widget.specialtyId);
     final specialty = specialtyProvider.selectedSpecialty;
@@ -269,63 +275,95 @@ class _SpecialtyDetailScreenState extends State<SpecialtyDetailScreen> {
         border: Border.all(color: Colors.grey.shade200),
         color: Colors.grey.shade50,
       ),
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/doctor-detail', arguments: doctor.id),
-        child: Row(
-          children: [
-            // Doctor Avatar
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: Colors.blue.shade100,
-              backgroundImage: doctor.avatar != null
-                  ? CachedNetworkImageProvider(doctor.avatar!)
-                  : null,
-              child: doctor.avatar == null
-                  ? Text(
-                      doctor.fullName.isNotEmpty ? doctor.fullName[0].toUpperCase() : 'B',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doctor.fullName,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
+      child: Consumer2<DoctorProvider, AuthProvider>(
+        builder: (context, doctorProvider, authProvider, child) {
+          final isFavorite = doctorProvider.isFavorite(doctor.id);
+
+          return InkWell(
+            onTap: () => Navigator.pushNamed(context, '/doctor-detail', arguments: doctor.id),
+            child: Row(
+              children: [
+                // Doctor Avatar
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.blue.shade100,
+                  backgroundImage: doctor.avatar != null
+                      ? CachedNetworkImageProvider(doctor.avatar!)
+                      : null,
+                  child: doctor.avatar == null
+                      ? Text(
+                          doctor.fullName.isNotEmpty ? doctor.fullName[0].toUpperCase() : 'B',
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.work_outline, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
                       Text(
-                        '${doctor.experience} năm kinh nghiệm',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        doctor.fullName,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                       ),
-                    ],
-                  ),
-                  if (doctor.rating > 0) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.star, size: 14, color: Colors.amber),
-                        const SizedBox(width: 4),
-                        Text(
-                          doctor.rating.toStringAsFixed(1),
-                          style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.work_outline, size: 14, color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${doctor.experience} năm kinh nghiệm',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      if (doctor.rating > 0 || doctor.reviewCount > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.star, size: 14, color: Colors.amber),
+                            const SizedBox(width: 4),
+                            Text(
+                              _resolveDoctorRating(doctor).toStringAsFixed(1),
+                              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '(${_resolveDoctorReviewCount(doctor)} đánh giá)',
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                            ),
+                          ],
                         ),
                       ],
+                    ],
+                  ),
+                ),
+                if (authProvider.isAuthenticated)
+                  IconButton(
+                    icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? Colors.redAccent : Colors.grey.shade500,
                     ),
-                  ],
-                ],
-              ),
+                    onPressed: () async {
+                      final success = await doctorProvider.toggleFavorite(doctor.id);
+                      if (!mounted) return;
+                      final nowFavorite = doctorProvider.isFavorite(doctor.id);
+                      final message = success
+                          ? (nowFavorite
+                              ? 'Đã thêm bác sĩ vào danh sách yêu thích'
+                              : 'Đã xóa bác sĩ khỏi danh sách yêu thích')
+                          : 'Không thể cập nhật danh sách yêu thích';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(message)),
+                      );
+                      setState(() {});
+                    },
+                  ),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              ],
             ),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -520,6 +558,16 @@ class _SpecialtyDetailScreenState extends State<SpecialtyDetailScreen> {
   String _formatCurrency(double value) {
     if (value == 0) return 'Liên hệ';
     return '${value.toStringAsFixed(0)} VNĐ';
+  }
+
+  double _resolveDoctorRating(Doctor doctor) {
+    if (doctor.rating > 0) return doctor.rating;
+    return 0;
+  }
+
+  int _resolveDoctorReviewCount(Doctor doctor) {
+    if (doctor.reviewCount > 0) return doctor.reviewCount;
+    return 0;
   }
 
   String _resolveImageUrl(String? url, String fallback) {
