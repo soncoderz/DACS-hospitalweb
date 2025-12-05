@@ -7,6 +7,7 @@ class Specialty extends Equatable {
   final String? icon;
   final String? imageUrl;
   final int doctorCount;
+  final int serviceCount;
 
   const Specialty({
     required this.id,
@@ -15,8 +16,17 @@ class Specialty extends Equatable {
     this.icon,
     this.imageUrl,
     required this.doctorCount,
+    required this.serviceCount,
   });
 
   @override
-  List<Object?> get props => [id, name, description, icon, imageUrl, doctorCount];
+  List<Object?> get props => [
+        id,
+        name,
+        description,
+        icon,
+        imageUrl,
+        doctorCount,
+        serviceCount,
+      ];
 }

@@ -5,7 +5,12 @@ import '../../providers/specialty_provider.dart';
 import '../../widgets/custom/specialty_card.dart';
 
 class SpecialtiesScreen extends StatefulWidget {
-  const SpecialtiesScreen({super.key});
+  final bool showAppBar;
+
+  const SpecialtiesScreen({
+    super.key,
+    this.showAppBar = true,
+  });
 
   @override
   State<SpecialtiesScreen> createState() => _SpecialtiesScreenState();
@@ -54,10 +59,12 @@ class _SpecialtiesScreenState extends State<SpecialtiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chuyên Khoa'),
-        centerTitle: true,
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('Chuyên Khoa'),
+              centerTitle: true,
+            )
+          : null,
       body: Column(
         children: [
           // Search bar
@@ -193,7 +200,8 @@ class _SpecialtiesScreenState extends State<SpecialtiesScreen> {
                           crossAxisCount: crossAxisCount,
                           crossAxisSpacing: spacing,
                           mainAxisSpacing: spacing,
-                          childAspectRatio: childAspectRatio,
+                          // Tăng chiều cao item để tránh tràn khi ảnh lớn hơn
+                          childAspectRatio: childAspectRatio - 0.1,
                         ),
                         itemCount: filteredSpecialties.length,
                         itemBuilder: (context, index) {

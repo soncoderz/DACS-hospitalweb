@@ -148,19 +148,60 @@ class SpecialtyCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
 
-              // Doctor count
-              Text(
-                '${specialty.doctorCount} bác sĩ',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+              // Doctor & service counts
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _buildCountChip(
+                    icon: Icons.person_search,
+                    label: 'bác sĩ',
+                    value: specialty.doctorCount,
+                    color: color,
+                  ),
+                  _buildCountChip(
+                    icon: Icons.medical_services_outlined,
+                    label: 'dịch vụ',
+                    value: specialty.serviceCount,
+                    color: Colors.green.shade600,
+                  ),
+                ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCountChip({
+    required IconData icon,
+    required String label,
+    required int value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            '$value $label',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[800],
+            ),
+          ),
+        ],
       ),
     );
   }

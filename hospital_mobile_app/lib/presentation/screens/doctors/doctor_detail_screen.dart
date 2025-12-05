@@ -74,122 +74,48 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
               child: CustomScrollView(
                 slivers: [
                   SliverAppBar(
-                    expandedHeight: 260,
+                    expandedHeight: 280,
                     pinned: true,
-                    backgroundColor: Colors.white,
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: GestureDetector(
-                        onTap: () => _openFullScreenImage(
-                          _resolveImageUrl(
-                            doctor.avatar,
-                            AppConstants.defaultDoctorAvatarUrl,
-                          ),
-                          doctor.fullName,
+                    elevation: 0,
+                    backgroundColor: Colors.blue.shade800,
+                    iconTheme: const IconThemeData(color: Colors.white),
+                    actions: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 12, top: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.28),
+                          shape: BoxShape.circle,
                         ),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Hero(
-                              tag: 'doctor_image_${widget.doctorId}',
-                              child: CachedNetworkImage(
-                                imageUrl: _resolveImageUrl(
-                                  doctor.avatar,
-                                  AppConstants.defaultDoctorAvatarUrl,
-                                ),
-                                fit: BoxFit.cover,
-                                errorWidget: (context, url, error) => Container(
-                                  color: Colors.blue.shade50,
-                                  child: const Icon(Icons.person, size: 80, color: Colors.blueGrey),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Colors.transparent, Colors.black54],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
-                              ),
-                            ),
-                          Positioned(
-                            left: 16,
-                            right: 16,
-                            bottom: 24,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      child: const Text(
-                                        'Bác sĩ',
-                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                                      ),
-                                    ),
-                                    if (doctor.specialtyName.isNotEmpty) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.withOpacity(0.7),
-                                          borderRadius: BorderRadius.circular(30),
-                                        ),
-                                        child: Text(
-                                          doctor.specialtyName,
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  doctor.fullName,
+                        child: IconButton(
+                          icon: Icon(
+                            doctorProvider.isFavorite(doctor.id) ? Icons.favorite : Icons.favorite_border,
+                            color: doctorProvider.isFavorite(doctor.id) ? Colors.redAccent : Colors.white,
+                          ),
+                          onPressed: () => doctorProvider.toggleFavorite(doctor.id),
+                        ),
+                      ),
+                    ],
+                    flexibleSpace: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final collapsed = constraints.biggest.height <= kToolbarHeight + 60;
+                        return FlexibleSpaceBar(
+                          titlePadding: const EdgeInsets.only(left: 16, bottom: 12),
+                          title: collapsed
+                              ? Text(
+                                  'BS. ${doctor.fullName}',
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                ),
-                                const SizedBox(height: 6),
-                                if (doctor.hospitalName != null)
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.local_hospital, color: Colors.white70, size: 18),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          doctor.hospitalName!,
-                                          style: const TextStyle(color: Colors.white70),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              : null,
+                          background: _buildHeroHeader(doctor, reviews),
+                        );
+                      },
                     ),
                   ),
-                  actions: [
-                    IconButton(
-                      icon: Icon(
-                        doctorProvider.isFavorite(doctor.id) ? Icons.favorite : Icons.favorite_border,
-                        color: doctorProvider.isFavorite(doctor.id) ? Colors.redAccent : Colors.white,
-                      ),
-                      onPressed: () => doctorProvider.toggleFavorite(doctor.id),
-                    ),
-                  ],
-                ),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(AppConstants.defaultPadding),
@@ -394,6 +320,172 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
             onPressed: () => provider.fetchDoctorDetail(widget.doctorId),
             icon: const Icon(Icons.refresh),
             label: const Text('Thử lại'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroHeader(Doctor doctor, List<Review> reviews) {
+    final imageUrl = _resolveImageUrl(
+      doctor.avatar,
+      AppConstants.defaultDoctorAvatarUrl,
+    );
+    final averageRating = _calculateAverageRating(doctor, reviews);
+    final reviewCount = _calculateReviewCount(doctor, reviews);
+
+    return GestureDetector(
+      onTap: () => _openFullScreenImage(
+        imageUrl,
+        doctor.fullName,
+        heroTag: 'doctor_image_${widget.doctorId}',
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Hero(
+            tag: 'doctor_image_${widget.doctorId}',
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              errorWidget: (context, url, error) => Container(
+                color: Colors.blue.shade50,
+                child: const Icon(Icons.person, size: 80, color: Colors.blueGrey),
+              ),
+            ),
+          ),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.transparent, Colors.black87],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: [0.3, 1],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 20,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    width: 88,
+                    height: 88,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => Container(
+                      width: 88,
+                      height: 88,
+                      color: Colors.blue.shade50,
+                      child: const Icon(Icons.person, color: Colors.blueGrey, size: 40),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Bác sĩ',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          if (doctor.specialtyName.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade300.withOpacity(0.8),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                doctor.specialtyName,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        doctor.fullName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      if (doctor.hospitalName != null)
+                        Row(
+                          children: [
+                            const Icon(Icons.local_hospital, color: Colors.white70, size: 18),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                doctor.hospitalName!,
+                                style: const TextStyle(color: Colors.white70),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildHeroChip(Icons.star, '${averageRating.toStringAsFixed(1)} • $reviewCount đánh giá'),
+                          _buildHeroChip(Icons.work_outline, '${doctor.experience} năm kinh nghiệm'),
+                          _buildHeroChip(Icons.attach_money, _formatCurrency(doctor.consultationFee)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

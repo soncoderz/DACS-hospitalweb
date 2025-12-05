@@ -94,6 +94,7 @@ class SpecialtyProvider extends ChangeNotifier {
         icon: data['icon'],
         imageUrl: data['imageUrl'],
         doctorCount: data['doctorCount'] ?? 0,
+        serviceCount: data['serviceCount'] ?? data['servicesCount'] ?? 0,
       );
     }).toList();
     notifyListeners();

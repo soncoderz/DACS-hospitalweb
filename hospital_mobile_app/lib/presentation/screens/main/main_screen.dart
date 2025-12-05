@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../home/home_screen.dart';
 import '../doctors/doctors_list_screen.dart';
-import '../specialties/specialties_list_screen.dart';
+import '../specialties/specialties_screen.dart';
 import '../services/services_list_screen.dart';
 import '../hospitals/hospitals_screen.dart';
 
@@ -20,7 +20,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const DoctorsListScreen(showAppBar: false),
-    const SpecialtiesListScreen(showAppBar: false),
+    const SpecialtiesScreen(showAppBar: false),
     const ServicesListScreen(showAppBar: false),
     const HospitalsScreen(),
   ];

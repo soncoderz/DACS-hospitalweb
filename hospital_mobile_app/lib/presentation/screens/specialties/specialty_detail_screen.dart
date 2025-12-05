@@ -85,112 +85,139 @@ class _SpecialtyDetailScreenState extends State<SpecialtyDetailScreen> {
                 ? _buildError(_error!)
                 : CustomScrollView(
                     slivers: [
-                      // Hero Header with Image
+                      // Simple AppBar
                       SliverAppBar(
-                        expandedHeight: 220,
+                        expandedHeight: 0,
                         pinned: true,
                         backgroundColor: Colors.teal.shade600,
-                        flexibleSpace: FlexibleSpaceBar(
-                          background: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              // Specialty Image
-                              if (specialty?.imageUrl != null)
-                                CachedNetworkImage(
-                                  imageUrl: _resolveImageUrl(specialty!.imageUrl, AppConstants.defaultServiceImageUrl),
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [Colors.teal.shade300, Colors.teal.shade600],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                    ),
-                                    child: const Center(
-                                      child: CircularProgressIndicator(color: Colors.white),
-                                    ),
-                                  ),
-                                  errorWidget: (context, url, error) => Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [Colors.teal.shade300, Colors.teal.shade600],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.healing,
-                                      size: 80,
-                                      color: Colors.white.withOpacity(0.5),
-                                    ),
-                                  ),
-                                )
-                              else
-                                Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [Colors.teal.shade300, Colors.teal.shade700],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.healing,
-                                    size: 80,
-                                    color: Colors.white.withOpacity(0.5),
-                                  ),
-                                ),
-                              // Gradient Overlay
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      Colors.black.withOpacity(0.6),
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    stops: const [0.4, 1.0],
-                                  ),
-                                ),
+                        title: Text(
+                          specialty?.name ?? 'Chi tiết chuyên khoa',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        iconTheme: const IconThemeData(color: Colors.white),
+                      ),
+                      // Header with circular image and info (like web)
+                      SliverToBoxAdapter(
+                        child: Container(
+                          margin: const EdgeInsets.all(AppConstants.defaultPadding),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 15,
+                                offset: const Offset(0, 4),
                               ),
-                              // Specialty Info
-                              Positioned(
-                                left: 16,
-                                right: 16,
-                                bottom: 16,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: const Text(
-                                        'Chuyên khoa',
-                                        style: TextStyle(color: Colors.white, fontSize: 12),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      specialty?.name ?? '',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.bold,
-                                        shadows: [
-                                          Shadow(
-                                            offset: Offset(0, 1),
-                                            blurRadius: 3,
-                                            color: Colors.black45,
-                                          ),
-                                        ],
-                                      ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              // Circular Image
+                              Container(
+                                width: 130,
+                                height: 130,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
+                                    width: 4,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
                                     ),
                                   ],
+                                ),
+                                child: ClipOval(
+                                  child: specialty?.imageUrl != null && specialty!.imageUrl!.isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: _resolveImageUrl(specialty!.imageUrl, AppConstants.defaultServiceImageUrl),
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) => Container(
+                                            color: Colors.teal.shade100,
+                                            child: const Center(
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            ),
+                                          ),
+                                          errorWidget: (context, url, error) => Container(
+                                            color: Colors.teal.shade600,
+                                            child: Icon(
+                                              Icons.healing,
+                                              size: 50,
+                                              color: Colors.white.withOpacity(0.8),
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          color: Colors.teal.shade600,
+                                          child: Icon(
+                                            Icons.healing,
+                                            size: 50,
+                                            color: Colors.white.withOpacity(0.8),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              // Specialty Name with Icon
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.medical_services, color: Colors.teal.shade600, size: 28),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      specialty?.name ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              // Description
+                              Text(
+                                specialty?.description ?? 'Chuyên khoa đang cập nhật mô tả.',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.grey.shade700,
+                                  height: 1.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 20),
+                              // Stats Row
+                              if (specialty != null) _buildStatsRow(specialty),
+                              const SizedBox(height: 16),
+                              // Book Appointment Button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/appointment-booking',
+                                      arguments: {'specialtyId': widget.specialtyId},
+                                    );
+                                  },
+                                  icon: const Icon(Icons.calendar_month),
+                                  label: const Text('Đặt lịch khám'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.teal.shade600,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -200,19 +227,10 @@ class _SpecialtyDetailScreenState extends State<SpecialtyDetailScreen> {
                       // Content
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                          padding: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (specialty != null) _buildStatsRow(specialty),
-                              const SizedBox(height: 16),
-                              _buildInfoCard(
-                                title: 'Mô tả chuyên khoa',
-                                child: Text(
-                                  specialty?.description ?? 'Chuyên khoa đang cập nhật mô tả.',
-                                  style: const TextStyle(height: 1.5),
-                                ),
-                              ),
                               if (_doctors.isNotEmpty) ...[
                                 const SizedBox(height: 16),
                                 _buildInfoCard(
@@ -384,13 +402,26 @@ class _SpecialtyDetailScreenState extends State<SpecialtyDetailScreen> {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: CachedNetworkImage(
+                    imageUrl: _resolveImageUrl(service.image, AppConstants.defaultServiceImageUrl),
+                    width: 70,
+                    height: 70,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => Container(
+                      width: 70,
+                      height: 70,
+                      color: Colors.green.shade50,
+                      child: const Icon(Icons.image, color: Colors.green),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: 70,
+                      height: 70,
+                      color: Colors.green.shade50,
+                      child: const Icon(Icons.medical_services_outlined, color: Colors.green),
+                    ),
                   ),
-                  child: Icon(Icons.medical_services_outlined, color: Colors.green.shade600, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -410,10 +441,9 @@ class _SpecialtyDetailScreenState extends State<SpecialtyDetailScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              service.description.length > 100
-                  ? '${service.description.substring(0, 100)}...'
-                  : service.description,
+              service.description,
               style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+              softWrap: true,
             ),
             if (service.duration != null) ...[
               const SizedBox(height: 8),
@@ -450,7 +480,7 @@ class _SpecialtyDetailScreenState extends State<SpecialtyDetailScreen> {
           child: _buildStatCard(
             icon: Icons.medical_services_outlined,
             label: 'Dịch vụ',
-            value: _services.length.toString(),
+            value: (_services.isNotEmpty ? _services.length : specialty.serviceCount).toString(),
             color: Colors.green,
           ),
         ),

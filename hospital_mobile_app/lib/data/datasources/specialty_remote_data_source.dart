@@ -44,16 +44,54 @@ class SpecialtyRemoteDataSourceImpl implements SpecialtyRemoteDataSource {
           }
         }
         
+        // Keep only active specialties to match web
+        data = data.where((item) {
+          if (item is Map<String, dynamic>) {
+            return item['isActive'] == true;
+          }
+          return false;
+        }).toList();
+
         if (data.isEmpty) {
           return [];
         }
-        
-        return data.map((json) {
-          if (json is Map<String, dynamic>) {
-            return SpecialtyModel.fromJson(json);
-          }
+
+        if (!data.every((json) => json is Map<String, dynamic>)) {
           throw ServerException('Định dạng dữ liệu chuyên khoa không hợp lệ');
-        }).toList();
+        }
+
+        final specialties = data
+            .map((json) => SpecialtyModel.fromJson(json as Map<String, dynamic>))
+            .toList();
+
+        // Fetch doctor/service counts for each specialty to mirror web data
+        final specialtiesWithCounts = await Future.wait(specialties.map((model) async {
+          var doctorCount = model.doctorCount;
+          var serviceCount = model.serviceCount;
+
+          try {
+            final doctorsResponse = await _dioClient.get(ApiConstants.doctorsBySpecialty(model.id));
+            final doctorData = doctorsResponse.data['data'] ?? doctorsResponse.data['doctors'] ?? doctorsResponse.data;
+            if (doctorData is List) {
+              doctorCount = doctorData.length;
+            }
+          } catch (_) {}
+
+          try {
+            final servicesResponse = await _dioClient.get(ApiConstants.servicesBySpecialty(model.id));
+            final serviceData = servicesResponse.data['data'] ?? servicesResponse.data['services'] ?? servicesResponse.data;
+            if (serviceData is List) {
+              serviceCount = serviceData.length;
+            }
+          } catch (_) {}
+
+          return model.copyWith(
+            doctorCount: doctorCount,
+            serviceCount: serviceCount,
+          );
+        }));
+
+        return specialtiesWithCounts;
       } else {
         throw ServerException('Lấy danh sách chuyên khoa thất bại');
       }
@@ -69,8 +107,9 @@ class SpecialtyRemoteDataSourceImpl implements SpecialtyRemoteDataSource {
       final response = await _dioClient.get(ApiConstants.specialtyById(id));
 
       if (response.statusCode == 200) {
+        // API returns: { success: true, data: { _id, name, description, imageUrl, ... } }
         return SpecialtyModel.fromJson(
-          response.data['specialty'] ?? response.data,
+          response.data['data'] ?? response.data['specialty'] ?? response.data,
         );
       } else {
         throw ServerException('Lấy thông tin chuyên khoa thất bại');
