@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../core/errors/error_handler.dart';
+import '../../core/errors/failures.dart';
 import '../../domain/entities/doctor.dart';
 import '../../domain/entities/review.dart';
 import '../../domain/entities/service.dart';
@@ -173,7 +174,32 @@ class DoctorProvider extends ChangeNotifier {
 
     return result.fold(
       (failure) {
-        _setError(ErrorHandler.getErrorMessage(failure));
+        final message = ErrorHandler.getErrorMessage(failure);
+
+        // Nếu server báo đã có trong danh sách yêu thích, coi như thành công
+        if (!isFavorite &&
+            failure is ValidationFailure &&
+            message.toLowerCase().contains('đã có trong danh sách yêu thích')) {
+          // Bảo đảm bác sĩ có trong danh sách cục bộ
+          Doctor? doctor;
+          try {
+            doctor = _favoriteDoctors.firstWhere((d) => d.id == doctorId);
+          } catch (_) {}
+          doctor ??= _selectedDoctor;
+          if (doctor == null) {
+            try {
+              doctor = _doctors.firstWhere((d) => d.id == doctorId);
+            } catch (_) {}
+          }
+
+          if (!_favoriteDoctors.any((d) => d.id == doctorId) && doctor != null) {
+            _favoriteDoctors.add(doctor);
+            notifyListeners();
+          }
+          return true;
+        }
+
+        _setError(message);
         return false;
       },
       (_) {

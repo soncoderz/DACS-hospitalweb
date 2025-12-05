@@ -44,11 +44,22 @@ class DoctorModel extends Doctor {
         json['numReviews'] ??
         0;
     
+    // Parse avatar - can be String or Cloudinary object
+    String? avatarUrl;
+    final avatarField = user['avatarUrl'] ?? user['avatar'] ?? json['avatar'] ?? json['avatarUrl'];
+    if (avatarField != null) {
+      if (avatarField is String) {
+        avatarUrl = avatarField;
+      } else if (avatarField is Map) {
+        avatarUrl = avatarField['secureUrl'] ?? avatarField['url'];
+      }
+    }
+    
     return DoctorModel(
       id: json['_id'] ?? json['id'] ?? '',
       fullName: user['fullName'] ?? json['fullName'] ?? '',
       email: user['email'] ?? json['email'] ?? '',
-      avatar: user['avatarUrl'] ?? json['avatar'],
+      avatar: avatarUrl,
       specialtyId: specialty is Map ? specialty['_id'] ?? specialty['id'] ?? '' : specialty ?? '',
       specialtyName: specialty is Map ? specialty['name'] ?? '' : '',
       bio: json['bio'] ?? json['description'],

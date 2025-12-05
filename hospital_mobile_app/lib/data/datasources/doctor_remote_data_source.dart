@@ -54,9 +54,20 @@ class DoctorRemoteDataSourceImpl implements DoctorRemoteDataSource {
       final response = await _dioClient.get(ApiConstants.doctorDetail(id));
 
       if (response.statusCode == 200) {
-        return DoctorModel.fromJson(
-          response.data['doctor'] ?? response.data,
-        );
+        final data = response.data;
+        dynamic doctorJson;
+
+        if (data is Map<String, dynamic>) {
+          doctorJson = data['data'] ?? data['doctor'] ?? data['doctorData'];
+        }
+
+        doctorJson ??= data;
+
+        if (doctorJson is Map<String, dynamic>) {
+          return DoctorModel.fromJson(doctorJson);
+        }
+
+        throw ServerException('Định dạng dữ liệu bác sĩ không hợp lệ');
       } else {
         throw ServerException('Lấy thông tin bác sĩ thất bại');
       }

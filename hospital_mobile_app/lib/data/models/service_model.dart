@@ -39,7 +39,7 @@ class ServiceModel extends Service {
       specialtyNameValue ??= specialtyField['name'];
     }
     
-    // Handle image - can be String or Object
+    // Handle image - can be String or Cloudinary Object
     String? imageValue;
     final imageField = json['image'];
     if (imageField is String) {
@@ -48,8 +48,15 @@ class ServiceModel extends Service {
       imageValue = imageField['secureUrl'] ?? imageField['url'];
     }
     
-    // Also check imageUrl field
-    imageValue ??= json['imageUrl'];
+    // Also check imageUrl field (can also be Cloudinary object)
+    if (imageValue == null && json['imageUrl'] != null) {
+      final imageUrlField = json['imageUrl'];
+      if (imageUrlField is String) {
+        imageValue = imageUrlField;
+      } else if (imageUrlField is Map) {
+        imageValue = imageUrlField['secureUrl'] ?? imageUrlField['url'];
+      }
+    }
     
     return ServiceModel(
       id: json['_id'] ?? json['id'] ?? '',

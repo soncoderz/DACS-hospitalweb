@@ -11,19 +11,27 @@ class NewsModel extends News {
   });
 
   factory NewsModel.fromJson(Map<String, dynamic> json) {
-    // Parse imageUrl safely
+    // Parse imageUrl safely - handles both String and Cloudinary object
     String? imageUrl;
-    if (json['imageUrl'] != null) {
-      if (json['imageUrl'] is String) {
-        imageUrl = json['imageUrl'] as String;
-      } else if (json['imageUrl'] is Map) {
-        // If imageUrl is an object, try to extract URL from it
-        final imageData = json['imageUrl'] as Map<String, dynamic>;
-        imageUrl = imageData['url'] as String?;
+    
+    // Try imageUrl field first
+    final imageUrlField = json['imageUrl'];
+    if (imageUrlField != null) {
+      if (imageUrlField is String) {
+        imageUrl = imageUrlField;
+      } else if (imageUrlField is Map) {
+        // Cloudinary object: try secureUrl first, then url
+        imageUrl = imageUrlField['secureUrl'] ?? imageUrlField['url'];
       }
-    } else if (json['image'] != null) {
-      if (json['image'] is String) {
-        imageUrl = json['image'] as String;
+    }
+    
+    // Try image field as fallback
+    if (imageUrl == null && json['image'] != null) {
+      final imageField = json['image'];
+      if (imageField is String) {
+        imageUrl = imageField;
+      } else if (imageField is Map) {
+        imageUrl = imageField['secureUrl'] ?? imageField['url'];
       }
     }
     

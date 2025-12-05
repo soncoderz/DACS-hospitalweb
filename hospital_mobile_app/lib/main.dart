@@ -45,6 +45,7 @@ import 'presentation/screens/appointments/appointments_screen.dart';
 import 'presentation/screens/appointments/appointment_detail_screen.dart';
 import 'presentation/screens/appointment/appointment_booking_screen.dart';
 import 'presentation/screens/news/news_list_screen.dart';
+import 'presentation/screens/news/news_detail_screen.dart';
 import 'presentation/screens/payment/momo_payment_screen.dart';
 import 'presentation/screens/profile/profile_screen.dart';
 import 'presentation/screens/services/service_detail_screen.dart';
@@ -249,6 +250,12 @@ class MyApp extends StatelessWidget {
                 billType: args['billType'],
                 prescriptionId: args['prescriptionId'],
               ),
+            );
+          }
+          if (settings.name == '/news-detail') {
+            final newsId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => NewsDetailScreen(newsId: newsId),
             );
           }
           return null;

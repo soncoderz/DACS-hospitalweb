@@ -19,6 +19,40 @@ const DoctorDetail = () => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [submitingReply, setSubmitingReply] = useState(false);
+
+  const refreshFavoriteStatus = async () => {
+    try {
+      const favoriteRes = await api.get(`/doctors/${doctorId}/favorite`);
+      const favoriteFlag = favoriteRes?.data?.data?.isFavorite;
+      setIsFavorite(!!favoriteFlag);
+    } catch (favoriteErr) {
+      console.error('Error checking favorite status:', favoriteErr);
+      setIsFavorite(false);
+    }
+  };
+
+  const getDoctorRating = () => {
+    const sources = [
+      doctor?.ratings?.average,
+      doctor?.averageRating,
+      doctor?.rating
+    ];
+    const firstValid = sources.find((value) => typeof value === 'number' && !Number.isNaN(value));
+
+    if (typeof firstValid === 'number') {
+      return Math.min(5, Math.max(0, firstValid));
+    }
+
+    if (reviews.length > 0) {
+      const total = reviews.reduce((sum, item) => sum + (item.rating || 0), 0);
+      return Math.min(5, Math.max(0, total / reviews.length));
+    }
+
+    return 0;
+  };
+
+  const getReviewCount = () =>
+    doctor?.ratings?.count ?? doctor?.reviewCount ?? doctor?.reviewsCount ?? reviews.length;
   
   // Function to fetch public data that doesn't require authentication
   const fetchPublicData = async () => {
@@ -67,17 +101,7 @@ const DoctorDetail = () => {
   const fetchAuthenticatedData = async () => {
     if (!isAuthenticated) return;
     
-    try {
-      // Check favorite status
-      const favoriteRes = await api.get(`/doctors/${doctorId}/favorite`);
-      if (favoriteRes.data && favoriteRes.data.data) {
-        setIsFavorite(favoriteRes.data.data.isFavorite);
-      }
-    } catch (favoriteErr) {
-      console.error('Error checking favorite status:', favoriteErr);
-      // If there's an error checking favorite status, assume not favorite
-      setIsFavorite(false);
-    }
+    await refreshFavoriteStatus();
   };
   
   useEffect(() => {
@@ -130,9 +154,18 @@ const DoctorDetail = () => {
         await api.post(`/doctors/${doctorId}/favorite`);
         toast.success('Đã thêm bác sĩ vào danh sách yêu thích');
       }
-      setIsFavorite(!isFavorite);
+      await refreshFavoriteStatus();
     } catch (err) {
       console.error('Error toggling favorite:', err);
+      const serverMessage = err?.response?.data?.message || '';
+
+      // Nếu server báo đã có trong danh sách yêu thích, coi như trạng thái đang là yêu thích
+      if (!isFavorite && serverMessage.toLowerCase().includes('đã có trong danh sách yêu thích')) {
+        setIsFavorite(true);
+        toast.info('Bác sĩ đã có trong danh sách yêu thích');
+        return;
+      }
+
       toast.error('Đã xảy ra lỗi khi cập nhật trạng thái yêu thích');
     }
   };
@@ -178,25 +211,26 @@ const DoctorDetail = () => {
   };
   
   // Function to render star ratings
-  const renderStars = (rating) => {
+  const renderStars = (rating, keyPrefix = 'star') => {
+    const safeRating = Number.isFinite(Number(rating)) ? Math.min(5, Math.max(0, Number(rating))) : 0;
     const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating - fullStars >= 0.5;
+    const fullStars = Math.floor(safeRating);
+    const hasHalfStar = safeRating - fullStars >= 0.5;
     
     // Thêm sao đầy đủ
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<span key={`full-${i}`} className="text-yellow-400">★</span>);
+      stars.push(<span key={`${keyPrefix}-full-${i}`} className="text-yellow-400">★</span>);
     }
     
     // Thêm nửa sao nếu cần
     if (hasHalfStar) {
-      stars.push(<span key="half" className="text-yellow-400">⭒</span>);
+      stars.push(<span key={`${keyPrefix}-half`} className="text-yellow-400">⭒</span>);
     }
     
     // Thêm sao trống cho đủ 5 sao
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
     for (let i = 0; i < emptyStars; i++) {
-      stars.push(<span key={`empty-${i}`} className="text-gray-300">☆</span>);
+      stars.push(<span key={`${keyPrefix}-empty-${i}`} className="text-gray-300">☆</span>);
     }
     
     return stars;
@@ -225,6 +259,9 @@ const DoctorDetail = () => {
       </div>
     );
   }
+
+  const doctorRating = getDoctorRating();
+  const totalReviewCount = getReviewCount();
   
   return (
     <div className="py-8 bg-gray-50">
@@ -253,26 +290,14 @@ const DoctorDetail = () => {
               <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
                 {doctor.experience || 0} năm kinh nghiệm
               </span>
-              <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-sm flex items-center">
-                {(() => {
-                  // Xử lý tất cả các định dạng đánh giá có thể
-                  let rating = null;
-                  
-                  // Định dạng 1: ratings.average (ƯU TIÊN)
-                  if (doctor.ratings && typeof doctor.ratings.average === 'number') {
-                    rating = doctor.ratings.average;
-                  } 
-                  // Định dạng 2: averageRating trực tiếp
-                  else if (typeof doctor.averageRating === 'number') {
-                    rating = doctor.averageRating;
-                  }
-                  
-                  // Nếu không có đánh giá, sử dụng giá trị mặc định là 0
-                  const ratingValue = rating !== null ? rating : 0;
-                  
-                  // Hiển thị với 1 chữ số thập phân
-                  return <>{ratingValue.toFixed(1)} <span className="text-yellow-500 ml-1">⭐</span></>;
-                })()}
+              <span className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                <span className="flex items-center gap-1">
+                  {renderStars(doctorRating, 'doctor-rating-badge')}
+                </span>
+                <span className="font-semibold">{doctorRating.toFixed(1)}</span>
+                <span className="text-xs text-gray-600">
+                  ({totalReviewCount} đánh giá)
+                </span>
               </span>
             </div>
             
@@ -368,7 +393,7 @@ const DoctorDetail = () => {
                           <div className="font-medium text-gray-800">{review.userId?.fullName || 'Ẩn danh'}</div>
                           <div className="flex items-center mb-1">
                             <div className="flex mr-2">
-                              {renderStars(review.rating || 0)}
+                              {renderStars(review.rating || 0, review._id || `review-${review.createdAt}`)}
                             </div>
                             <div className="text-xs text-gray-500">
                               {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}
@@ -534,7 +559,7 @@ const DoctorDetail = () => {
                       <div className="font-medium text-gray-800">{review.userId?.fullName || 'Ẩn danh'}</div>
                       <div className="flex items-center">
                         <div className="flex text-yellow-400 mr-2">
-                          {renderStars(review.rating || 0)}
+                          {renderStars(review.rating || 0, review._id || `top-${index}`)}
                         </div>
                         <div className="text-xs text-gray-500">
                           {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}

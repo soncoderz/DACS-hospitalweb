@@ -603,13 +603,13 @@ exports.addToFavorites = async (req, res) => {
       });
     }
     
-    // Check if already in favorites
-    if (user.favorites && user.favorites.some(id => 
-      id.toString() === doctorId.toString()
-    )) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bác sĩ đã có trong danh sách yêu thích'
+    // Check if already in favorites - make idempotent
+    const alreadyFavorite = user.favorites && user.favorites.some(id => id.toString() === doctorId.toString());
+    if (alreadyFavorite) {
+      return res.status(200).json({
+        success: true,
+        message: 'Bác sĩ đã có trong danh sách yêu thích',
+        data: { isFavorite: true }
       });
     }
     
