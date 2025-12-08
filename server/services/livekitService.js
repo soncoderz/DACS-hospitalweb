@@ -79,7 +79,7 @@ class LiveKitService {
       const room = await this.roomService.createRoom({
         name: roomName,
         emptyTimeout: options.emptyTimeout || 600, // 10 minutes
-        maxParticipants: options.maxParticipants || 2,
+        maxParticipants: options.maxParticipants || 30,
         metadata: JSON.stringify(options.metadata || {})
       });
       return room;
