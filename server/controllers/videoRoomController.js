@@ -242,7 +242,7 @@ exports.createVideoRoom = asyncHandler(async (req, res) => {
       meetingType: 'appointment',
       isPublic: true, // Allow joining by room code
       metadata: {
-        maxParticipants: 10,
+        maxParticipants: 30,
         enableRecording: false,
         enableScreenShare: true,
         enableChat: true
