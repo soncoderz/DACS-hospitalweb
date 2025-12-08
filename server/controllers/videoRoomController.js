@@ -1198,14 +1198,14 @@ exports.joinByRoomCode = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check if room has reached max participants
-  const activeParticipants = videoRoom.participants.filter(p => !p.leftAt);
-  if (activeParticipants.length >= videoRoom.metadata.maxParticipants) {
-    return res.status(400).json({
-      success: false,
-      message: 'Phòng đã đầy, không thể tham gia'
-    });
-  }
+  // // Check if room has reached max participants
+  // const activeParticipants = videoRoom.participants.filter(p => !p.leftAt);
+  // if (activeParticipants.length >= videoRoom.metadata.maxParticipants) {
+  //   return res.status(400).json({
+  //     success: false,
+  //     message: 'Phòng đã đầy, không thể tham gia'
+  //   });
+  // }
 
   // Determine user role
   let role = 'patient';
