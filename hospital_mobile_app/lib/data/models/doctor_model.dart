@@ -30,19 +30,54 @@ class DoctorModel extends Doctor {
     final user = json['user'] ?? json;
     final specialty = json['specialtyId'] ?? json['specialty'];
     final hospital = json['hospitalId'] ?? json['hospital'];
+    double _parseDouble(dynamic value) {
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    int _parseInt(dynamic value) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        return int.tryParse(value) ?? double.tryParse(value)?.round() ?? 0;
+      }
+      return 0;
+    }
 
     // Handle rating fields with multiple formats
     final ratings = json['ratings'];
-    final ratingValue = (json['averageRating'] ??
-            json['rating'] ??
-            (ratings is Map ? ratings['average'] : null) ??
-            0)
-        .toDouble();
-    final reviewCountValue = json['reviewCount'] ??
-        (ratings is Map ? ratings['count'] : null) ??
-        json['reviewsCount'] ??
-        json['numReviews'] ??
-        0;
+    final ratingSources = [
+      if (ratings is Map) ratings['average'],
+      if (ratings is Map) ratings['avgRating'],
+      if (ratings is Map) ratings['averageRating'],
+      json['averageRating'],
+      json['avgRating'],
+      json['rating'],
+    ];
+    final ratingValue = (() {
+      for (final source in ratingSources) {
+        final value = _parseDouble(source);
+        if (value > 0) return value;
+      }
+      final fallback = ratingSources.firstWhere((value) => value != null, orElse: () => 0);
+      return _parseDouble(fallback);
+    })();
+    final reviewCountSources = [
+      if (ratings is Map) ratings['count'],
+      if (ratings is Map) ratings['total'],
+      json['reviewCount'],
+      json['reviewsCount'],
+      json['numReviews'],
+    ];
+    final reviewCountValue = (() {
+      for (final source in reviewCountSources) {
+        final value = _parseInt(source);
+        if (value > 0) return value;
+      }
+      final fallback = reviewCountSources.firstWhere((value) => value != null, orElse: () => 0);
+      return _parseInt(fallback);
+    })();
     
     // Parse avatar - can be String or Cloudinary object
     String? avatarUrl;

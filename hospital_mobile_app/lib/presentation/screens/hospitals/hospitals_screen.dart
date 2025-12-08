@@ -105,6 +105,19 @@ class _HospitalsScreenState extends State<HospitalsScreen> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.amber, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${hospital.rating.toStringAsFixed(1)} (${hospital.reviewCount})',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                         if (hospital.address != null) ...[
                           const SizedBox(height: 4),
                           Row(

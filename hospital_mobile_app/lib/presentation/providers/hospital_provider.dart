@@ -76,11 +76,24 @@ class HospitalProvider with ChangeNotifier {
         repository.getHospitalReviews(id),
       ]);
 
-      _selectedHospital = results[0] as Hospital;
+      final fetchedHospital = results[0] as Hospital;
       _specialties = results[1] as List<Specialty>;
       _services = results[2] as List<Service>;
       _doctors = results[3] as List<Doctor>;
       _reviews = results[4] as List<Review>;
+
+      final ratingFromReviews = _reviews.isNotEmpty
+          ? _reviews.fold<int>(0, (sum, review) => sum + review.rating) / _reviews.length
+          : 0.0;
+
+      final updatedHospital = _copyHospitalWith(
+        fetchedHospital,
+        rating: fetchedHospital.rating > 0 ? fetchedHospital.rating : ratingFromReviews,
+        reviewCount: fetchedHospital.reviewCount > 0 ? fetchedHospital.reviewCount : _reviews.length,
+      );
+
+      _selectedHospital = updatedHospital;
+      _syncHospitalInList(updatedHospital);
       _detailError = null;
     } catch (e) {
       _detailError = e.toString();
@@ -98,5 +111,37 @@ class HospitalProvider with ChangeNotifier {
     _reviews = [];
     _detailError = null;
     notifyListeners();
+  }
+
+  Hospital _copyHospitalWith(
+    Hospital source, {
+    double? rating,
+    int? reviewCount,
+  }) {
+    return Hospital(
+      id: source.id,
+      name: source.name,
+      description: source.description,
+      address: source.address,
+      phone: source.phone,
+      imageUrl: source.imageUrl,
+      email: source.email,
+      openingHours: source.openingHours,
+      workingHours: source.workingHours,
+      doctorCount: source.doctorCount,
+      serviceCount: source.serviceCount,
+      specialtyCount: source.specialtyCount,
+      isActive: source.isActive,
+      rating: rating ?? source.rating,
+      reviewCount: reviewCount ?? source.reviewCount,
+    );
+  }
+
+  void _syncHospitalInList(Hospital hospital) {
+    final index = _hospitals.indexWhere((item) => item.id == hospital.id);
+    if (index != -1) {
+      _hospitals[index] = hospital;
+      notifyListeners();
+    }
   }
 }

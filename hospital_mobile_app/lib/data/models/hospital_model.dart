@@ -20,6 +20,58 @@ class HospitalModel extends Hospital {
   });
 
   factory HospitalModel.fromJson(Map<String, dynamic> json) {
+    double _parseDouble(dynamic value) {
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    int _parseInt(dynamic value) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        return int.tryParse(value) ?? double.tryParse(value)?.round() ?? 0;
+      }
+      return 0;
+    }
+
+    final ratings = json['ratings'];
+    final ratingSources = [
+      if (ratings is Map) ratings['average'],
+      if (ratings is Map) ratings['avgRating'],
+      if (ratings is Map) ratings['averageRating'],
+      if (ratings is Map) ratings['avg'],
+      if (ratings is Map) ratings['rating'],
+      json['averageRating'],
+      json['avgRating'],
+      json['rating'],
+    ];
+    final ratingValue = (() {
+      for (final source in ratingSources) {
+        final value = _parseDouble(source);
+        if (value > 0) return value;
+      }
+      final fallback = ratingSources.firstWhere((value) => value != null, orElse: () => 0);
+      return _parseDouble(fallback);
+    })();
+
+    final reviewCountSources = [
+      if (ratings is Map) ratings['count'],
+      if (ratings is Map) ratings['total'],
+      if (ratings is Map) ratings['reviews'],
+      json['reviewsCount'],
+      json['numReviews'],
+      json['reviewCount'],
+    ];
+    final reviewCountValue = (() {
+      for (final source in reviewCountSources) {
+        final value = _parseInt(source);
+        if (value > 0) return value;
+      }
+      final fallback = reviewCountSources.firstWhere((value) => value != null, orElse: () => 0);
+      return _parseInt(fallback);
+    })();
+
     return HospitalModel(
       id: json['_id'] ?? json['id'] ?? '',
       name: json['name'] ?? '',
@@ -34,8 +86,8 @@ class HospitalModel extends Hospital {
       serviceCount: json['serviceCount'],
       specialtyCount: json['specialtyCount'],
       isActive: json['isActive'] ?? true,
-      rating: (json['avgRating'] ?? json['averageRating'] ?? json['rating'] ?? 0).toDouble(),
-      reviewCount: json['reviewsCount'] ?? json['numReviews'] ?? 0,
+      rating: ratingValue,
+      reviewCount: reviewCountValue,
     );
   }
 

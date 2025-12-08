@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'core/constants/app_constants.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/token_storage_service.dart';
+import 'core/services/navigation_service.dart';
 import 'data/datasources/auth_remote_data_source.dart';
 import 'data/datasources/doctor_remote_data_source.dart';
 import 'data/datasources/specialty_remote_data_source.dart';
@@ -160,6 +161,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
+        navigatorKey: NavigationService.navigatorKey,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.blue,

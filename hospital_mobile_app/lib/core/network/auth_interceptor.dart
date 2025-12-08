@@ -1,9 +1,13 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import '../constants/app_constants.dart';
+import '../services/navigation_service.dart';
 import '../services/token_storage_service.dart';
 
 /// Interceptor to automatically add JWT token to request headers
 class AuthInterceptor extends Interceptor {
   final TokenStorageService _tokenStorage = TokenStorageService();
+  bool _isHandlingUnauthorized = false;
 
   @override
   void onRequest(
@@ -30,6 +34,27 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final statusCode = err.response?.statusCode;
+    if (statusCode == 401 && !_isHandlingUnauthorized) {
+      _isHandlingUnauthorized = true;
+      await _tokenStorage.clearAll();
+
+      final context = NavigationService.context;
+      final navigator = NavigationService.navigatorKey.currentState;
+
+      // Notify user and force re-login
+      if (context != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(AppConstants.sessionExpiredMessage),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      navigator?.pushNamedAndRemoveUntil('/login', (route) => false);
+
+      _isHandlingUnauthorized = false;
+    }
     handler.next(err);
   }
 }
