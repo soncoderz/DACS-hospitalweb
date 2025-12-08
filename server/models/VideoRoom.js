@@ -80,7 +80,7 @@ const videoRoomSchema = new mongoose.Schema({
   metadata: {
     maxParticipants: {
       type: Number,
-      default: 10
+      default: 30
     },
     enableRecording: {
       type: Boolean,
