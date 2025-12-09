@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../domain/entities/appointment.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
 
@@ -12,14 +13,14 @@ class AppointmentsScreen extends StatefulWidget {
   State<AppointmentsScreen> createState() => _AppointmentsScreenState();
 }
 
-class _AppointmentsScreenState extends State<AppointmentsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AppointmentsScreenState extends State<AppointmentsScreen> {
+  static const int _pageSize = 10;
+  int _currentPage = 1;
+  String _currentFilter = 'all'; // all, pending, confirmed, rescheduled, completed, cancelled, pending_payment
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Check authentication before fetching appointments
       final authProvider = context.read<AuthProvider>();
@@ -45,12 +46,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     });
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
   String _formatDate(DateTime date) {
     return DateFormat('dd/MM/yyyy').format(date);
   }
@@ -61,10 +56,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
         return 'Chờ xác nhận';
       case 'confirmed':
         return 'Đã xác nhận';
+      case 'rescheduled':
+        return 'Đổi lịch';
       case 'completed':
         return 'Hoàn thành';
       case 'cancelled':
         return 'Đã hủy';
+      case 'rejected':
+        return 'Đã từ chối';
+      case 'no-show':
+        return 'Vắng mặt';
+      case 'pending_payment':
+        return 'Chờ thanh toán';
+      case 'hospitalized':
+        return 'Đang nằm viện';
       default:
         return status;
     }
@@ -74,14 +79,44 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     switch (status.toLowerCase()) {
       case 'pending':
         return Colors.orange;
+      case 'pending_payment':
+        return Colors.deepOrange;
       case 'confirmed':
         return Colors.blue;
+      case 'rescheduled':
+        return Colors.purple;
       case 'completed':
         return Colors.green;
       case 'cancelled':
         return Colors.red;
+      case 'rejected':
+        return Colors.redAccent;
+      case 'no-show':
+        return Colors.grey;
+      case 'hospitalized':
+        return Colors.indigo;
       default:
         return Colors.grey;
+    }
+  }
+
+  // Get filtered appointments based on current filter
+  List<Appointment> _getFilteredAppointments(AppointmentProvider provider) {
+    switch (_currentFilter) {
+      case 'pending':
+        return provider.pendingAppointments;
+      case 'confirmed':
+        return provider.confirmedAppointments;
+      case 'rescheduled':
+        return provider.rescheduledAppointments;
+      case 'completed':
+        return provider.completedAppointments;
+      case 'cancelled':
+        return provider.cancelledAppointments;
+      case 'pending_payment':
+        return provider.pendingPaymentAppointments;
+      default:
+        return provider.appointments; // all
     }
   }
 
@@ -91,14 +126,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
       appBar: AppBar(
         title: const Text('Lịch Hẹn Của Tôi'),
         elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Sắp tới'),
-            Tab(text: 'Đã hoàn thành'),
-            Tab(text: 'Đã hủy'),
-          ],
-        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -139,15 +166,38 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
             );
           }
 
-          return TabBarView(
-            controller: _tabController,
+          final filteredAppointments = _getFilteredAppointments(provider);
+
+          return Column(
             children: [
-              // Upcoming appointments
-              _buildAppointmentList(provider.upcomingAppointments),
-              // Completed appointments
-              _buildAppointmentList(provider.completedAppointments),
-              // Cancelled appointments
-              _buildAppointmentList(provider.cancelledAppointments),
+              // Filter chips
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('all', 'Tất cả', Colors.blueGrey),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('pending', 'Chờ xác nhận', Colors.orange),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('confirmed', 'Đã xác nhận', Colors.blue),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('rescheduled', 'Đổi lịch', Colors.purple),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('completed', 'Hoàn thành', Colors.green),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('cancelled', 'Đã hủy', Colors.red),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('pending_payment', 'Chờ thanh toán', Colors.deepOrange),
+                    ],
+                  ),
+                ),
+              ),
+              // Appointments list
+              Expanded(
+                child: _buildFilteredAppointmentList(filteredAppointments),
+              ),
             ],
           );
         },
@@ -161,7 +211,38 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     );
   }
 
-  Widget _buildAppointmentList(List appointments) {
+  Widget _buildFilterChip(String filterValue, String label, Color color) {
+    final isSelected = _currentFilter == filterValue;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentFilter = filterValue;
+          _currentPage = 1; // Reset to page 1 when filter changes
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.15) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? color : Colors.grey.shade700,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilteredAppointmentList(List<Appointment> appointments) {
     if (appointments.isEmpty) {
       return Center(
         child: Column(
@@ -170,259 +251,395 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
             Icon(Icons.event_busy, size: 80, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
-              'Không có lịch hẹn',
+              _getEmptyMessage(),
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey.shade600,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () => context.read<AppointmentProvider>().refreshAppointments(),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppConstants.defaultPadding),
-        itemCount: appointments.length,
-        itemBuilder: (context, index) {
-          final appointment = appointments[index];
-          return Card(
-            elevation: 2,
-            margin: const EdgeInsets.only(bottom: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: InkWell(
-              onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/appointment-detail',
-                  arguments: appointment.id,
-                );
+    final totalItems = appointments.length;
+    final totalPages = (totalItems / _pageSize).ceil();
+    final int safePage = _currentPage < 1
+        ? 1
+        : (totalPages > 0 && _currentPage > totalPages ? totalPages : _currentPage);
+
+    if (safePage != _currentPage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _currentPage = safePage;
+          });
+        }
+      });
+    }
+
+    final startIndex = (safePage - 1) * _pageSize;
+    final paginated = appointments.skip(startIndex).take(_pageSize).toList();
+
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => context.read<AppointmentProvider>().refreshAppointments(),
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppConstants.defaultPadding),
+              itemCount: paginated.length,
+              itemBuilder: (context, index) {
+                return _buildAppointmentCard(paginated[index]);
               },
-              borderRadius: BorderRadius.circular(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+          ),
+        ),
+        if (totalPages > 1)
+          _buildSimplePagination(
+            currentPage: safePage,
+            totalPages: totalPages,
+            totalItems: totalItems,
+            visibleItems: paginated.length,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSimplePagination({
+    required int currentPage,
+    required int totalPages,
+    required int totalItems,
+    required int visibleItems,
+  }) {
+    final showingTo = ((currentPage - 1) * _pageSize) + visibleItems;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Colors.grey.shade200),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Trang $currentPage/$totalPages',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Hiển thị $showingTo / $totalItems lịch hẹn',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: currentPage > 1 
+                      ? () => setState(() => _currentPage = currentPage - 1) 
+                      : null,
+                  icon: const Icon(Icons.chevron_left),
+                  label: const Text('Trước'),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: currentPage < totalPages 
+                      ? () => setState(() => _currentPage = currentPage + 1) 
+                      : null,
+                  icon: const Icon(Icons.chevron_right),
+                  label: const Text('Sau'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getEmptyMessage() {
+    switch (_currentFilter) {
+      case 'pending':
+        return 'Không có lịch hẹn chờ xác nhận';
+      case 'confirmed':
+        return 'Không có lịch hẹn đã xác nhận';
+      case 'rescheduled':
+        return 'Không có lịch hẹn đã đổi lịch';
+      case 'completed':
+        return 'Không có lịch hẹn đã hoàn thành';
+      case 'cancelled':
+        return 'Không có lịch hẹn đã hủy';
+      case 'pending_payment':
+        return 'Không có lịch hẹn chờ thanh toán';
+      default:
+        return 'Không có lịch hẹn nào';
+    }
+  }
+
+  Widget _buildAppointmentCard(Appointment appointment) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            '/appointment-detail',
+            arguments: appointment.id,
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with status and service name
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Header with status and booking code
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
+                  // Title - use specialtyName instead of hardcoded text
+                  Expanded(
+                    child: Text(
+                      appointment.specialtyName.isNotEmpty 
+                          ? appointment.specialtyName 
+                          : 'Khám bệnh',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Title
-                        const Text(
-                          'Khám tổng quát',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        // Status badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(appointment.status).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _getStatusColor(appointment.status).withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            _getStatusText(appointment.status),
-                            style: TextStyle(
-                              color: _getStatusColor(appointment.status),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      ],
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  
-                  // Booking code
-                  if (appointment.bookingCode != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      color: Colors.blue.shade50,
-                      child: Row(
-                        children: [
-                          Icon(Icons.qr_code, size: 16, color: Colors.blue.shade700),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Mã: ${appointment.bookingCode}',
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // Doctor info
-                        _buildInfoRow(
-                          icon: Icons.person,
-                          iconColor: Colors.blue,
-                          label: 'Bác sĩ',
-                          value: appointment.doctorName ?? 'Chưa có thông tin',
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // Hospital info
-                        _buildInfoRow(
-                          icon: Icons.local_hospital,
-                          iconColor: Colors.red,
-                          label: 'Bệnh viện',
-                          value: appointment.hospitalName ?? 'Chưa có thông tin',
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // Date info
-                        _buildInfoRow(
-                          icon: Icons.calendar_today,
-                          iconColor: Colors.orange,
-                          label: 'Ngày khám',
-                          value: _formatDate(appointment.appointmentDate),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // Time info
-                        _buildInfoRow(
-                          icon: Icons.access_time,
-                          iconColor: Colors.purple,
-                          label: 'Thời gian',
-                          value: appointment.timeSlot,
-                        ),
-                        
-                        // Queue number if available
-                        if (appointment.queueNumber != null && appointment.queueNumber! > 0) ...[
-                          const SizedBox(height: 12),
-                          _buildInfoRow(
-                            icon: Icons.format_list_numbered,
-                            iconColor: Colors.indigo,
-                            label: 'Số thứ tự khám',
-                            value: appointment.queueNumber.toString(),
-                          ),
-                        ],
-                        
-                        // Room info if available
-                        if (appointment.roomInfo != null) ...[
-                          const SizedBox(height: 12),
-                          _buildInfoRow(
-                            icon: Icons.meeting_room,
-                            iconColor: Colors.teal,
-                            label: 'Phòng khám',
-                            value: appointment.roomInfo!,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  
-                  // Footer with fee, payment status and actions
+                  const SizedBox(width: 8),
+                  // Status badge
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
+                      color: _getStatusColor(appointment.status).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _getStatusColor(appointment.status).withOpacity(0.3),
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Fee
-                            if (appointment.fee != null)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Tổng tiền',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    NumberFormat.currency(
-                                      locale: 'vi',
-                                      symbol: 'đ',
-                                      decimalDigits: 0,
-                                    ).format(appointment.fee),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              const SizedBox.shrink(),
-                            
-                            // View detail button
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/appointment-detail',
-                                  arguments: appointment.id,
-                                );
-                              },
-                              icon: const Icon(Icons.visibility, size: 16),
-                              label: const Text('Xem chi tiết'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        // Payment status
-                        if (appointment.paymentStatus != null) ...[
-                          const SizedBox(height: 12),
-                          _buildPaymentStatusBadge(
-                            appointment.paymentStatus!,
-                            appointment.paymentMethod,
-                          ),
-                        ],
-                      ],
+                    child: Text(
+                      _getStatusText(appointment.status),
+                      style: TextStyle(
+                        color: _getStatusColor(appointment.status),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          );
-        },
+            
+            // Booking code
+            if (appointment.bookingCode.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: Colors.blue.shade50,
+                child: Row(
+                  children: [
+                    Icon(Icons.qr_code, size: 16, color: Colors.blue.shade700),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Mã: ${appointment.bookingCode}',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Doctor info
+                  _buildInfoRow(
+                    icon: Icons.person,
+                    iconColor: Colors.blue,
+                    label: 'Bác sĩ',
+                    value: appointment.doctorName.isNotEmpty 
+                        ? appointment.doctorName 
+                        : 'Chưa có thông tin',
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Hospital info
+                  _buildInfoRow(
+                    icon: Icons.local_hospital,
+                    iconColor: Colors.red,
+                    label: 'Bệnh viện',
+                    value: appointment.hospitalName ?? 'Chưa có thông tin',
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Date info
+                  _buildInfoRow(
+                    icon: Icons.calendar_today,
+                    iconColor: Colors.orange,
+                    label: 'Ngày khám',
+                    value: _formatDate(appointment.appointmentDate),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Time info
+                  _buildInfoRow(
+                    icon: Icons.access_time,
+                    iconColor: Colors.purple,
+                    label: 'Thời gian',
+                    value: appointment.timeSlot,
+                  ),
+                  
+                  // Queue number if available
+                  if (appointment.queueNumber != null && appointment.queueNumber! > 0) ...[
+                    const SizedBox(height: 12),
+                    _buildInfoRow(
+                      icon: Icons.format_list_numbered,
+                      iconColor: Colors.indigo,
+                      label: 'Số thứ tự khám',
+                      value: appointment.queueNumber.toString(),
+                    ),
+                  ],
+                  
+                  // Room info if available
+                  if (appointment.roomInfo != null) ...[
+                    const SizedBox(height: 12),
+                    _buildInfoRow(
+                      icon: Icons.meeting_room,
+                      iconColor: Colors.teal,
+                      label: 'Phòng khám',
+                      value: appointment.roomInfo!,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            
+            // Footer with fee, payment status and actions
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Fee
+                      if (appointment.fee != null)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tổng tiền',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              NumberFormat.currency(
+                                locale: 'vi',
+                                symbol: 'đ',
+                                decimalDigits: 0,
+                              ).format(appointment.fee),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        const SizedBox.shrink(),
+                      
+                      // View detail button
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/appointment-detail',
+                            arguments: appointment.id,
+                          );
+                        },
+                        icon: const Icon(Icons.visibility, size: 16),
+                        label: const Text('Xem chi tiết'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  // Payment status
+                  if (appointment.paymentStatus != null) ...[
+                    const SizedBox(height: 12),
+                    _buildPaymentStatusBadge(
+                      appointment.paymentStatus!,
+                      appointment.paymentMethod,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

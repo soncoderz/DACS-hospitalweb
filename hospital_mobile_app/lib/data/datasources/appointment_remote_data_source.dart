@@ -70,7 +70,13 @@ class AppointmentRemoteDataSourceImpl implements AppointmentRemoteDataSource {
   @override
   Future<List<AppointmentModel>> getMyAppointments() async {
     try {
-      final response = await _dioClient.get(ApiConstants.myAppointments);
+      // Fetch all appointments with a large limit to get complete data
+      final response = await _dioClient.get(
+        ApiConstants.myAppointments,
+        queryParameters: {
+          'limit': 1000, // Fetch all appointments
+        },
+      );
 
       if (response.statusCode == 200) {
         List<dynamic> data = [];

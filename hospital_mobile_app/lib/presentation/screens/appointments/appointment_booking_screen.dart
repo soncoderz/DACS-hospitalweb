@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../providers/hospital_provider.dart';
@@ -328,8 +329,9 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                 color: isSelected ? Colors.blue.shade50 : null,
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundImage: NetworkImage(
-                      doctor['user']?['avatarUrl'] ?? AppConstants.defaultDoctorAvatarUrl,
+                    child: _buildAvatar(
+                      doctor['user']?['avatarUrl'],
+                      fallbackUrl: AppConstants.defaultDoctorAvatarUrl,
                     ),
                   ),
                   title: Text(fullName),
@@ -901,12 +903,10 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
                     if (selectedDoctor.isNotEmpty) ...[
                       Row(
                         children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundImage: NetworkImage(
-                              selectedDoctor['user']?['avatarUrl'] ?? 
-                              AppConstants.defaultDoctorAvatarUrl,
-                            ),
+                          _buildAvatar(
+                            selectedDoctor['user']?['avatarUrl'],
+                            fallbackUrl: AppConstants.defaultDoctorAvatarUrl,
+                            size: 60,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -1157,6 +1157,33 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(String? url, {double size = 40, String? fallbackUrl}) {
+    final imageUrl = (url != null && url.isNotEmpty)
+        ? url
+        : (fallbackUrl ?? AppConstants.defaultAvatarUrl);
+
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => Container(
+          width: size,
+          height: size,
+          color: Colors.grey.shade200,
+          child: Icon(Icons.person, size: size / 2, color: Colors.grey.shade500),
+        ),
+        errorWidget: (_, __, ___) => Container(
+          width: size,
+          height: size,
+          color: Colors.grey.shade200,
+          child: Icon(Icons.person_off, size: size / 2, color: Colors.grey.shade500),
+        ),
       ),
     );
   }

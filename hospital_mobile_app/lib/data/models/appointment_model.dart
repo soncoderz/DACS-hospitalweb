@@ -26,6 +26,40 @@ class AppointmentModel extends Appointment {
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
     try {
       print('[AppointmentModel] Parsing appointment: ${json['_id'] ?? json['id']}');
+
+      String _normalizeStatus(dynamic raw) {
+        if (raw == null) return 'pending';
+        String value = raw
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replaceAll(' ', '_')
+            .replaceAll('-', '_');
+        switch (value) {
+          case 'canceled':
+          case 'cancel':
+            return 'cancelled';
+          case 'reschedule':
+          case 'rescheduling':
+            return 'rescheduled';
+          case 'pendingpayment':
+          case 'pending_payment':
+            return 'pending_payment';
+          case 'done':
+          case 'finish':
+          case 'finished':
+          case 'complete':
+            return 'completed';
+          case 'paid':
+          case 'payment_success':
+          case 'payment_successful':
+          case 'payment_completed':
+          case 'paid_full':
+            return 'paid';
+          default:
+            return value;
+        }
+      }
       
       // Handle timeSlot - can be String or Object
       String timeSlotValue = '';
@@ -185,6 +219,13 @@ class AppointmentModel extends Appointment {
       
       // Handle paymentMethod
       String? paymentMethodValue = json['paymentMethod'];
+
+      final normalizedStatus = _normalizeStatus(
+        json['status'] ??
+        json['appointmentStatus'] ??
+        json['appointment_status'] ??
+        json['state'],
+      );
       
       return AppointmentModel(
         id: json['_id'] ?? json['id'] ?? '',
@@ -196,7 +237,7 @@ class AppointmentModel extends Appointment {
         hospitalName: hospitalNameValue,
         appointmentDate: appointmentDateValue,
         timeSlot: timeSlotValue.isEmpty ? 'Chưa xác định' : timeSlotValue,
-        status: json['status'] ?? 'pending',
+        status: normalizedStatus,
         reason: json['reason'],
         notes: json['notes'],
         bookingCode: json['bookingCode'] ?? '',

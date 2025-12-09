@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import '../../providers/auth_provider.dart';
 import '../../providers/doctor_provider.dart';
 import '../../../domain/entities/user.dart';
 import '../../../domain/entities/doctor.dart';
+import '../../../core/constants/app_constants.dart';
 
 /// Profile Screen with tabs for Personal Info, Favorite Doctors, and Security
 class ProfileScreen extends StatefulWidget {
@@ -323,18 +325,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       children: [
         Stack(
           children: [
-            CircleAvatar(
-              radius: 60,
-              backgroundColor: Colors.grey[200],
-              backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-                  ? NetworkImage(user.avatarUrl!)
-                  : null,
-              child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-                  ? Text(
-                      user.fullName?.substring(0, 1).toUpperCase() ?? 'U',
-                      style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-                    )
-                  : null,
+            _buildAvatar(
+              user.avatarUrl,
+              size: 120,
+              fallbackText: user.fullName?.substring(0, 1).toUpperCase() ?? 'U',
+              fallbackUrl: AppConstants.defaultAvatarUrl,
             ),
             Positioned(
               bottom: 0,
@@ -556,15 +551,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.grey[200],
-                backgroundImage: doctor.avatar != null
-                    ? NetworkImage(doctor.avatar!)
-                    : null,
-                child: doctor.avatar == null
-                    ? const Icon(Icons.person, size: 30)
-                    : null,
+              _buildAvatar(
+                doctor.avatar,
+                size: 60,
+                fallbackUrl: AppConstants.defaultDoctorAvatarUrl,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -720,5 +710,45 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       default:
         return 'Chưa cập nhật';
     }
+  }
+
+  Widget _buildAvatar(
+    String? url, {
+    double size = 60,
+    String? fallbackText,
+    String? fallbackUrl,
+  }) {
+    final imageUrl = (url != null && url.isNotEmpty)
+        ? url
+        : (fallbackUrl ?? AppConstants.defaultAvatarUrl);
+
+    Widget placeholder() => Container(
+          width: size,
+          height: size,
+          color: Colors.grey.shade200,
+          child: Center(
+            child: fallbackText != null
+                ? Text(
+                    fallbackText,
+                    style: TextStyle(
+                      fontSize: size / 2,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                  )
+                : Icon(Icons.person, size: size / 2, color: Colors.grey.shade500),
+          ),
+        );
+
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => placeholder(),
+        errorWidget: (_, __, ___) => placeholder(),
+      ),
+    );
   }
 }

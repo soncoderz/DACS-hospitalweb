@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/doctor_provider.dart';
 import '../../providers/specialty_provider.dart';
@@ -8,6 +9,7 @@ import '../../providers/news_provider.dart';
 import '../../providers/review_provider.dart';
 import '../../providers/statistics_provider.dart';
 import '../../../domain/entities/doctor.dart';
+import '../../../core/constants/app_constants.dart';
 import '../news/news_detail_screen.dart';
 import 'package:intl/intl.dart';
 
@@ -849,13 +851,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(
-                          backgroundImage: review.userAvatar != null
-                              ? NetworkImage(review.userAvatar!)
-                              : null,
-                          child: review.userAvatar == null
-                              ? Text(review.userName[0].toUpperCase())
-                              : null,
+                        _buildAvatar(
+                          review.userAvatar,
+                          fallbackText: review.userName[0].toUpperCase(),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -901,6 +899,39 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  
+  Widget _buildAvatar(String? url, {double size = 40, String? fallbackText}) {
+    final imageUrl = (url != null && url.isNotEmpty)
+        ? url
+        : AppConstants.defaultAvatarUrl;
 
+    Widget placeholder() => Container(
+          width: size,
+          height: size,
+          color: Colors.grey.shade200,
+          child: Center(
+            child: fallbackText != null
+                ? Text(
+                    fallbackText,
+                    style: TextStyle(
+                      fontSize: size / 2,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                  )
+                : Icon(Icons.person, size: size / 2, color: Colors.grey.shade500),
+          ),
+        );
 
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => placeholder(),
+        errorWidget: (_, __, ___) => placeholder(),
+      ),
+    );
+  }
 }

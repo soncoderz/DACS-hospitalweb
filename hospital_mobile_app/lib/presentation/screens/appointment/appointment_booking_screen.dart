@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../providers/hospital_provider.dart';
 import '../../providers/specialty_provider.dart';
@@ -9,6 +10,7 @@ import '../../providers/service_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/token_storage_service.dart';
+import '../../../core/constants/app_constants.dart';
 
 /// Màn hình đặt lịch khám - Flow: Bệnh viện → Chuyên khoa → Bác sĩ → Dịch vụ → Ngày → Giờ
 class AppointmentBookingScreen extends StatefulWidget {
@@ -387,14 +389,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
                 margin: const EdgeInsets.only(bottom: 12),
                 color: isSelected ? Colors.blue.shade50 : null,
                 child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: doctor.avatar != null
-                        ? NetworkImage(doctor.avatar!)
-                        : null,
-                    child: doctor.avatar == null
-                        ? const Icon(Icons.person)
-                        : null,
-                  ),
+                  leading: _buildAvatar(doctor.avatar),
                   title: Text(doctor.fullName),
                   subtitle: Text(doctor.specialtyName),
                   trailing: isSelected
@@ -444,6 +439,33 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
               ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(String? url, {double size = 40}) {
+    final imageUrl = (url != null && url.isNotEmpty)
+        ? url
+        : AppConstants.defaultDoctorAvatarUrl;
+
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => Container(
+          width: size,
+          height: size,
+          color: Colors.grey.shade200,
+          child: Icon(Icons.person, size: size / 2, color: Colors.grey.shade500),
+        ),
+        errorWidget: (_, __, ___) => Container(
+          width: size,
+          height: size,
+          color: Colors.grey.shade200,
+          child: Icon(Icons.person_off, size: size / 2, color: Colors.grey.shade500),
+        ),
       ),
     );
   }

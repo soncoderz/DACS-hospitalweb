@@ -22,18 +22,107 @@ class AppointmentProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  List<Appointment> get upcomingAppointments => _appointments
-      .where((a) =>
-          a.status == 'pending' ||
-          a.status == 'confirmed' &&
-              a.appointmentDate.isAfter(DateTime.now()))
-      .toList();
+  String _normalizeStatus(String? raw) {
+    if (raw == null) return 'pending';
+    final value = raw
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replaceAll(' ', '_')
+        .replaceAll('-', '_');
+    switch (value) {
+      case 'cancel':
+      case 'canceled':
+        return 'cancelled';
+      case 'reschedule':
+      case 'rescheduling':
+        return 'rescheduled';
+      case 'pendingpayment':
+      case 'pending_payment':
+        return 'pending_payment';
+      case 'done':
+      case 'finish':
+      case 'finished':
+        return 'completed';
+      case 'paid':
+      case 'payment_success':
+      case 'payment_successful':
+      case 'payment_completed':
+      case 'paid_full':
+        return 'paid';
+      default:
+        return value;
+    }
+  }
+
+  List<Appointment> get _sortedAppointments {
+    final List<Appointment> sorted = List<Appointment>.from(_appointments);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    sorted.sort((a, b) {
+      final dateA = DateTime(a.appointmentDate.year, a.appointmentDate.month, a.appointmentDate.day);
+      final dateB = DateTime(b.appointmentDate.year, b.appointmentDate.month, b.appointmentDate.day);
+
+      final distanceA = dateA.difference(today).inDays.abs();
+      final distanceB = dateB.difference(today).inDays.abs();
+
+      final isAFutureOrToday = !dateA.isBefore(today);
+      final isBFutureOrToday = !dateB.isBefore(today);
+
+      if (isAFutureOrToday && isBFutureOrToday) {
+        return distanceA.compareTo(distanceB);
+      }
+
+      if (isAFutureOrToday != isBFutureOrToday) {
+        return isAFutureOrToday ? -1 : 1;
+      }
+
+      return distanceA.compareTo(distanceB);
+    });
+
+    return sorted;
+  }
+
+  List<Appointment> _filterByStatuses(Set<String> statuses) {
+    return _sortedAppointments
+        .where((a) => statuses.contains(_normalizeStatus(a.status)))
+        .toList();
+  }
+
+  List<Appointment> get upcomingAppointments => _filterByStatuses({
+        'pending',
+        'confirmed',
+        'rescheduled',
+        'pending_payment',
+        'hospitalized',
+      });
 
   List<Appointment> get completedAppointments =>
-      _appointments.where((a) => a.status == 'completed').toList();
+      _filterByStatuses({'completed', 'done', 'finished', 'paid'});
 
   List<Appointment> get cancelledAppointments =>
-      _appointments.where((a) => a.status == 'cancelled').toList();
+      _filterByStatuses({
+        'cancelled',
+        'canceled',
+        'rejected',
+        'no-show',
+        'no_show',
+        'declined',
+      });
+
+  // Sub-filters for upcoming tab (matching web version)
+  List<Appointment> get pendingAppointments =>
+      _filterByStatuses({'pending'});
+
+  List<Appointment> get confirmedAppointments =>
+      _filterByStatuses({'confirmed'});
+
+  List<Appointment> get rescheduledAppointments =>
+      _filterByStatuses({'rescheduled'});
+
+  List<Appointment> get pendingPaymentAppointments =>
+      _filterByStatuses({'pending_payment'});
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -117,6 +206,23 @@ class AppointmentProvider extends ChangeNotifier {
       },
       (appointments) {
         _appointments = appointments;
+        
+        // Debug logging to see what statuses we have
+        print('[AppointmentProvider] Fetched ${appointments.length} appointments');
+        final statusCounts = <String, int>{};
+        for (var apt in appointments) {
+          final normalizedStatus = _normalizeStatus(apt.status);
+          statusCounts[normalizedStatus] = (statusCounts[normalizedStatus] ?? 0) + 1;
+        }
+        print('[AppointmentProvider] Status counts: $statusCounts');
+        print('[AppointmentProvider] Upcoming: ${upcomingAppointments.length}');
+        print('[AppointmentProvider] Completed: ${completedAppointments.length}');
+        print('[AppointmentProvider] Cancelled: ${cancelledAppointments.length}');
+        print('[AppointmentProvider] Pending: ${pendingAppointments.length}');
+        print('[AppointmentProvider] Confirmed: ${confirmedAppointments.length}');
+        print('[AppointmentProvider] Rescheduled: ${rescheduledAppointments.length}');
+        print('[AppointmentProvider] Pending Payment: ${pendingPaymentAppointments.length}');
+        
         _setLoading(false);
       },
     );
