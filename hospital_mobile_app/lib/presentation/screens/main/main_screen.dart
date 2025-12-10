@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/auth_provider.dart';
-import '../../../domain/entities/user.dart';
 import '../home/home_screen.dart';
 import '../doctors/doctors_list_screen.dart';
 import '../specialties/specialties_screen.dart';
@@ -196,6 +195,15 @@ class _MainScreenState extends State<MainScreen> {
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/news');
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Cài đặt'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/settings');
             },
           ),
           ListTile(

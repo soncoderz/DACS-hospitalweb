@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_constants.dart';
 import '../services/navigation_service.dart';
 import '../services/token_storage_service.dart';
+import '../../presentation/providers/auth_provider.dart';
 
 /// Interceptor to automatically add JWT token to request headers
 class AuthInterceptor extends Interceptor {
@@ -37,23 +39,31 @@ class AuthInterceptor extends Interceptor {
     final statusCode = err.response?.statusCode;
     if (statusCode == 401 && !_isHandlingUnauthorized) {
       _isHandlingUnauthorized = true;
-      await _tokenStorage.clearAll();
+      try {
+        await _tokenStorage.clearAll();
 
-      final context = NavigationService.context;
-      final navigator = NavigationService.navigatorKey.currentState;
+        final context = NavigationService.context;
+        final navigator = NavigationService.navigatorKey.currentState;
 
-      // Notify user and force re-login
-      if (context != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppConstants.sessionExpiredMessage),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        // If we still have a widget tree, log out provider state and notify user
+        if (context != null) {
+          // best-effort logout to clear in-memory user
+          try {
+            context.read<AuthProvider>().logout();
+          } catch (_) {}
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(AppConstants.sessionExpiredMessage),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+
+        navigator?.pushNamedAndRemoveUntil('/login', (route) => false);
+      } finally {
+        _isHandlingUnauthorized = false;
       }
-      navigator?.pushNamedAndRemoveUntil('/login', (route) => false);
-
-      _isHandlingUnauthorized = false;
     }
     handler.next(err);
   }
