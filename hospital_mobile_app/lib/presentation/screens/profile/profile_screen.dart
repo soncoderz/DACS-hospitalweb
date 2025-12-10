@@ -8,6 +8,7 @@ import '../../providers/doctor_provider.dart';
 import '../../../domain/entities/user.dart';
 import '../../../domain/entities/doctor.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/toast_utils.dart';
 
 /// Profile Screen with tabs for Personal Info, Favorite Doctors, and Security
 class ProfileScreen extends StatefulWidget {
@@ -97,20 +98,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cập nhật thông tin thành công'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success('Cập nhật thông tin thành công');
         setState(() => _isEditing = false);
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Cập nhật thất bại'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(authProvider.errorMessage ?? 'Cập nhật thất bại');
       }
     } finally {
       if (mounted) {
@@ -149,13 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        AppToast.success('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
         
         // Clear password fields
         _currentPasswordController.clear();
@@ -197,12 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       final success = await authProvider.uploadAvatar(File(image.path));
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cập nhật ảnh đại diện thành công'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success('Cập nhật ảnh đại diện thành công');
       } else if (mounted) {
         _showError(authProvider.errorMessage ?? 'Tải ảnh lên thất bại');
       }
@@ -217,12 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   void _showError(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppToast.error(message);
     }
   }
 

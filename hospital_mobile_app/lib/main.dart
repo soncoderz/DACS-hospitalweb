@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/constants/app_constants.dart';
+import 'package:bot_toast/bot_toast.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/token_storage_service.dart';
 import 'core/services/navigation_service.dart';
@@ -162,6 +163,8 @@ class MyApp extends StatelessWidget {
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         navigatorKey: NavigationService.navigatorKey,
+        builder: BotToastInit(),
+        navigatorObservers: [BotToastNavigatorObserver()],
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.blue,

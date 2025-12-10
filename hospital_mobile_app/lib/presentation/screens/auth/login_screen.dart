@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/google_sign_in_service.dart';
+import '../../../core/utils/toast_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
@@ -42,19 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       // Navigate to home
       Navigator.pushReplacementNamed(context, '/home');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(AppConstants.loginSuccessMessage),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppToast.success(AppConstants.loginSuccessMessage);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Đăng nhập thất bại'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppToast.error(authProvider.errorMessage ?? 'Đăng nhập thất bại');
     }
   }
 
@@ -77,28 +68,13 @@ class _LoginScreenState extends State<LoginScreen> {
       if (success) {
         // Navigate to home
         Navigator.pushReplacementNamed(context, '/home');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đăng nhập Google thành công'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppToast.success('Đăng nhập Google thành công');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Đăng nhập Google thất bại'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(authProvider.errorMessage ?? 'Đăng nhập Google thất bại');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppToast.error('Lỗi: ${e.toString()}');
     }
   }
 

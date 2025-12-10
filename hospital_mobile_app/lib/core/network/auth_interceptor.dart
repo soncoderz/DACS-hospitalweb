@@ -5,6 +5,7 @@ import '../constants/app_constants.dart';
 import '../services/navigation_service.dart';
 import '../services/token_storage_service.dart';
 import '../../presentation/providers/auth_provider.dart';
+import '../utils/toast_utils.dart';
 
 /// Interceptor to automatically add JWT token to request headers
 class AuthInterceptor extends Interceptor {
@@ -52,12 +53,7 @@ class AuthInterceptor extends Interceptor {
             context.read<AuthProvider>().logout();
           } catch (_) {}
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(AppConstants.sessionExpiredMessage),
-              duration: Duration(seconds: 3),
-            ),
-          );
+          AppToast.info(AppConstants.sessionExpiredMessage);
         }
 
         navigator?.pushNamedAndRemoveUntil('/login', (route) => false);

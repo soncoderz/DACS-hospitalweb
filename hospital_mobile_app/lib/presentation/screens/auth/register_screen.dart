@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/toast_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
@@ -38,12 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (!_acceptTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng đồng ý với điều khoản sử dụng'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      AppToast.info('Vui lòng đồng ý với điều khoản sử dụng');
       return;
     }
 
@@ -60,12 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(AppConstants.registerSuccessMessage),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppToast.success(AppConstants.registerSuccessMessage);
       // Navigate to home after successful registration
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -73,12 +64,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Đăng ký thất bại'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppToast.error(authProvider.errorMessage ?? 'Đăng ký thất bại');
     }
   }
 

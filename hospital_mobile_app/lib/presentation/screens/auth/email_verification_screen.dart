@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/toast_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/custom_button.dart';
 
@@ -35,21 +36,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     });
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email xác thực đã được gửi lại'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppToast.success('Email xác thực đã được gửi lại');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            authProvider.errorMessage ?? 'Gửi lại email thất bại',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppToast.error(authProvider.errorMessage ?? 'Gửi lại email thất bại');
     }
   }
 

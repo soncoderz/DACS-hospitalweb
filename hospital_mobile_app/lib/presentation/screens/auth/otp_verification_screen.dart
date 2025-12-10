@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/toast_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
@@ -42,12 +43,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Xác thực OTP thành công'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppToast.success('Xác thực OTP thành công');
       // Navigate to reset password screen
       Navigator.pushReplacementNamed(
         context,
@@ -58,12 +54,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         },
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Xác thực OTP thất bại'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppToast.error(authProvider.errorMessage ?? 'Xác thực OTP thất bại');
     }
   }
 
@@ -74,12 +65,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mã OTP mới đã được gửi'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppToast.success('Mã OTP mới đã được gửi');
     }
   }
 
