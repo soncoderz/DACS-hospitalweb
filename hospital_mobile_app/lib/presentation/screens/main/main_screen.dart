@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/auth_provider.dart';
+import '../../../domain/entities/user.dart';
 import '../home/home_screen.dart';
 import '../doctors/doctors_list_screen.dart';
 import '../specialties/specialties_screen.dart';
@@ -29,6 +31,46 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  Widget _buildDrawerAvatar(User? user) {
+    final initial = _getUserInitial(user?.fullName);
+    final imageUrl = user?.avatarUrl;
+
+    Widget fallbackAvatar() => CircleAvatar(
+          radius: 36,
+          backgroundColor: Colors.white,
+          child: Text(
+            initial,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+        );
+
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return fallbackAvatar();
+    }
+
+    return ClipOval(
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: 72,
+        height: 72,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => fallbackAvatar(),
+        errorWidget: (_, __, ___) => fallbackAvatar(),
+      ),
+    );
+  }
+
+  String _getUserInitial(String? fullName) {
+    if (fullName == null) return 'U';
+    final trimmed = fullName.trim();
+    if (trimmed.isEmpty) return 'U';
+    return trimmed.substring(0, 1).toUpperCase();
   }
 
   @override
@@ -109,19 +151,7 @@ class _MainScreenState extends State<MainScreen> {
             decoration: const BoxDecoration(
               color: Colors.blue,
             ),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(
-                (user?.fullName?.isNotEmpty == true) 
-                    ? user!.fullName!.substring(0, 1).toUpperCase() 
-                    : 'U',
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-            ),
+            currentAccountPicture: _buildDrawerAvatar(user),
             accountName: Text(
               user?.fullName ?? 'User',
               style: const TextStyle(
@@ -166,15 +196,6 @@ class _MainScreenState extends State<MainScreen> {
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/news');
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Cài đặt'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/settings');
             },
           ),
           ListTile(

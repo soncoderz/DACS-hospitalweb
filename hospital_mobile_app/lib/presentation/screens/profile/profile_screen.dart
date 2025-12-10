@@ -328,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             _buildAvatar(
               user.avatarUrl,
               size: 120,
-              fallbackText: user.fullName?.substring(0, 1).toUpperCase() ?? 'U',
+              fallbackText: _getUserInitial(user.fullName),
               fallbackUrl: AppConstants.defaultAvatarUrl,
             ),
             Positioned(
@@ -710,6 +710,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       default:
         return 'Chưa cập nhật';
     }
+  }
+
+  String _getUserInitial(String? fullName) {
+    if (fullName == null) return 'U';
+    final trimmed = fullName.trim();
+    if (trimmed.isEmpty) return 'U';
+    return trimmed.substring(0, 1).toUpperCase();
   }
 
   Widget _buildAvatar(

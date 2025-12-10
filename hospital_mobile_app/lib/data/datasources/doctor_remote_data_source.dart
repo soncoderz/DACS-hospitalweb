@@ -83,9 +83,32 @@ class DoctorRemoteDataSourceImpl implements DoctorRemoteDataSource {
       final response = await _dioClient.get(ApiConstants.favoriteDoctors);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data =
-            response.data['favorites'] ?? response.data;
-        return data.map((json) => DoctorModel.fromJson(json)).toList();
+        final raw = response.data;
+        List<dynamic> data;
+
+        if (raw is Map<String, dynamic>) {
+          data = (raw['data'] ??
+                  raw['favorites'] ??
+                  raw['favoriteDoctors'] ??
+                  raw['doctors'] ??
+                  raw['items'] ??
+                  [])
+              as dynamic;
+        } else if (raw is List) {
+          data = raw;
+        } else {
+          data = [];
+        }
+
+        // If API returns a single map instead of list, wrap it to keep parser safe
+        if (data is Map<String, dynamic>) {
+          data = [data];
+        }
+
+        return data
+            .whereType<Map<String, dynamic>>()
+            .map((json) => DoctorModel.fromJson(json))
+            .toList();
       } else {
         throw ServerException('Lấy danh sách yêu thích thất bại');
       }
