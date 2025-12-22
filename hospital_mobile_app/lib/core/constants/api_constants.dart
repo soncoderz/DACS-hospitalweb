@@ -6,21 +6,32 @@ class ApiConstants {
   // Base URLs - Change this IP to your computer's IP address when testing on real device
   // For emulator: use 10.0.2.2
   // For real device: use your computer's IP (e.g., 192.168.1.100)
-  static const String _localIpForRealDevice = '192.168.1.100'; // TODO: Change this to your computer's IP
+  
+  // ⚠️ QUAN TRỌNG: Đổi IP này thành IP máy tính của bạn khi test trên thiết bị thật!
+  // Điện thoại và máy tính phải cùng mạng WiFi
+  static const String _localIpForRealDevice = '10.250.250.43'; // IP của máy tính trên mạng WiFi
   static const String _emulatorIp = '10.0.2.2';
   
-  // Auto-detect: Use emulator IP for Android emulator, otherwise use local IP
+  // ⚠️ ĐỔI GIÁ TRỊ NÀY:
+  // - true: sử dụng trên thiết bị thật
+  // - false: sử dụng trên emulator
+  static const bool _useRealDevice = true;
+  
   static String get _host {
     // You can manually override this by setting an environment variable
     const envHost = String.fromEnvironment('API_HOST');
     if (envHost.isNotEmpty) return envHost;
     
-    // Default: use emulator IP (change _localIpForRealDevice above for real devices)
-    return _emulatorIp;
+    // Use real device IP or emulator IP based on flag
+    return _useRealDevice ? _localIpForRealDevice : _emulatorIp;
   }
   
   static String get baseUrl => 'http://$_host:5000/api';
   static String get socketUrl => 'http://$_host:5000';
+  // Use API host for payment callbacks so MoMo never redirects to localhost
+  static String get _hostBase => 'http://$_host:5000';
+  // Mobile endpoint - automatically redirects to app via deep link after payment
+  static String get momoRedirectUrl => '$_hostBase/api/payments/momo/result/mobile';
 
   // Auth Endpoints
   static const String register = '/auth/register';

@@ -14,6 +14,9 @@ const billingController = require('../controllers/billingController');
 router.post('/momo/ipn', momoController.momoIPN);
 router.get('/momo/result', momoController.momoPaymentResult);
 
+// Mobile-specific redirect endpoint - process payment then redirect back to app
+router.get('/momo/result/mobile', momoController.momoPaymentResultMobile);
+
 // PROTECTED ROUTES: Lịch sử thanh toán dựa vào BillPayment trong billingController
 router.get('/payments/history', protect, billingController.getPaymentHistory);
 
@@ -39,12 +42,12 @@ router.delete('/reset/:appointmentId', protect, async (req, res) => {
     const Bill = require('../models/Bill');
     const BillPayment = require('../models/BillPayment');
     const Appointment = require('../models/Appointment');
-    
+
     console.log(`Yêu cầu reset thanh toán cho appointmentId: ${appointmentId}`);
-    
+
     // Xóa tất cả BillPayment records cho appointment này
     const deletePaymentsResult = await BillPayment.deleteMany({ appointmentId });
-    
+
     // Reset Bill consultationBill status
     const bill = await Bill.findOne({ appointmentId });
     if (bill) {
@@ -54,7 +57,7 @@ router.delete('/reset/:appointmentId', protect, async (req, res) => {
       bill.consultationBill.transactionId = null;
       await bill.save();
     }
-    
+
     // Reset trạng thái thanh toán trong appointment
     await Appointment.findByIdAndUpdate(appointmentId, {
       $set: {
@@ -62,7 +65,7 @@ router.delete('/reset/:appointmentId', protect, async (req, res) => {
         paymentMethod: null
       }
     });
-    
+
     return res.status(200).json({
       success: true,
       message: `Đã reset thanh toán thành công. Đã xóa ${deletePaymentsResult.deletedCount} bản ghi thanh toán.`

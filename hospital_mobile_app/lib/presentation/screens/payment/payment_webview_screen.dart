@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentWebViewScreen extends StatefulWidget {
   final String paymentUrl;
@@ -42,12 +43,44 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
             });
           },
           onNavigationRequest: (request) {
-            _checkPaymentResult(request.url);
+            final url = request.url;
+            if (_isMomoDeepLink(url)) {
+              _openMomoDeepLink(url);
+              return NavigationDecision.prevent;
+            }
+            _checkPaymentResult(url);
             return NavigationDecision.navigate;
           },
         ),
       )
       ..loadRequest(Uri.parse(widget.paymentUrl));
+  }
+
+  bool _isMomoDeepLink(String url) {
+    return url.startsWith('momo://') ||
+        url.contains('applinks.momo.vn') ||
+        url.contains('test-applinks.momo.vn') ||
+        url.contains('action=payWithApp');
+  }
+
+  Future<void> _openMomoDeepLink(String url) async {
+    try {
+      String launchUrl = url;
+      
+      if (url.contains('test-applinks.momo.vn') || url.contains('applinks.momo.vn')) {
+        final uri = Uri.parse(url);
+        if (uri.query.isNotEmpty) {
+          launchUrl = 'momo://app?${uri.query}';
+        }
+      }
+
+      final targetUri = Uri.parse(launchUrl);
+      if (await canLaunchUrl(targetUri)) {
+        await launchUrl(targetUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      // Ignore deep link errors and let WebView continue
+    }
   }
 
   void _checkPaymentResult(String url) {

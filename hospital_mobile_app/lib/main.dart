@@ -5,6 +5,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'core/network/dio_client.dart';
 import 'core/services/token_storage_service.dart';
 import 'core/services/navigation_service.dart';
+import 'core/services/deep_link_service.dart';
 import 'data/datasources/auth_remote_data_source.dart';
 import 'data/datasources/doctor_remote_data_source.dart';
 import 'data/datasources/specialty_remote_data_source.dart';
@@ -54,7 +55,12 @@ import 'presentation/screens/services/service_detail_screen.dart';
 import 'presentation/screens/specialties/specialty_detail_screen.dart';
 import 'presentation/screens/hospitals/hospital_detail_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize deep link service for payment callbacks
+  await DeepLinkService().init();
+  
   runApp(const MyApp());
 }
 

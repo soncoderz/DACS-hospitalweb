@@ -22,8 +22,8 @@ class MomoPaymentModel {
       orderId: json['orderId'] ?? '',
       requestId: json['requestId'] ?? '',
       payUrl: json['payUrl'] ?? '',
-      deeplink: json['deeplink'] ?? json['deepLink'] ?? '',
-      qrCodeUrl: json['qrCodeUrl'] ?? '',
+      deeplink: json['deeplink'] ?? json['deepLink'] ?? json['deeplinkWebInApp'] ?? '',
+      qrCodeUrl: json['qrCodeUrl'] ?? json['qrCode'] ?? '',
       message: json['message'] ?? '',
       resultCode: json['resultCode'] ?? 0,
     );

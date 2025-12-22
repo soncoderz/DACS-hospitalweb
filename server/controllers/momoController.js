@@ -4,6 +4,57 @@ const https = require('https');
 const Appointment = require('../models/Appointment');
 const mongoose = require('mongoose');
 
+// Build origin string from incoming request (used to avoid localhost redirects on mobile)
+const getRequestOrigin = (req) => {
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  return host ? `${protocol}://${host}` : '';
+};
+
+// Resolve redirect and IPN URLs so they work on real devices (no localhost)
+const resolveMomoUrls = (req) => {
+  const origin = getRequestOrigin(req);
+  const frontendUrl = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+  const envRedirect = (process.env.MOMO_REDIRECT_URL || '').trim();
+  const envIpn = (process.env.MOMO_IPN_URL || '').trim();
+  const envBase = (process.env.BASE_URL || '').replace(/\/$/, '');
+  const shouldSwapBase =
+    envBase.includes('localhost') &&
+    origin &&
+    !origin.includes('localhost');
+  const baseApiUrl = (shouldSwapBase ? origin : envBase || origin).replace(/\/$/, '');
+
+  // Priority: client override -> env -> frontend -> API fallback
+  let redirectUrl =
+    (req.body?.redirectUrl || '').trim() ||
+    envRedirect ||
+    (frontendUrl ? `${frontendUrl}/payment/result` : '') ||
+    (baseApiUrl ? `${baseApiUrl}/api/payments/momo/result` : '');
+
+  let ipnUrl =
+    (req.body?.ipnUrl || '').trim() ||
+    envIpn ||
+    (baseApiUrl ? `${baseApiUrl}/api/payments/momo/ipn` : '');
+
+  // If redirect points to localhost but request comes from another host (mobile), swap host
+  if (redirectUrl && redirectUrl.includes('localhost') && origin && !origin.includes('localhost')) {
+    try {
+      const redirect = new URL(redirectUrl);
+      const currentOrigin = new URL(origin);
+      redirect.hostname = currentOrigin.hostname;
+      // Keep explicit port if provided on redirect URL, otherwise reuse API port
+      if (!redirect.port && currentOrigin.port) {
+        redirect.port = currentOrigin.port;
+      }
+      redirectUrl = redirect.toString();
+    } catch (e) {
+      console.warn('Failed to normalize MoMo redirect URL:', e.message);
+    }
+  }
+
+  return { redirectUrl, ipnUrl };
+};
+
 // MoMo API configuration
 const momoConfig = {
   // Use environment variables in production
@@ -25,6 +76,229 @@ const decodeMomoExtraData = (rawExtraData) => {
     console.warn('Failed to decode MoMo extraData:', error.message);
     return null;
   }
+};
+
+// Shared handler: finalize a MoMo payment (update Bill/BillPayment/Appointment) and return status data
+const processMomoPaymentResultCore = async (query) => {
+  const { orderId, resultCode } = query;
+  if (!orderId) {
+    return { error: { status: 400, message: 'Missing orderId in MoMo response' } };
+  }
+
+  const BillPayment = require('../models/BillPayment');
+
+  let payment = await BillPayment.findOne({
+    $or: [
+      { 'paymentDetails.orderId': orderId },
+      { transactionId: orderId },
+      { 'paymentDetails.momoResponse.orderId': orderId }
+    ]
+  }).populate('appointmentId billId');
+
+  if (!payment) {
+    payment = await BillPayment.findOne({ transactionId: orderId }).populate('appointmentId billId');
+    if (!payment) {
+      return { error: { status: 404, message: 'Khong tim thay thanh toan' } };
+    }
+  }
+
+  const extraData =
+    decodeMomoExtraData(query.extraData) ||
+    decodeMomoExtraData(payment.paymentDetails?.extraData) ||
+    decodeMomoExtraData(payment.paymentDetails?.momoResponse?.extraData);
+  const resolvedBillType = extraData?.billType || payment.billType;
+  const resolvedAppointmentId = extraData?.appointmentId || (payment.appointmentId?._id || payment.appointmentId);
+  const resolvedPrescriptionId = extraData?.prescriptionId;
+  const transactionId = query.transId || payment.transactionId || orderId;
+
+  // Ensure downstream Bill + Appointment are consistent (idempotent)
+  const ensureBillAndAppointmentUpdated = async () => {
+    try {
+      const Bill = require('../models/Bill');
+      let bill = payment.billId ? await Bill.findById(payment.billId) : null;
+      if (!bill && resolvedAppointmentId) {
+        bill = await Bill.findOne({ appointmentId: resolvedAppointmentId });
+      }
+
+      if (bill && resolvedBillType) {
+        if (resolvedBillType === 'consultation' && bill.consultationBill?.amount > 0) {
+          if (bill.consultationBill.status !== 'paid') {
+            bill.consultationBill.status = 'paid';
+            bill.consultationBill.paymentMethod = 'momo';
+            bill.consultationBill.paymentDate = bill.consultationBill.paymentDate || new Date();
+            bill.consultationBill.transactionId = transactionId;
+            bill.consultationBill.paymentDetails =
+              bill.consultationBill.paymentDetails || payment.paymentDetails || query;
+          }
+        } else if (resolvedBillType === 'medication') {
+          if (resolvedPrescriptionId) {
+            if (bill.medicationBill?.amount > 0 && bill.medicationBill.status !== 'paid') {
+              bill.medicationBill.status = 'paid';
+              bill.medicationBill.paymentMethod = 'momo';
+              bill.medicationBill.paymentDate = bill.medicationBill.paymentDate || new Date();
+              bill.medicationBill.transactionId = transactionId;
+            }
+          } else if (bill.medicationBill?.amount > 0 && bill.medicationBill.status !== 'paid') {
+            bill.medicationBill.status = 'paid';
+            bill.medicationBill.paymentMethod = 'momo';
+            bill.medicationBill.paymentDate = bill.medicationBill.paymentDate || new Date();
+            bill.medicationBill.transactionId = transactionId;
+          }
+        } else if (resolvedBillType === 'hospitalization' && bill.hospitalizationBill?.amount > 0) {
+          if (bill.hospitalizationBill.status !== 'paid') {
+            bill.hospitalizationBill.status = 'paid';
+            bill.hospitalizationBill.paymentMethod = 'momo';
+            bill.hospitalizationBill.paymentDate = bill.hospitalizationBill.paymentDate || new Date();
+            bill.hospitalizationBill.transactionId = transactionId;
+          }
+        }
+        await bill.save();
+      }
+
+      const appointmentId = payment.appointmentId?._id || payment.appointmentId || resolvedAppointmentId;
+      if (appointmentId) {
+        const appointment = await Appointment.findById(appointmentId);
+        if (appointment) {
+          appointment.paymentStatus = 'completed';
+          appointment.paymentMethod = appointment.paymentMethod || 'momo';
+          if (appointment.status === 'pending' || appointment.status === 'pending_payment') {
+            appointment.status = 'confirmed';
+          }
+          await appointment.save();
+        }
+      }
+    } catch (e) {
+      console.error('ensureBillAndAppointmentUpdated error (shared MoMo handler):', e);
+    }
+  };
+
+  if (payment.paymentStatus === 'pending') {
+    if (resultCode === '0' || resultCode === 0) {
+      payment.paymentStatus = 'completed';
+      payment.paymentDetails = {
+        ...payment.paymentDetails,
+        ...query,
+        processedAt: new Date().toISOString()
+      };
+
+      try {
+        const Bill = require('../models/Bill');
+        let bill = payment.billId ? await Bill.findById(payment.billId) : null;
+        if (!bill && resolvedAppointmentId) {
+          bill = await Bill.findOne({ appointmentId: resolvedAppointmentId });
+        }
+
+        if (bill && resolvedBillType) {
+          if (resolvedBillType === 'consultation' && bill.consultationBill?.amount > 0) {
+            if (bill.consultationBill.status !== 'paid') {
+              bill.consultationBill.status = 'paid';
+              bill.consultationBill.paymentMethod = 'momo';
+              bill.consultationBill.paymentDate = new Date();
+              bill.consultationBill.transactionId = transactionId;
+              bill.consultationBill.paymentDetails = {
+                ...bill.consultationBill.paymentDetails,
+                ...payment.paymentDetails,
+                resultCode: resultCode,
+                processedAt: new Date().toISOString()
+              };
+            }
+          } else if (resolvedBillType === 'medication') {
+            if (resolvedPrescriptionId) {
+              const billingController = require('./billingController');
+              const patientId =
+                (payment.patientId && payment.patientId._id) ? payment.patientId._id : payment.patientId;
+              try {
+                await billingController.payPrescription({
+                  body: {
+                    prescriptionId: resolvedPrescriptionId,
+                    paymentMethod: 'momo',
+                    transactionId,
+                    paymentDetails: payment.paymentDetails
+                  },
+                  user: { id: patientId || bill.patientId }
+                }, {
+                  json: () => {},
+                  status: () => ({ json: () => {} })
+                });
+              } catch (prescriptionPayError) {
+                console.error('Error paying prescription via shared MoMo result:', prescriptionPayError);
+                if (bill.medicationBill?.amount > 0) {
+                  bill.medicationBill.status = 'paid';
+                  bill.medicationBill.paymentMethod = 'momo';
+                  bill.medicationBill.paymentDate = new Date();
+                  bill.medicationBill.transactionId = transactionId;
+                  bill.medicationBill.paymentDetails = payment.paymentDetails;
+                }
+              }
+            } else if (bill.medicationBill?.amount > 0) {
+              bill.medicationBill.status = 'paid';
+              bill.medicationBill.paymentMethod = 'momo';
+              bill.medicationBill.paymentDate = new Date();
+              bill.medicationBill.transactionId = transactionId;
+              bill.medicationBill.paymentDetails = payment.paymentDetails;
+            }
+          } else if (resolvedBillType === 'hospitalization' && bill.hospitalizationBill?.amount > 0) {
+            bill.hospitalizationBill.status = 'paid';
+            bill.hospitalizationBill.paymentMethod = 'momo';
+            bill.hospitalizationBill.paymentDate = new Date();
+            bill.hospitalizationBill.transactionId = transactionId;
+            bill.hospitalizationBill.paymentDetails = payment.paymentDetails;
+          }
+
+          await bill.save();
+        }
+
+        const appointmentId = payment.appointmentId?._id || payment.appointmentId;
+        if (appointmentId) {
+          const appointment = await Appointment.findById(appointmentId);
+          if (appointment) {
+            appointment.paymentStatus = 'completed';
+            appointment.paymentMethod = 'momo';
+            if (appointment.status === 'pending' || appointment.status === 'pending_payment') {
+              appointment.status = 'confirmed';
+            }
+            await appointment.save();
+          }
+        }
+      } catch (updateError) {
+        console.error('Error updating entities from MoMo result (shared):', updateError);
+      }
+
+      await payment.save();
+    } else {
+      payment.paymentStatus = 'failed';
+      payment.paymentDetails = { ...payment.paymentDetails, ...query };
+      await payment.save();
+    }
+  } else {
+    console.log('Payment already processed, status:', payment.paymentStatus);
+  }
+
+  if (payment.paymentStatus === 'completed') {
+    await ensureBillAndAppointmentUpdated();
+  }
+
+  const responseData = {
+    success: true,
+    paymentStatus: payment.paymentStatus,
+    appointmentId: payment.appointmentId?._id || payment.appointmentId,
+    message: (resultCode === '0' || resultCode === 0) ? 'Thanh toan thanh cong' : 'Thanh toan that bai',
+    orderId: orderId
+  };
+
+  if (payment.paymentStatus === 'completed' && payment.billId) {
+    const Bill = require('../models/Bill');
+    const bill = await Bill.findById(payment.billId);
+    if (bill) {
+      responseData.bill = {
+        _id: bill._id,
+        billNumber: bill.billNumber,
+        overallStatus: bill.overallStatus
+      };
+    }
+  }
+
+  return { payment, responseData };
 };
 
 /**
@@ -108,9 +382,16 @@ exports.createMomoPayment = async (req, res) => {
     const orderId = `HOSWEB${Date.now()}`;
     const requestId = orderId;
 
-    // Create request body - use dynamic URLs or fallback to config
-    const redirectUrl = req.body.redirectUrl || momoConfig.redirectUrl;
-    const ipnUrl = momoConfig.ipnUrl;
+    // Create request body - use dynamic URLs or fallback to request origin/env
+    const { redirectUrl, ipnUrl } = resolveMomoUrls(req);
+
+    if (!redirectUrl || !ipnUrl) {
+      console.error('Missing MoMo redirect or IPN URL', { redirectUrl, ipnUrl });
+      return res.status(500).json({
+        success: false,
+        message: 'Thiếu cấu hình URL cho MoMo (redirect hoặc IPN)'
+      });
+    }
     
     console.log('Using URLs:', { redirectUrl, ipnUrl });
     
@@ -266,7 +547,9 @@ exports.createMomoPayment = async (req, res) => {
           success: true,
           message: 'Tạo thanh toán MoMo thành công',
           orderId: orderId,
-          payUrl: momoResponse.payUrl
+          payUrl: momoResponse.payUrl,
+          deeplink: momoResponse.deeplink || momoResponse.deepLink || momoResponse.deeplinkWebInApp || '',
+          qrCodeUrl: momoResponse.qrCodeUrl || momoResponse.qrCode || ''
         });
       } else {
         // Handle failed MoMo payment creation
@@ -423,6 +706,21 @@ exports.momoIPN = async (req, res) => {
             });
             console.log(`Created new BillPayment via IPN for orderId: ${req.body.orderId}`);
           }
+
+          // Keep appointment in sync with successful payment
+          try {
+            const appointment = await Appointment.findById(appointmentId);
+            if (appointment) {
+              appointment.paymentStatus = 'completed';
+              appointment.paymentMethod = appointment.paymentMethod || 'momo';
+              if (appointment.status === 'pending' || appointment.status === 'pending_payment') {
+                appointment.status = 'confirmed';
+              }
+              await appointment.save();
+            }
+          } catch (appointmentSyncError) {
+            console.error('Error updating appointment from MoMo IPN:', appointmentSyncError);
+          }
         }
       }
     } catch (e) {
@@ -447,224 +745,76 @@ exports.momoPaymentResult = async (req, res) => {
   try {
     const { orderId, resultCode } = req.query;
     
-    // Log the incoming data for debugging
-    console.log('MoMo result received:', { 
-      orderId, 
-      resultCode, 
+    console.log('MoMo result received:', {
+      orderId,
+      resultCode,
       resultCodeType: typeof resultCode,
-      allParams: req.query 
+      allParams: req.query
     });
-    
-    // Find payment in database (BillPayment)
-    const BillPayment = require('../models/BillPayment');
-    // Try multiple ways to find the payment
-    let payment = await BillPayment.findOne({ 
-      $or: [
-        { 'paymentDetails.orderId': orderId },
-        { transactionId: orderId },
-        { 'paymentDetails.momoResponse.orderId': orderId }
-      ]
-    }).populate('appointmentId billId');
-    
-    if (!payment) {
-      console.error('Payment not found for orderId:', orderId);
-      console.error('Trying to find by transactionId...');
-      // Try one more time with just transactionId
-      payment = await BillPayment.findOne({ transactionId: orderId }).populate('appointmentId billId');
-      
-      if (!payment) {
-        // If still not found, try to create from IPN data or extraData
-        console.error('Payment not found, checking if we can recover from extraData...');
-        // This should be handled by IPN, but if IPN hasn't run yet, we need to wait
-        return res.status(404).json({
-          success: false,
-          message: 'Không tìm thấy thông tin thanh toán. Vui lòng đợi vài giây và thử lại.',
-          orderId: orderId
-        });
-      }
+
+    const result = await processMomoPaymentResultCore(req.query);
+    if (result.error) {
+      return res.status(result.error.status).json({
+        success: false,
+        message: result.error.message,
+        orderId
+      });
     }
 
-    console.log('Found payment:', { 
-      id: payment._id, 
-      status: payment.paymentStatus,
-      appointmentId: payment.appointmentId
-    });
-    
-    const extraData =
-      decodeMomoExtraData(req.query.extraData) ||
-      decodeMomoExtraData(payment.paymentDetails?.extraData) ||
-      decodeMomoExtraData(payment.paymentDetails?.momoResponse?.extraData);
-    const resolvedBillType = extraData?.billType || payment.billType;
-    const resolvedAppointmentId = extraData?.appointmentId || (payment.appointmentId?._id || payment.appointmentId);
-    const resolvedPrescriptionId = extraData?.prescriptionId;
-    
-    // Update payment status if not already updated by IPN
-    if (payment.paymentStatus === 'pending') {
-      // Check resultCode as string or number (MoMo returns as string in URL param)
-      if (resultCode === '0' || resultCode === 0) {
-        payment.paymentStatus = 'completed';
-        payment.paymentDetails = { 
-          ...payment.paymentDetails, 
-          ...req.query,
-          processedAt: new Date().toISOString() 
-        };
-        
-        try {
-          // Save payment first
-          await payment.save();
-          console.log('BillPayment updated successfully');
-          
-          // Update Bill if exists
-          const Bill = require('../models/Bill');
-          let bill = null;
-          if (payment.billId) {
-            bill = await Bill.findById(payment.billId);
-          }
-          if (!bill && resolvedAppointmentId) {
-            bill = await Bill.findOne({ appointmentId: resolvedAppointmentId });
-          }
-          
-          if (bill && resolvedBillType) {
-            const transactionId = req.query.transId || payment.transactionId || orderId;
-            if (resolvedBillType === 'consultation' && bill.consultationBill?.amount > 0) {
-              if (bill.consultationBill.status !== 'paid') {
-                bill.consultationBill.status = 'paid';
-                bill.consultationBill.paymentMethod = 'momo';
-                bill.consultationBill.paymentDate = new Date();
-                bill.consultationBill.transactionId = transactionId;
-                bill.consultationBill.paymentDetails = {
-                  ...bill.consultationBill.paymentDetails,
-                  ...payment.paymentDetails,
-                  resultCode: resultCode,
-                  processedAt: new Date().toISOString()
-                };
-              }
-            } else if (resolvedBillType === 'medication') {
-              if (resolvedPrescriptionId) {
-                const billingController = require('./billingController');
-                const patientId = (payment.patientId && payment.patientId._id) ? payment.patientId._id : payment.patientId;
-                try {
-                  await billingController.payPrescription({
-                    body: {
-                      prescriptionId: resolvedPrescriptionId,
-                      paymentMethod: 'momo',
-                      transactionId,
-                      paymentDetails: payment.paymentDetails
-                    },
-                    user: { id: patientId || bill.patientId }
-                  }, {
-                    json: () => {},
-                    status: () => ({ json: () => {} })
-                  });
-                } catch (prescriptionPayError) {
-                  console.error('Error paying prescription via MoMo result:', prescriptionPayError);
-                  if (bill.medicationBill?.amount > 0) {
-                    bill.medicationBill.status = 'paid';
-                    bill.medicationBill.paymentMethod = 'momo';
-                    bill.medicationBill.paymentDate = new Date();
-                    bill.medicationBill.transactionId = transactionId;
-                    bill.medicationBill.paymentDetails = payment.paymentDetails;
-                  }
-                }
-              } else if (bill.medicationBill?.amount > 0) {
-                bill.medicationBill.status = 'paid';
-                bill.medicationBill.paymentMethod = 'momo';
-                bill.medicationBill.paymentDate = new Date();
-                bill.medicationBill.transactionId = transactionId;
-                bill.medicationBill.paymentDetails = payment.paymentDetails;
-              }
-            } else if (resolvedBillType === 'hospitalization' && bill.hospitalizationBill?.amount > 0) {
-              bill.hospitalizationBill.status = 'paid';
-              bill.hospitalizationBill.paymentMethod = 'momo';
-              bill.hospitalizationBill.paymentDate = new Date();
-              bill.hospitalizationBill.transactionId = transactionId;
-              bill.hospitalizationBill.paymentDetails = payment.paymentDetails;
-            }
-            
-            await bill.save();
-            console.log('Bill updated successfully');
-          }
-          
-          // Find appointment
-          const appointmentId = payment.appointmentId?._id || payment.appointmentId;
-          console.log('Looking for appointment with ID:', appointmentId);
-          
-          // Update appointment status - with better error handling
-          try {
-            const appointment = await Appointment.findById(appointmentId);
-            
-            if (appointment) {
-              console.log('Found appointment:', { 
-                id: appointment._id, 
-                status: appointment.status,
-                paymentStatus: appointment.paymentStatus
-              });
-              
-              appointment.paymentStatus = 'completed';
-              appointment.paymentMethod = 'momo';
-              
-              // Automatically confirm appointment if it's pending or pending_payment
-              if (appointment.status === 'pending' || appointment.status === 'pending_payment') {
-                appointment.status = 'confirmed';
-              }
-              
-              await appointment.save();
-              console.log('Appointment updated successfully');
-            } else {
-              console.error('Appointment not found for ID:', appointmentId);
-            }
-          } catch (appointmentError) {
-            console.error('Error updating appointment:', appointmentError);
-            // Continue execution even if appointment update fails
-          }
-        } catch (saveError) {
-          console.error('Error saving payment:', saveError);
-          return res.status(500).json({
-            success: false,
-            message: 'Lỗi khi cập nhật trạng thái thanh toán',
-            error: saveError.message
-          });
-        }
-      } else {
-        payment.paymentStatus = 'failed';
-        payment.paymentDetails = { ...payment.paymentDetails, ...req.query };
-        
-        try {
-          await payment.save();
-          console.log('Payment marked as failed');
-        } catch (saveError) {
-          console.error('Error saving failed payment:', saveError);
-          return res.status(500).json({
-            success: false,
-            message: 'Lỗi khi cập nhật trạng thái thanh toán thất bại',
-            error: saveError.message
-          });
-        }
-      }
-    } else {
-      console.log('Payment already processed, status:', payment.paymentStatus);
-    }
-    
-    // Return payment status with more details
-    const responseData = {
-      success: true,
-      paymentStatus: payment.paymentStatus,
-      appointmentId: payment.appointmentId?._id || payment.appointmentId,
-      message: (resultCode === '0' || resultCode === 0) ? 'Thanh toán thành công' : 'Thanh toán thất bại',
-      orderId: orderId
-    };
-    
-    // If payment was just completed, include bill info
-    if (payment.paymentStatus === 'completed' && payment.billId) {
-      const Bill = require('../models/Bill');
-      const bill = await Bill.findById(payment.billId);
-      if (bill) {
-        responseData.bill = {
-          _id: bill._id,
-          billNumber: bill.billNumber,
-          overallStatus: bill.overallStatus
-        };
-      }
+    const { payment, responseData } = result;
+
+    // If MoMo opens this URL directly in a browser (common on mobile), show a friendly page with a link back to the app
+    const acceptHeader = (req.get('accept') || '').toLowerCase();
+    const wantsHtml = acceptHeader.includes('text/html');
+    if (wantsHtml && !req.xhr) {
+      const statusText = responseData.paymentStatus === 'completed' ? 'Thanh toan thanh cong' : 'Thanh toan that bai';
+      const appScheme = process.env.MOBILE_APP_SCHEME || 'hospitalapp';
+      const androidPackage = process.env.MOBILE_ANDROID_PACKAGE || 'com.example.hospital_mobile_app';
+      const appLink = `${appScheme}://payment-result?orderId=${encodeURIComponent(orderId || '')}&resultCode=${encodeURIComponent(resultCode || '')}&status=${responseData.paymentStatus}`;
+      const intentLink = `intent://payment-result?orderId=${encodeURIComponent(orderId || '')}&resultCode=${encodeURIComponent(resultCode || '')}#Intent;scheme=${appScheme};package=${androidPackage};end`;
+      const safeMessage = responseData.message || statusText;
+
+      const html = `<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${statusText}</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f6f7fb; margin: 0; padding: 16px; color: #1f2937; }
+    .card { max-width: 420px; margin: 24px auto; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    .status { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .badge { padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 13px; }
+    .success { color: #0f5132; background: #d1e7dd; }
+    .failed { color: #842029; background: #f8d7da; }
+    .order { font-size: 14px; color: #4b5563; margin: 6px 0; word-break: break-all; }
+    .btn { display: inline-block; margin-top: 14px; padding: 12px 16px; border-radius: 10px; text-decoration: none; font-weight: 700; text-align: center; width: 100%; box-sizing: border-box; }
+    .btn-primary { background: #7c3aed; color: #fff; }
+    .btn-secondary { background: #e5e7eb; color: #111827; }
+    .hint { font-size: 13px; color: #6b7280; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="status">
+      <span class="badge ${responseData.paymentStatus === 'completed' ? 'success' : 'failed'}">${statusText}</span>
+    </div>
+    <div class="order"><strong>Don hang:</strong> ${orderId || 'N/A'}</div>
+    <div class="order"><strong>Ma giao dich:</strong> ${payment.transactionId || 'N/A'}</div>
+    <div class="order"><strong>Thong bao:</strong> ${safeMessage}</div>
+    <a class="btn btn-primary" href="${intentLink}">Mo ung dung</a>
+    <a class="btn btn-secondary" href="${appLink}">Thu mo bang link</a>
+    <div class="hint">Neu ung dung khong tu mo, ban co the nhan vao nut o tren.</div>
+  </div>
+  <script>
+    setTimeout(function() { window.location.href = '${appLink}'; }, 50);
+    setTimeout(function() { window.location.href = '${intentLink}'; }, 800);
+  </script>
+</body>
+</html>`;
+
+      res.set('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(html);
     }
     
     return res.status(200).json(responseData);
@@ -672,9 +822,80 @@ exports.momoPaymentResult = async (req, res) => {
     console.error('MoMo payment result processing error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Đã xảy ra lỗi khi xử lý kết quả thanh toán',
+      message: '??A? x???y ra l??-i khi x??- lA? k???t qu??? thanh toA?n',
       error: error.message
     });
+  }
+};
+/**
+ * Process MoMo payment result for mobile deep link
+ * @route GET /api/payments/momo/result/mobile
+ * @access Public
+ */
+exports.momoPaymentResultMobile = async (req, res) => {
+  try {
+    const { orderId, resultCode } = req.query;
+    const appScheme = process.env.MOBILE_APP_SCHEME || 'hospitalapp';
+    const androidPackage = process.env.MOBILE_ANDROID_PACKAGE || 'com.example.hospital_mobile_app';
+
+    console.log('MoMo mobile redirect received:', { orderId, resultCode });
+
+    const result = await processMomoPaymentResultCore(req.query);
+    if (result.error) {
+      const params = new URLSearchParams();
+      if (orderId) params.set('orderId', orderId);
+      if (resultCode !== undefined) params.set('resultCode', String(resultCode));
+      params.set('status', 'failed');
+      params.set('message', result.error.message || 'MoMo payment not found');
+      const deepLink = `${appScheme}://payment/result?${params.toString()}`;
+      return res.redirect(deepLink);
+    }
+
+    const { payment, responseData } = result;
+
+    const buildDeepLink = () => {
+      const params = new URLSearchParams();
+      if (orderId) params.set('orderId', orderId);
+      if (resultCode !== undefined) params.set('resultCode', String(resultCode));
+      params.set('status', responseData.paymentStatus || payment.paymentStatus || 'unknown');
+      if (req.query.message || responseData.message) {
+        params.set('message', req.query.message || responseData.message);
+      }
+      if (req.query.transId || payment.transactionId) {
+        params.set('transId', req.query.transId || payment.transactionId);
+      }
+      if (req.query.extraData) params.set('extraData', req.query.extraData);
+      return `${appScheme}://payment/result?${params.toString()}`;
+    };
+
+    const deepLink = buildDeepLink();
+    const intentLink = `intent://payment-result?orderId=${encodeURIComponent(orderId || '')}&resultCode=${encodeURIComponent(resultCode || '')}#Intent;scheme=${appScheme};package=${androidPackage};end`;
+
+    console.log('Redirecting to deep link:', deepLink);
+
+    const acceptHeader = (req.get('accept') || '').toLowerCase();
+    const wantsHtml = acceptHeader.includes('text/html');
+    if (wantsHtml && !req.xhr) {
+      const html = `<!doctype html>
+<html><head><meta charset="utf-8" /><meta http-equiv="refresh" content="0;url=${deepLink}" /></head>
+<body style="font-family: Arial, sans-serif; padding: 16px;">
+  <p>Redirecting back to the app...</p>
+  <p><a href="${deepLink}">Open app</a></p>
+  <script>
+    setTimeout(function(){ window.location.href='${deepLink}'; }, 50);
+    setTimeout(function(){ window.location.href='${intentLink}'; }, 800);
+  </script>
+</body></html>`;
+      res.set('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(html);
+    }
+
+    return res.redirect(deepLink);
+  } catch (error) {
+    console.error('MoMo mobile result processing error:', error);
+    const appScheme = process.env.MOBILE_APP_SCHEME || 'hospitalapp';
+    const fallback = `${appScheme}://payment/result?resultCode=-1&status=failed&message=${encodeURIComponent(error.message || 'error')}`;
+    return res.redirect(fallback);
   }
 };
 

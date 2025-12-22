@@ -40,6 +40,8 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
         'appointmentId': appointmentId,
         'amount': amount,
         'billType': billType,
+        // Send a reachable redirect URL so MoMo does not bounce to localhost on mobile
+        'redirectUrl': ApiConstants.momoRedirectUrl,
       };
       
       if (prescriptionId != null) {
