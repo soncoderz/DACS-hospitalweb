@@ -20,6 +20,11 @@ abstract class AuthRepository {
     required String idToken,
   });
 
+  Future<Either<Failure, User>> facebookLogin({
+    required String accessToken,
+    required String userID,
+  });
+
   Future<Either<Failure, void>> forgotPassword({
     required String email,
   });

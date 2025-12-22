@@ -114,6 +114,33 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, User>> facebookLogin({
+    required String accessToken,
+    required String userID,
+  }) async {
+    try {
+      // Check network connectivity
+      final hasConnection = await ErrorHandler.hasNetworkConnection();
+      if (!hasConnection) {
+        return const Left(NetworkFailure('Không có kết nối internet'));
+      }
+
+      final dto = FacebookLoginDto(accessToken: accessToken, userID: userID);
+      final response = await _remoteDataSource.facebookLogin(dto);
+
+      // Save token
+      await _tokenStorage.saveToken(response.token);
+      await _tokenStorage.saveUserData(response.user);
+
+      // Convert to user model and entity
+      final userModel = UserModel.fromJson(response.user);
+      return Right(userModel.toEntity());
+    } catch (e) {
+      return Left(ErrorHandler.handleException(e as Exception));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> forgotPassword({
     required String email,
   }) async {
@@ -316,4 +343,3 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 }
-

@@ -7,6 +7,7 @@ import '../../../core/utils/toast_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
+import '../../../core/services/facebook_sign_in_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -77,7 +78,36 @@ class _LoginScreenState extends State<LoginScreen> {
       AppToast.error('Lỗi: ${e.toString()}');
     }
   }
+  Future<void> _handleFacebookSignIn() async {
+    try {
+      final facebookService = FacebookSignInService();
+      final result = await facebookService.signIn();
 
+      if (result == null) {
+        return; // User cancelled
+      }
+
+      if (!mounted) return;
+
+      final authProvider = context.read<AuthProvider>();
+      final success = await authProvider.facebookSignIn(
+        accessToken: result['accessToken']!,
+        userID: result['userID']!,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        Navigator.pushReplacementNamed(context, '/home');
+        AppToast.success('Đăng nhập Facebook thành công');
+      } else {
+        AppToast.error(authProvider.errorMessage ?? 'Đăng nhập Facebook thất bại');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      AppToast.error('Lỗi: ${e.toString()}');
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -190,6 +220,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   label: const Text('Đăng nhập với Google'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.borderRadius,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Facebook Sign In button
+                OutlinedButton.icon(
+                  onPressed: _handleFacebookSignIn,
+                  icon: const Icon(Icons.facebook, size: 24, color: Color(0xFF1877F2)),
+                  label: const Text('Đăng nhập với Facebook'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

@@ -10,6 +10,7 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponse> register(RegisterDto dto);
   Future<AuthResponse> login(LoginDto dto);
   Future<AuthResponse> googleLogin(GoogleLoginDto dto);
+  Future<AuthResponse> facebookLogin(FacebookLoginDto dto);
   Future<void> forgotPassword(ForgotPasswordDto dto);
   Future<void> verifyOtp(VerifyOtpDto dto);
   Future<void> resetPassword(ResetPasswordDto dto);
@@ -100,6 +101,28 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       if (e is ServerException) rethrow;
       throw ServerException('Đăng nhập Google thất bại: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<AuthResponse> facebookLogin(FacebookLoginDto dto) async {
+    try {
+      final response = await _dioClient.post(
+        ApiConstants.facebookLogin,
+        data: dto.toJson(),
+      );
+
+      if (response.statusCode == 200) {
+        return AuthResponse.fromJson(response.data);
+      } else {
+        throw ServerException(
+          response.data['message'] ?? 'Đăng nhập Facebook thất bại',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      throw ServerException('Đăng nhập Facebook thất bại: ${e.toString()}');
     }
   }
 

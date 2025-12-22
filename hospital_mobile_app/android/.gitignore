@@ -12,3 +12,7 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Sensitive configuration files
+app/src/main/res/values/strings.xml
+!app/src/main/res/values/strings.xml.template

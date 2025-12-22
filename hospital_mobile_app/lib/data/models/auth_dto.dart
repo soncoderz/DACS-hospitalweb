@@ -53,6 +53,24 @@ class GoogleLoginDto {
   }
 }
 
+/// Data Transfer Object for Facebook login request
+class FacebookLoginDto {
+  final String accessToken;
+  final String userID;
+
+  FacebookLoginDto({
+    required this.accessToken,
+    required this.userID,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'accessToken': accessToken,
+      'userID': userID,
+    };
+  }
+}
+
 /// Data Transfer Object for forgot password request
 class ForgotPasswordDto {
   final String email;

@@ -407,5 +407,32 @@ class AuthProvider extends ChangeNotifier {
       },
     );
   }
-}
 
+  /// Facebook Sign In
+  Future<bool> facebookSignIn({
+    required String accessToken,
+    required String userID,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+
+    final result = await _authRepository.facebookLogin(
+      accessToken: accessToken,
+      userID: userID,
+    );
+
+    return result.fold(
+      (failure) {
+        _setError(ErrorHandler.getErrorMessage(failure));
+        _setLoading(false);
+        return false;
+      },
+      (user) {
+        _user = user;
+        _isAuthenticated = true;
+        _setLoading(false);
+        return true;
+      },
+    );
+  }
+}
