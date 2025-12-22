@@ -46,6 +46,7 @@ import 'presentation/screens/doctors/doctors_list_screen.dart';
 import 'presentation/screens/doctors/doctor_detail_screen.dart';
 import 'presentation/screens/appointments/appointments_screen.dart';
 import 'presentation/screens/appointments/appointment_detail_screen.dart';
+import 'presentation/screens/appointments/reschedule_appointment_screen.dart';
 import 'presentation/screens/appointment/appointment_booking_screen.dart';
 import 'presentation/screens/news/news_list_screen.dart';
 import 'presentation/screens/news/news_detail_screen.dart';
@@ -267,6 +268,12 @@ class MyApp extends StatelessWidget {
             final newsId = settings.arguments as String;
             return MaterialPageRoute(
               builder: (context) => NewsDetailScreen(newsId: newsId),
+            );
+          }
+          if (settings.name == '/reschedule-appointment') {
+            final appointment = settings.arguments as dynamic;
+            return MaterialPageRoute(
+              builder: (context) => RescheduleAppointmentScreen(appointment: appointment),
             );
           }
           return null;

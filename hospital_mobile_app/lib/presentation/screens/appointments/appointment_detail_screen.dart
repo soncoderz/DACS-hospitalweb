@@ -23,6 +23,9 @@ class AppointmentDetailScreen extends StatefulWidget {
 }
 
 class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
+  // Store provider reference for safe disposal
+  AppointmentProvider? _appointmentProvider;
+
   @override
   void initState() {
     super.initState();
@@ -30,6 +33,13 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadAppointmentDetails();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Store provider reference for safe access in dispose
+    _appointmentProvider = context.read<AppointmentProvider>();
   }
 
   Future<void> _loadAppointmentDetails() async {
@@ -126,14 +136,6 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
     });
   }
 
-  void _contactDoctor() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Tính năng liên hệ bác sĩ đang được phát triển'),
-      ),
-    );
-  }
-
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -205,9 +207,6 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
               child: Text('Không tìm thấy thông tin lịch hẹn'),
             );
           }
-
-          final canModify = appointment.status == 'pending' ||
-              appointment.status == 'confirmed';
 
           return SingleChildScrollView(
             child: Column(
@@ -371,18 +370,13 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                 ),
 
                 // Action Buttons
-                if (canModify)
+                // Only show cancel/reschedule for pending appointments
+                // Show contact doctor button for confirmed appointments
+                if (appointment.status == 'pending')
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        if (appointment.status == 'confirmed')
-                          CustomButton(
-                            text: 'Liên hệ bác sĩ',
-                            onPressed: _contactDoctor,
-                            icon: Icons.phone,
-                          ),
-                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
@@ -499,7 +493,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
 
   @override
   void dispose() {
-    context.read<AppointmentProvider>().clearSelectedAppointment();
+    // Use stored reference instead of context.read to avoid deactivated widget error
+    _appointmentProvider?.clearSelectedAppointment();
     super.dispose();
   }
 }

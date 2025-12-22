@@ -50,6 +50,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
 
   // Additional form fields
   String _appointmentType = 'first-visit';
+  String _selectedPaymentMethod = 'momo'; // momo, paypal, cash - momo để bill pending thay vì auto-complete
   final TextEditingController _symptomsController = TextEditingController();
   final TextEditingController _medicalHistoryController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -1483,7 +1484,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
         'medicalHistory': _medicalHistoryController.text.trim(),
         'notes': _notesController.text.trim(),
         'couponCode': _couponController.text.trim(),
-        'paymentMethod': 'cash',
+        'paymentMethod': _selectedPaymentMethod,
         'estimatedCost': _consultationFee + _serviceFee - _discountAmount,
       };
 
