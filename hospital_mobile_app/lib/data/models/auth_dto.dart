@@ -48,7 +48,7 @@ class GoogleLoginDto {
 
   Map<String, dynamic> toJson() {
     return {
-      'idToken': idToken,
+      'token': idToken,
     };
   }
 }
