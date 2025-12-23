@@ -15,7 +15,7 @@ class ApiConstants {
   // ⚠️ ĐỔI GIÁ TRỊ NÀY:
   // - true: sử dụng trên thiết bị thật
   // - false: sử dụng trên emulator
-  static const bool _useRealDevice = true;
+  static const bool _useRealDevice = false;
   
   static String get _host {
     // You can manually override this by setting an environment variable

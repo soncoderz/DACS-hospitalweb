@@ -104,8 +104,13 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
   void dispose() {
     _isDisposing = true;
     _unlockCurrentSlot();
-    _socket?.disconnect();
-    _socket?.close();
+    // Properly destroy socket to avoid connection issues on re-login
+    if (_socket != null) {
+      _socket!.clearListeners();
+      _socket!.disconnect();
+      _socket!.dispose();
+      _socket = null;
+    }
     _lockPulseController.dispose();
     _symptomsController.dispose();
     _medicalHistoryController.dispose();
@@ -1012,16 +1017,29 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
   }
 
   Future<void> _initSocket() async {
-    if (_socket != null) return;
+    // Force recreate socket if exists (for fresh auth token after re-login)
+    if (_socket != null) {
+      _socket!.clearListeners();
+      _socket!.disconnect();
+      _socket!.dispose();
+      _socket = null;
+    }
     try {
       final token = await _tokenStorage.getToken();
-      if (token == null || token.isEmpty) return;
+      if (token == null || token.isEmpty) {
+        debugPrint('🔌 [BookingScreen] No token for socket auth');
+        return;
+      }
+
+      debugPrint('🔌 [BookingScreen] Initializing socket to ${ApiConstants.socketUrl}');
 
       final socket = IO.io(
         ApiConstants.socketUrl,
         IO.OptionBuilder()
             .setTransports(['websocket'])
             .enableReconnection()
+            .setReconnectionAttempts(5)
+            .setReconnectionDelay(1000)
             .setPath('/socket.io')
             .setAuth({'token': token})
             .build(),
@@ -1029,6 +1047,7 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
 
       socket.onConnect((_) {
         if (!mounted || _isDisposing) return;
+        debugPrint('🔌 [BookingScreen] Socket connected');
         setState(() => _isSocketConnected = true);
         if (_selectedDoctorId != null && _selectedDate != null) {
           _joinAppointmentRoom(_selectedDate!);
@@ -1037,11 +1056,20 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
 
       socket.onDisconnect((_) {
         if (!mounted || _isDisposing) return;
+        debugPrint('🔌 [BookingScreen] Socket disconnected');
         setState(() {
           _isSocketConnected = false;
           _currentRoomKey = null;
           _lockedSlotOwners.clear();
         });
+      });
+
+      socket.onConnectError((error) {
+        debugPrint('🔌 [BookingScreen] Socket connect error: $error');
+      });
+
+      socket.onError((error) {
+        debugPrint('🔌 [BookingScreen] Socket error: $error');
       });
 
       socket.on('current_locked_slots', (payload) {
@@ -1101,9 +1129,10 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
         }
       });
 
+      socket.connect();  // Explicitly connect
       _socket = socket;
     } catch (e) {
-      // Ignore socket init errors but keep booking functional
+      debugPrint('🔌 [BookingScreen] Socket init error: $e');
     }
   }
 
