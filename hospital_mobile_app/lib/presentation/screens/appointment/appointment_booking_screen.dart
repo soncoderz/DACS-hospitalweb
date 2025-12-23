@@ -1188,22 +1188,63 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
   }
 
   void _handleTimeSlotTap(Map<String, dynamic> slot) {
-    final slotKey = '${slot['scheduleId']}_${slot['startTime']}';
-    final lockedBy = _lockedSlotOwners[slotKey];
+    final newSlotKey = '${slot['scheduleId']}_${slot['startTime']}';
+    final lockedBy = _lockedSlotOwners[newSlotKey];
     final lockedByOther = lockedBy != null && lockedBy.isNotEmpty && lockedBy != _userId;
 
     if (slot['isBooked'] == true || lockedByOther) {
       return;
     }
 
-    _unlockCurrentSlot();
+    // Check if selecting the same slot - do nothing
+    if (_selectedScheduleId == slot['scheduleId'] && 
+        _selectedTimeSlot?['startTime'] == slot['startTime']) {
+      debugPrint('🔐 Same slot selected, ignoring');
+      return;
+    }
 
+    // IMPORTANT: Unlock previous slot FIRST before doing anything else
+    if (_selectedScheduleId != null && _selectedTimeSlot != null) {
+      debugPrint('🔓 Will unlock previous slot: ${_selectedScheduleId}_${_selectedTimeSlot!['startTime']}');
+      _unlockPreviousSlot(_selectedScheduleId!, _selectedTimeSlot!['startTime']);
+    }
+
+    // Update state to new slot
     setState(() {
       _selectedTimeSlot = slot;
       _selectedScheduleId = slot['scheduleId'];
     });
 
+    // Lock new slot AFTER state is updated
     _lockTimeSlot(slot);
+  }
+  
+  /// Unlock a specific slot (not necessarily the current one)
+  void _unlockPreviousSlot(String scheduleId, String timeSlotId) {
+    if (!_isSocketConnected || _socket == null || _selectedDoctorId == null || _selectedDate == null) {
+      debugPrint('🔓 Cannot unlock - socket not connected');
+      return;
+    }
+
+    final slotKey = '${scheduleId}_$timeSlotId';
+    debugPrint('🔓 Unlocking: $slotKey');
+    
+    // Immediately update local state (don't wait for server response)
+    if (mounted && !_isDisposing) {
+      setState(() {
+        _lockedSlotOwners.remove(slotKey);
+      });
+    } else {
+      _lockedSlotOwners.remove(slotKey);
+    }
+    
+    // Then notify server
+    _socket!.emit('unlock_time_slot', {
+      'scheduleId': scheduleId,
+      'timeSlotId': timeSlotId,
+      'doctorId': _selectedDoctorId,
+      'date': _formatDateKey(_selectedDate!),
+    });
   }
 
   Future<void> _fetchSchedules() async {

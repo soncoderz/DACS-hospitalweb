@@ -58,6 +58,8 @@ class _RescheduleAppointmentScreenState
   @override
   void initState() {
     super.initState();
+    // Set a default user id from the appointment to avoid null comparisons
+    _userId = widget.appointment.patientId;
     
     // Setup pulse animation for locked slots
     _pulseController = AnimationController(
@@ -69,7 +71,8 @@ class _RescheduleAppointmentScreenState
     );
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _userId = context.read<AuthProvider>().user?.id;
+      final authUserId = context.read<AuthProvider>().user?.id;
+      _userId = authUserId ?? _userId ?? widget.appointment.patientId;
       _initSocket();
       _fetchSchedules();
     });
@@ -183,6 +186,8 @@ class _RescheduleAppointmentScreenState
             // If our selected slot was locked by someone else, clear selection
             if (_selectedScheduleId == scheduleId &&
                 _selectedTimeSlot?['startTime'] == timeSlotId &&
+                _userId != null &&
+                _userId!.isNotEmpty &&
                 lockedUserId != _userId) {
               _showSnackBar('Khung giờ bạn chọn vừa được người khác chọn.', Colors.orange);
               setState(() {
@@ -220,8 +225,14 @@ class _RescheduleAppointmentScreenState
       _socket!.on('time_slot_lock_rejected', (payload) {
         if (!mounted || _isDisposing) return;
         debugPrint('❌ Lock rejected: $payload');
+        final previousSlotKey = (_selectedScheduleId != null && _selectedTimeSlot != null)
+            ? '${_selectedScheduleId}_${_selectedTimeSlot!['startTime']}'
+            : null;
         _showSnackBar('Khung giờ này đang được người khác xử lý.', Colors.orange);
         setState(() {
+          if (previousSlotKey != null) {
+            _lockedSlots.remove(previousSlotKey);
+          }
           _selectedTimeSlot = null;
           _selectedScheduleId = null;
         });
@@ -279,6 +290,15 @@ class _RescheduleAppointmentScreenState
       return;
     }
     
+    final slotKey = '${scheduleId}_$timeSlotId';
+    if (mounted && !_isDisposing) {
+      setState(() {
+        _lockedSlots[slotKey] = _userId ?? '';
+      });
+    } else {
+      _lockedSlots[slotKey] = _userId ?? '';
+    }
+    
     debugPrint('🔐 Requesting lock: ${scheduleId}_$timeSlotId');
     _socket!.emit('lock_time_slot', {
       'scheduleId': scheduleId,
@@ -294,13 +314,21 @@ class _RescheduleAppointmentScreenState
       return;
     }
     
-    debugPrint('🔓 Unlocking: ${_selectedScheduleId}_${_selectedTimeSlot!['startTime']}');
+    final slotKey = '${_selectedScheduleId}_${_selectedTimeSlot!['startTime']}';
+    debugPrint('🔓 Unlocking: $slotKey');
     _socket!.emit('unlock_time_slot', {
       'scheduleId': _selectedScheduleId,
       'timeSlotId': _selectedTimeSlot!['startTime'],
       'doctorId': widget.appointment.doctorId,
       'date': _selectedDate,
     });
+    if (mounted && !_isDisposing) {
+      setState(() {
+        _lockedSlots.remove(slotKey);
+      });
+    } else {
+      _lockedSlots.remove(slotKey);
+    }
   }
 
   /// Update slot status from socket event
@@ -475,28 +503,62 @@ class _RescheduleAppointmentScreenState
   void _handleTimeSlotSelect(Map<String, dynamic> slot) {
     if (slot['isBooked'] == true) return;
     
-    final slotKey = '${slot['scheduleId']}_${slot['startTime']}';
+    _userId = _userId ?? context.read<AuthProvider>().user?.id ?? widget.appointment.patientId;
+    final newSlotKey = '${slot['scheduleId']}_${slot['startTime']}';
     
     // Check if locked by another user
-    if (_lockedSlots.containsKey(slotKey) && _lockedSlots[slotKey] != _userId) {
+    if (_lockedSlots.containsKey(newSlotKey) && _lockedSlots[newSlotKey] != _userId) {
       _showSnackBar('Khung giờ này đang được người khác xử lý.', Colors.orange);
       return;
     }
     
-    // Unlock previous slot if different
-    if (_selectedScheduleId != null && _selectedTimeSlot != null) {
-      final prevKey = '${_selectedScheduleId}_${_selectedTimeSlot!['startTime']}';
-      if (prevKey != slotKey) {
-        _unlockCurrentSlot();
-      }
+    // Check if selecting the same slot - do nothing
+    if (_selectedScheduleId == slot['scheduleId'] && 
+        _selectedTimeSlot?['startTime'] == slot['startTime']) {
+      debugPrint('🔐 Same slot selected, ignoring');
+      return;
     }
     
-    // Lock new slot
-    _lockTimeSlot(slot['scheduleId'], slot['startTime']);
+    // IMPORTANT: Unlock previous slot FIRST before doing anything else
+    if (_selectedScheduleId != null && _selectedTimeSlot != null) {
+      final prevKey = '${_selectedScheduleId}_${_selectedTimeSlot!['startTime']}';
+      debugPrint('🔓 Will unlock previous slot: $prevKey');
+      _unlockPreviousSlot(_selectedScheduleId!, _selectedTimeSlot!['startTime']);
+    }
     
+    // Update state to new slot
     setState(() {
       _selectedScheduleId = slot['scheduleId'];
       _selectedTimeSlot = slot;
+    });
+    
+    // Lock new slot AFTER state is updated
+    _lockTimeSlot(slot['scheduleId'], slot['startTime']);
+  }
+  
+  /// Unlock a specific slot (not necessarily the current one)
+  void _unlockPreviousSlot(String scheduleId, String timeSlotId) {
+    if (_socket == null || !_isSocketConnected || _selectedDate == null) {
+      debugPrint('🔓 Cannot unlock - socket not connected');
+      return;
+    }
+    
+    final slotKey = '${scheduleId}_$timeSlotId';
+    debugPrint('🔓 Unlocking: $slotKey');
+    
+    // Immediately update local state (don't wait for server response)
+    if (mounted && !_isDisposing) {
+      setState(() {
+        _lockedSlots.remove(slotKey);
+      });
+    }
+    
+    // Then notify server
+    _socket!.emit('unlock_time_slot', {
+      'scheduleId': scheduleId,
+      'timeSlotId': timeSlotId,
+      'doctorId': widget.appointment.doctorId,
+      'date': _selectedDate,
     });
   }
 
