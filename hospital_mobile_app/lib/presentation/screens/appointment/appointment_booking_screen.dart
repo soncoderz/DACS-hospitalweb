@@ -11,6 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/services/token_storage_service.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/toast_utils.dart';
 
 /// Màn hình đặt lịch khám - Flow: Bệnh viện → Chuyên khoa → Bác sĩ → Dịch vụ → Ngày → Giờ
 class AppointmentBookingScreen extends StatefulWidget {
@@ -1480,16 +1481,43 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
 
   Future<void> _validateCoupon() async {
     final couponCode = _couponController.text.trim();
-    if (couponCode.isEmpty) return;
+    debugPrint('🎫 Validating coupon: $couponCode');
+    
+    if (couponCode.isEmpty) {
+      AppToast.error('Vui lòng nhập mã giảm giá');
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
       final dio = Dio();
+      final token = await _tokenStorage.getToken();
+      if (token != null && token.isNotEmpty) {
+        dio.options.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      final url = '${ApiConstants.baseUrl}/appointments/coupons/validate';
+      debugPrint('🎫 API URL: $url?code=$couponCode');
+      
       final response = await dio.get(
-        '${ApiConstants.baseUrl}/appointments/coupons/validate',
+        url,
         queryParameters: {'code': couponCode},
       );
 
+      debugPrint('🎫 Response: ${response.statusCode} - ${response.data}');
+
+      // Handle success: false case (API returns 200 but validation failed)
+      if (response.data['success'] == false) {
+        final errorMessage = response.data['message'] ?? 'Mã giảm giá không hợp lệ';
+        AppToast.error(errorMessage);
+        setState(() {
+          _couponInfo = null;
+          _discountAmount = 0;
+        });
+        return;
+      }
+
+      // Handle success: true case
       if (response.statusCode == 200 && response.data['success'] == true) {
         final coupon = response.data['data'];
         setState(() {
@@ -1504,21 +1532,37 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
           }
         });
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Áp dụng mã giảm giá thành công'),
-              backgroundColor: Colors.green,
-            ),
-          );
+        AppToast.success('Áp dụng mã giảm giá thành công! Giảm ${_discountAmount.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} VNĐ');
+      }
+    } on DioException catch (e) {
+      // Parse error message from server response
+      String errorMessage = 'Mã giảm giá không hợp lệ';
+      
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map) {
+          errorMessage = data['message'] ?? data['error'] ?? errorMessage;
         }
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'Không thể kết nối đến máy chủ';
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        errorMessage = 'Kết nối quá thời gian chờ';
       }
+      
+      // Reset coupon info on error
+      setState(() {
+        _couponInfo = null;
+        _discountAmount = 0;
+      });
+      
+      AppToast.error(errorMessage);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mã giảm giá không hợp lệ: $e')),
-        );
-      }
+      setState(() {
+        _couponInfo = null;
+        _discountAmount = 0;
+      });
+      
+      AppToast.error('Lỗi: ${e.toString()}');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
