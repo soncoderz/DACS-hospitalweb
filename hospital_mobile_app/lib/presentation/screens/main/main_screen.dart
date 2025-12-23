@@ -79,14 +79,6 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         title: _getTitle(),
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // TODO: Navigate to notifications
-            },
-          ),
-        ],
       ),
       drawer: _buildDrawer(context),
       body: _screens[_selectedIndex],
@@ -199,14 +191,6 @@ class _MainScreenState extends State<MainScreen> {
             },
           ),
           const Divider(),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Cài đặt'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/settings');
-            },
-          ),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text(
