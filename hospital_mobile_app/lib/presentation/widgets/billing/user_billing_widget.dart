@@ -484,6 +484,7 @@ class _UserBillingWidgetState extends State<UserBillingWidget> {
                       onPressed: isLoading ? null : onPay,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: iconColor,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       child: isLoading
@@ -495,7 +496,7 @@ class _UserBillingWidgetState extends State<UserBillingWidget> {
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : Text('Thanh Toán ${_formatCurrency(amount)}'),
+                          : Text('Thanh toán MoMo (${_formatCurrency(amount)})'),
                     ),
                   ),
                 ],
@@ -669,6 +670,7 @@ class _UserBillingWidgetState extends State<UserBillingWidget> {
                                 : () => _payPrescription(prescription.id),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
                             ),
                             child: provider.isLoading
                                 ? const SizedBox(
@@ -679,7 +681,7 @@ class _UserBillingWidgetState extends State<UserBillingWidget> {
                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                     ),
                                   )
-                                : Text('Thanh Toán ${_formatCurrency(prescription.amount)}'),
+                                : Text('Thanh toán MoMo (${_formatCurrency(prescription.amount)})'),
                           ),
                         ),
                       ],

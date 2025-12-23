@@ -23,28 +23,12 @@ class PaymentMethodSelector extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _buildMethodButton(
-                context,
-                'momo',
-                'MoMo',
-                Icons.account_balance_wallet,
-                Colors.pink,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildMethodButton(
-                context,
-                'paypal',
-                'PayPal',
-                Icons.payment,
-                Colors.blue,
-              ),
-            ),
-          ],
+        _buildMethodButton(
+          context,
+          'momo',
+          'MoMo',
+          Icons.account_balance_wallet,
+          Colors.pink,
         ),
       ],
     );
@@ -59,36 +43,39 @@ class PaymentMethodSelector extends StatelessWidget {
   ) {
     final isSelected = selectedMethod == method;
 
-    return InkWell(
-      onTap: () => onMethodChanged(method),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade100,
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+    return SizedBox(
+      width: double.infinity,
+      child: InkWell(
+        onTap: () => onMethodChanged(method),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade100,
+            border: Border.all(
+              color: isSelected ? color : Colors.grey.shade300,
+              width: isSelected ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(8),
           ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? color : Colors.grey,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? color : Colors.grey.shade700,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 14,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? color : Colors.grey,
+                size: 20,
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? color : Colors.grey.shade700,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
