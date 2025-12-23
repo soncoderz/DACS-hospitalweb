@@ -557,41 +557,74 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
                   final isLockedByMe = lockedBy != null && lockedBy == _userId;
                   const double slotWidth = 150;
                   const double slotHeight = 88;
-                  final Color baseBg = isBooked
-                      ? Colors.grey.shade300
-                      : isSelected
-                          ? Colors.blue.shade100
-                          : Colors.white;
-                  final Color baseBorder = isBooked
-                      ? Colors.grey
-                      : isSelected
-                          ? Colors.blue
-                          : Colors.grey.shade300;
+                  
+                  // Color logic matching web design
+                  Color bgColor;
+                  Color borderColor;
+                  Color textColor;
+                  
+                  if (isBooked) {
+                    // Đã đầy - xám
+                    bgColor = Colors.grey.shade200;
+                    borderColor = Colors.grey.shade400;
+                    textColor = Colors.grey;
+                  } else if (isLockedByOther) {
+                    // Đang có người chọn - vàng
+                    bgColor = Colors.amber.shade50;
+                    borderColor = Colors.amber.shade400;
+                    textColor = Colors.amber.shade800;
+                  } else if (isSelected || isLockedByMe) {
+                    // Đang chọn bởi mình - xanh dương
+                    bgColor = Colors.blue.shade50;
+                    borderColor = Colors.blue;
+                    textColor = Colors.blue.shade700;
+                  } else {
+                    // Còn trống - trắng (default)
+                    bgColor = Colors.white;
+                    borderColor = Colors.grey.shade300;
+                    textColor = Colors.black87;
+                  }
+                  
+                  final remaining = (slot['maxBookings'] ?? 3) - (slot['bookedCount'] ?? 0);
+                  final maxBookings = slot['maxBookings'] ?? 3;
 
                   final Widget slotContent = Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        '${slot['startTime']} - ${slot['endTime']}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isBooked
-                              ? Colors.grey
-                              : isLockedByOther
-                                  ? Colors.amber.shade800
-                                  : Colors.black,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${slot['startTime']} - ${slot['endTime']}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (isLockedByOther || isLockedByMe)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4),
+                              child: Icon(
+                                Icons.lock,
+                                size: 14,
+                                color: isLockedByOther ? Colors.amber : Colors.blue,
+                              ),
+                            ),
+                        ],
                       ),
+                      const SizedBox(height: 4),
                       Text(
                         isBooked
                             ? 'Đã đầy'
                             : isLockedByOther
                                 ? 'Đang có người chọn'
-                                : 'Còn ${slot['maxBookings'] - (slot['bookedCount'] ?? 0)}/${slot['maxBookings']}',
+                                : remaining < maxBookings && remaining > 0
+                                    ? 'Còn $remaining/$maxBookings'
+                                    : 'Còn trống',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: isLockedByOther ? FontWeight.w600 : FontWeight.normal,
@@ -599,68 +632,33 @@ class _AppointmentBookingScreenState extends State<AppointmentBookingScreen> wit
                               ? Colors.grey
                               : isLockedByOther
                                   ? Colors.amber.shade800
-                                  : Colors.green,
+                                  : Colors.green.shade700,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                       ),
-                      if (isLockedByOther)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Icon(
-                            Icons.lock_clock,
-                            size: 14,
-                            color: Colors.amber,
-                          ),
-                        ),
-                      if (isLockedByMe)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Icon(
-                            Icons.lock,
-                            size: 14,
-                            color: Colors.blue,
-                          ),
-                        ),
                     ],
                   );
 
-                  Widget buildTile({
-                    required Color bg,
-                    required Color borderColor,
-                  }) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                  Widget slotTile = Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      border: Border.all(
+                        color: borderColor,
+                        width: (isSelected || isLockedByMe) ? 2 : 1,
                       ),
-                      decoration: BoxDecoration(
-                        color: bg,
-                        border: Border.all(color: borderColor),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: slotContent,
-                    );
-                  }
-
-                  Widget slotTile = buildTile(
-                    bg: baseBg,
-                    borderColor: baseBorder,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: slotContent,
                   );
 
+                  // Add pulse animation for locked by other
                   if (isLockedByOther) {
                     slotTile = FadeTransition(
                       opacity: _lockPulseAnimation,
-                      child: buildTile(
-                        bg: Colors.amber.shade50,
-                        borderColor: Colors.amber.shade400,
-                      ),
-                    );
-                  } else if (isBooked) {
-                    slotTile = buildTile(
-                      bg: Colors.grey.shade300,
-                      borderColor: Colors.grey,
+                      child: slotTile,
                     );
                   }
 

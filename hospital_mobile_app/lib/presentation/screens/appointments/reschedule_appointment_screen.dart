@@ -1056,10 +1056,10 @@ class _RescheduleAppointmentScreenState
               children: [
                 const Text('Chú thích:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                 const SizedBox(height: 4),
-                _buildLegendItem(Colors.green, 'Còn trống'),
-                _buildLegendItem(Colors.orange, 'Còn ít chỗ'),
-                _buildLegendItem(Colors.grey, 'Đã đầy'),
+                _buildLegendItem(Colors.white, 'Còn trống', border: Colors.grey),
                 _buildLegendItem(Colors.amber, 'Đang có người chọn'),
+                _buildLegendItem(Colors.grey, 'Đã đầy'),
+                _buildLegendItem(Colors.blue, 'Đã chọn'),
               ],
             ),
           ),
@@ -1085,25 +1085,25 @@ class _RescheduleAppointmentScreenState
     Color textColor;
     
     if (isBooked) {
-      bgColor = Colors.grey.shade100;
-      borderColor = Colors.grey.shade300;
+      // Đã đầy - xám
+      bgColor = Colors.grey.shade200;
+      borderColor = Colors.grey.shade400;
       textColor = Colors.grey;
     } else if (isLockedByOther) {
+      // Đang có người chọn - vàng
       bgColor = Colors.amber.shade50;
       borderColor = Colors.amber.shade400;
       textColor = Colors.amber.shade800;
     } else if (isSelected || isLockedByMe) {
+      // Đang chọn bởi mình - xanh dương
       bgColor = Colors.blue.shade50;
       borderColor = Colors.blue;
       textColor = Colors.blue.shade700;
-    } else if (bookedCount > 0) {
-      bgColor = Colors.orange.shade50;
-      borderColor = Colors.orange.shade200;
-      textColor = Colors.black;
     } else {
-      bgColor = Colors.green.shade50;
-      borderColor = Colors.green.shade200;
-      textColor = Colors.black;
+      // Còn trống - trắng (default)
+      bgColor = Colors.white;
+      borderColor = Colors.grey.shade300;
+      textColor = Colors.black87;
     }
 
     Widget card = GestureDetector(
@@ -1145,17 +1145,17 @@ class _RescheduleAppointmentScreenState
                   ? 'Đã đầy' 
                   : isLockedByOther 
                       ? 'Đang có người chọn'
-                      : 'Còn $remaining/$maxBookings',
+                      : remaining < maxBookings && remaining > 0
+                          ? 'Còn $remaining/$maxBookings'
+                          : 'Còn trống',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isLockedByOther ? FontWeight.w600 : FontWeight.normal,
                 color: isBooked 
-                    ? Colors.red.shade400 
+                    ? Colors.grey 
                     : isLockedByOther
                         ? Colors.amber.shade800
-                        : remaining < maxBookings 
-                            ? Colors.orange.shade700
-                            : Colors.green.shade700,
+                        : Colors.green.shade700,
               ),
             ),
           ],
@@ -1174,12 +1174,20 @@ class _RescheduleAppointmentScreenState
     return card;
   }
 
-  Widget _buildLegendItem(Color color, String text) {
+  Widget _buildLegendItem(Color color, String text, {Color? border}) {
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Row(
         children: [
-          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: border != null ? Border.all(color: border, width: 1) : null,
+            ),
+          ),
           const SizedBox(width: 6),
           Expanded(child: Text(text, style: const TextStyle(fontSize: 11))),
         ],
