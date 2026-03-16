@@ -15,6 +15,34 @@ Nền tảng quản lý bệnh viện toàn diện với dịch vụ web, và ba
 ![Socket.io](https://img.shields.io/badge/Realtime-Socket.io-black)
 ![Cloudinary](https://img.shields.io/badge/Storage-Cloudinary-blue)
 ![Deployment](https://img.shields.io/badge/Deploy-Railway%20%7C%20Vercel-purple)
+
+## ✨ Tính Năng
+
+### Tính Năng Cơ Bản
+- **Quản Lý Người Dùng**: Đăng ký bệnh nhân, quản lý hồ sơ và xác thực
+- **Quản Lý Bác Sĩ**: Hồ sơ bác sĩ, chuyên khoa, lịch làm việc và sự sẵn có
+- **Lịch Hẹn**: Đặt lịch, rescheduling và quản lý cuộc hẹn y tế
+- **Hồ Sơ Y Tế**: Lưu trữ và quản lý lịch sử bệnh nhân và tài liệu
+- **Đơn Thuốc**: Tạo và quản lý đơn thuốc
+- **Nhập Viện**: Quản lý nhập viện và phân bổ giường bệnh
+- **Tư Vấn Video Trực Tiếp**: Gọi video thời gian thực bằng LiveKit
+- **Hệ Thống Chat**: Nhắn tin thời gian thực giữa bệnh nhân và bác sĩ qua Socket.io
+- **Xử Lý Thanh Toán**: Nhiều tùy chọn thanh toán (PayPal, MoMo)
+- **Hệ Thống Tính Phí**: Quản lý các khoản phí bệnh viện
+- **Tin Tức & Cập Nhật**: Thông báo và tin tức y tế của bệnh viện
+- **Thông Báo**: Thông báo thời gian thực về lịch hẹn và cập nhật
+- **Đánh Giá**: Đánh giá từ bệnh nhân cho bác sĩ và dịch vụ
+- **Analytics**: Bảng điều khiển với biểu đồ và thống kê
+
+### Tính Năng Nâng Cao
+- **Chatbot AI**: Chatbot tư vấn y tế do Google Generative AI hỗ trợ
+- **Tạo Mã QR**: Cho hồ sơ y tế và đơn thuốc
+- **Xác Thực Xã Hội**: Đăng nhập qua Google và Facebook
+- **Quản Lý Kho Thuốc**: Theo dõi tồn kho thuốc bệnh viện
+- **Mã Giảm Giá**: Áp dụng mã khuyến mãi cho cuộc hẹn
+- **Ghi Hình Video**: Lưu trữ các buổi tư vấn
+
+
 # HƯỚNG DẪN THIẾT LẬP VÀ CHẠY DỰ ÁN HOSPITAL WEB
 
 ## YÊU CẦU HỆ THỐNG
