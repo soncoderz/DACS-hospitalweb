@@ -1,9 +1,20 @@
-# HOSPITAL WEB - HỆ THỐNG QUẢN LÝ BỆNH VIỆN
+# DACS-hospitalweb - Hệ Thống Quản Lý Đặt Lịch Bệnh Viện
 
-# ĐÂY LÀ NHÁNH ĐÃ HOÀN THIỆN DEYLOY CHẠY TRÊN Railway VÀ Vercel
-# ĐÂY LÀ NHÁNH ĐÃ HOÀN THIỆN DEYLOY CHẠY TRÊN Railway VÀ Vercel
-# ĐÂY LÀ NHÁNH ĐÃ HOÀN THIỆN DEYLOY CHẠY TRÊN Railway VÀ Vercel
+Nền tảng quản lý bệnh viện toàn diện với dịch vụ web, và backend để quản lý lịch hẹn, hồ sơ y tế, bác sĩ, bệnh nhân và các hoạt động của bệnh viện.
+## 🚀 Project Status & Tech Stack
 
+![Status](https://img.shields.io/badge/status-hoạt%20động-success)
+![Node.js](https://img.shields.io/badge/Node.js-v22.14.0-green)
+![React](https://img.shields.io/badge/React-19.0.0-blue)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green)
+![Express](https://img.shields.io/badge/Express.js-Backend-black)
+![JWT](https://img.shields.io/badge/Auth-JWT-orange)
+![OAuth](https://img.shields.io/badge/OAuth-Google%20%7C%20Facebook-blue)
+![PayPal](https://img.shields.io/badge/Payment-PayPal-00457C)
+![MoMo](https://img.shields.io/badge/Payment-MoMo-d82d8b)
+![Socket.io](https://img.shields.io/badge/Realtime-Socket.io-black)
+![Cloudinary](https://img.shields.io/badge/Storage-Cloudinary-blue)
+![Deployment](https://img.shields.io/badge/Deploy-Railway%20%7C%20Vercel-purple)
 # HƯỚNG DẪN THIẾT LẬP VÀ CHẠY DỰ ÁN HOSPITAL WEB
 
 ## YÊU CẦU HỆ THỐNG
