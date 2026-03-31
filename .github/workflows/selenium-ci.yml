@@ -33,14 +33,34 @@ jobs:
       NODE_ENV: development
       TZ: Asia/Ho_Chi_Minh
       PORT: 5000
-      JWT_SECRET: ci-jwt-secret
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-jwt-secret' }}
       MONGODB_URI: mongodb://127.0.0.1:27017/hospitalweb-ci
+      BASE_URL: http://127.0.0.1:5000
       FRONTEND_URL: http://127.0.0.1:3000
       CLIENT_URL: http://127.0.0.1:3000
       EMAIL_USER: ci@example.com
       SENDGRID_API_KEY: SG.ci-placeholder
+      # LiveKit - use secrets if available, service degrades gracefully if missing
+      LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+      LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+      LIVEKIT_WS_URL: ${{ secrets.LIVEKIT_WS_URL }}
+      # Google OAuth - optional, passport skips if missing
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      # Facebook OAuth - optional, passport skips if missing
+      FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
+      FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
+      # PayPal
+      PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+      PAYPAL_CLIENT_SECRET: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+      PAYPAL_MODE: ${{ secrets.PAYPAL_MODE || 'sandbox' }}
+      # AI keys - optional
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # Client env
       VITE_API_URL: http://127.0.0.1:5000/api
       VITE_GOOGLE_CLIENT_ID: ci-google-client-id
+      # Selenium config
       SELENIUM_BASE_URL: http://127.0.0.1:3000
       SELENIUM_API_URL: http://127.0.0.1:5000/api
       SELENIUM_BROWSER: chrome

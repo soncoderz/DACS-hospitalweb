@@ -6,20 +6,26 @@ class LiveKitService {
     this.apiSecret = process.env.LIVEKIT_API_SECRET;
     this.wsUrl = process.env.LIVEKIT_WS_URL;
 
-    // console.log('=== LIVEKIT SERVICE INIT ===');
-    // console.log('API Key exists:', !!this.apiKey);
-    // console.log('API Secret exists:', !!this.apiSecret);
-    // console.log('WS URL:', this.wsUrl);
-    // console.log('============================');
-
     if (!this.apiKey || !this.apiSecret || !this.wsUrl) {
-      console.error('Missing LiveKit credentials in environment variables');
-      throw new Error('Missing LiveKit credentials');
+      console.warn('Missing LiveKit credentials in environment variables');
+      console.warn('LiveKit video call features will be disabled');
+      this.isAvailable = false;
+      return;
     }
+
+    this.isAvailable = true;
 
     // Initialize Room Service Client for managing rooms
     const host = this.wsUrl.replace('wss://', 'https://').replace('ws://', 'http://');
     this.roomService = new RoomServiceClient(host, this.apiKey, this.apiSecret);
+  }
+
+  _checkAvailable(methodName) {
+    if (!this.isAvailable) {
+      console.warn(`LiveKit ${methodName} called but service is not available (missing credentials)`);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -31,11 +37,7 @@ class LiveKitService {
    * @returns {string} Access token
    */
   async generateToken(roomName, participantName, participantIdentity, metadata = {}) {
-    // console.log('=== GENERATE TOKEN ===');
-    // console.log('Room name:', roomName);
-    // console.log('Participant name:', participantName);
-    // console.log('Participant identity:', participantIdentity);
-    // console.log('Metadata:', metadata);
+    if (!this._checkAvailable('generateToken')) return null;
 
     try {
       const at = new AccessToken(this.apiKey, this.apiSecret, {
@@ -58,12 +60,9 @@ class LiveKitService {
       at.ttl = '24h';
 
       const token = await at.toJwt();
-      // console.log('Token generated successfully, length:', token.length);
-      // console.log('======================');
       return token;
     } catch (error) {
       console.error('Error generating token:', error);
-      console.log('======================');
       throw error;
     }
   }
@@ -75,6 +74,8 @@ class LiveKitService {
    * @returns {Promise} Room creation result
    */
   async createRoom(roomName, options = {}) {
+    if (!this._checkAvailable('createRoom')) return null;
+
     try {
       const room = await this.roomService.createRoom({
         name: roomName,
@@ -95,6 +96,8 @@ class LiveKitService {
    * @returns {Promise} Deletion result
    */
   async deleteRoom(roomName) {
+    if (!this._checkAvailable('deleteRoom')) return { success: false, reason: 'service_unavailable' };
+
     try {
       await this.roomService.deleteRoom(roomName);
       return { success: true };
@@ -109,6 +112,8 @@ class LiveKitService {
    * @returns {Promise<Array>} List of active rooms
    */
   async listRooms() {
+    if (!this._checkAvailable('listRooms')) return [];
+
     try {
       const rooms = await this.roomService.listRooms();
       return rooms;
@@ -124,6 +129,8 @@ class LiveKitService {
    * @returns {Promise} Room information
    */
   async getRoomInfo(roomName) {
+    if (!this._checkAvailable('getRoomInfo')) return null;
+
     try {
       const rooms = await this.roomService.listRooms([roomName]);
       return rooms.length > 0 ? rooms[0] : null;
@@ -139,6 +146,8 @@ class LiveKitService {
    * @returns {Promise<Array>} List of participants
    */
   async listParticipants(roomName) {
+    if (!this._checkAvailable('listParticipants')) return [];
+
     try {
       const participants = await this.roomService.listParticipants(roomName);
       return participants;
@@ -155,6 +164,8 @@ class LiveKitService {
    * @returns {Promise} Removal result
    */
   async removeParticipant(roomName, identity) {
+    if (!this._checkAvailable('removeParticipant')) return { success: false, reason: 'service_unavailable' };
+
     try {
       await this.roomService.removeParticipant(roomName, identity);
       return { success: true };
@@ -173,6 +184,8 @@ class LiveKitService {
    * @returns {Promise} Update result
    */
   async muteParticipant(roomName, identity, trackSid, muted) {
+    if (!this._checkAvailable('muteParticipant')) return { success: false, reason: 'service_unavailable' };
+
     try {
       await this.roomService.mutePublishedTrack(roomName, identity, trackSid, muted);
       return { success: true };
@@ -189,6 +202,8 @@ class LiveKitService {
    * @returns {string} Admin access token
    */
   async generateAdminToken(roomName, adminInfo) {
+    if (!this._checkAvailable('generateAdminToken')) return null;
+
     const at = new AccessToken(this.apiKey, this.apiSecret, {
       identity: adminInfo.id,
       name: adminInfo.name,
