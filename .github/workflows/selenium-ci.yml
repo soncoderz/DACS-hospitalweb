@@ -31,11 +31,14 @@ jobs:
     env:
       CI: true
       NODE_ENV: development
+      TZ: Asia/Ho_Chi_Minh
       PORT: 5000
       JWT_SECRET: ci-jwt-secret
       MONGODB_URI: mongodb://127.0.0.1:27017/hospitalweb-ci
       FRONTEND_URL: http://127.0.0.1:3000
       CLIENT_URL: http://127.0.0.1:3000
+      EMAIL_USER: ci@example.com
+      SENDGRID_API_KEY: ci-sendgrid-api-key
       VITE_API_URL: http://127.0.0.1:5000/api
       VITE_GOOGLE_CLIENT_ID: ci-google-client-id
       SELENIUM_BASE_URL: http://127.0.0.1:3000
@@ -92,9 +95,7 @@ jobs:
 
       - name: Seed MongoDB test data
         working-directory: server
-        run: |
-          npm run seed
-          node scripts/addScheduleForDoctor.js
+        run: npm run seed
 
       - name: Ensure Selenium login user exists
         working-directory: server
