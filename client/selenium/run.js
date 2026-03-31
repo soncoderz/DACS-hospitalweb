@@ -1773,7 +1773,9 @@ async function run() {
   }
 }
 
-run().catch((error) => {
+run().then(() => {
+  process.exit(0);
+}).catch((error) => {
   process.stderr.write(`${error.message}\n`);
   process.exit(1);
 });
