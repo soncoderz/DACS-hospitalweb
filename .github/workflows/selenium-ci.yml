@@ -38,8 +38,8 @@ jobs:
       BASE_URL: http://127.0.0.1:5000
       FRONTEND_URL: http://127.0.0.1:3000
       CLIENT_URL: http://127.0.0.1:3000
-      EMAIL_USER: ci@example.com
-      SENDGRID_API_KEY: SG.ci-placeholder
+      EMAIL_USER: ${{ secrets.EMAIL_USER || 'ci@example.com' }}
+      SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY || 'SG.ci-placeholder' }}
       # LiveKit - use secrets if available, service degrades gracefully if missing
       LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
       LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
@@ -68,8 +68,9 @@ jobs:
       SELENIUM_PRECHECK_WAIT_MS: 20000
       SELENIUM_TIMEOUT_MS: 30000
       SELENIUM_PAYPAL_FLOW: mock
-      SELENIUM_EMAIL_ON_FAILURE: false
-      SELENIUM_EMAIL_REPORT: false
+      SELENIUM_EMAIL_ON_FAILURE: true
+      SELENIUM_EMAIL_REPORT: true
+      SELENIUM_FAILURE_EMAIL: sonkoi46fa@gmail.com
       SELENIUM_USER_EMAIL: ${{ secrets.SELENIUM_USER_EMAIL }}
       SELENIUM_USER_PASSWORD: ${{ secrets.SELENIUM_USER_PASSWORD }}
       SELENIUM_PAYPAL_SANDBOX_EMAIL: ${{ secrets.SELENIUM_PAYPAL_SANDBOX_EMAIL }}
