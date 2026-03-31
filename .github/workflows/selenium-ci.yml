@@ -38,7 +38,7 @@ jobs:
       FRONTEND_URL: http://127.0.0.1:3000
       CLIENT_URL: http://127.0.0.1:3000
       EMAIL_USER: ci@example.com
-      SENDGRID_API_KEY: ci-sendgrid-api-key
+      SENDGRID_API_KEY: SG.ci-placeholder
       VITE_API_URL: http://127.0.0.1:5000/api
       VITE_GOOGLE_CLIENT_ID: ci-google-client-id
       SELENIUM_BASE_URL: http://127.0.0.1:3000
