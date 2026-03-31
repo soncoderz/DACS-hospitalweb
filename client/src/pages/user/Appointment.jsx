@@ -15,6 +15,21 @@ const styles = {
   }
 };
 
+// =============================================================================
+// TRANG ĐẶT LỊCH KHÁM - Appointment.jsx
+// =============================================================================
+// Đây là wizard đặt lịch khám gồm 5 bước. Selenium tương tác qua data-testid:
+//   Step 1: booking-step-1, booking-hospital, booking-specialty, booking-next-step-1
+//   Step 2: booking-step-2, booking-doctor-card, booking-service, booking-next-step-2
+//   Step 3: booking-step-3, booking-date-option, booking-time-slot, booking-next-step-3
+//   Step 4: booking-step-4, booking-symptoms, booking-medical-history, booking-next-step-4
+//   Step 5: booking-step-5, booking-submit (gửi đặt lịch)
+//   Kết quả: booking-success -> redirect đến /appointments
+//
+// Runner Selenium (run.js) gọi completeBookingStep1/2/3 để tự động qua từng bước,
+// chọn option đầu tiên khả dụng, rồi submit. Sau khi thành công, kiểm tra
+// trang Appointments.jsx có hiển thị appointment-card mới không.
+// =============================================================================
 const Appointment = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -2484,10 +2499,14 @@ const Appointment = () => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-xl overflow-hidden border border-blue-50 backdrop-blur-sm bg-white/90">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white shadow-xl rounded-xl overflow-hidden border border-blue-50 backdrop-blur-sm bg-white/90"
+          data-testid="appointment-form"
+        >
           {/* Step 1: Select Hospital and Specialty */}
           {currentStep === 1 && (
-            <div className="p-6 md:p-8">
+            <div className="p-6 md:p-8" data-testid="booking-step-1">
               <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b border-gray-100 flex items-center">
                 <span className="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full mr-3 inline-block"></span>
                 Chọn bệnh viện và chuyên khoa
@@ -2501,6 +2520,7 @@ const Appointment = () => {
                   <select
                     id="hospitalId"
                     name="hospitalId"
+                    data-testid="booking-hospital"
                     value={formData.hospitalId}
                     onChange={handleInputChange}
                     required
@@ -2530,6 +2550,7 @@ const Appointment = () => {
                     <select
                       id="specialtyId"
                       name="specialtyId"
+                      data-testid="booking-specialty"
                       value={formData.specialtyId}
                       onChange={handleInputChange}
                       required
@@ -2554,6 +2575,7 @@ const Appointment = () => {
               <div className="flex justify-end pt-4">
                 <button
                   type="button"
+                  data-testid="booking-next-step-1"
                   className={`flex items-center px-6 py-3 rounded-lg text-white font-medium transition-all ${canProceedToNextStep()
                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
                     : 'bg-gray-400 cursor-not-allowed'
@@ -2570,7 +2592,7 @@ const Appointment = () => {
 
           {/* Step 2: Select Doctor and Service */}
           {currentStep === 2 && (
-            <div className="p-6 md:p-8">
+            <div className="p-6 md:p-8" data-testid="booking-step-2">
               <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b border-gray-100 flex items-center">
                 <span className="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full mr-3 inline-block"></span>
                 Chọn bác sĩ và dịch vụ
@@ -2616,6 +2638,8 @@ const Appointment = () => {
                                 ? 'border-blue-500 ring-2 ring-blue-200 transform scale-[1.01]'
                                 : 'border-gray-200 hover:border-blue-300'
                                 }`}
+                              data-testid="booking-doctor-card"
+                              data-doctor-id={doctor._id}
                               onClick={() => handleDoctorSelect(doctor)}
                             >
                               <div className="relative p-1">
@@ -2748,6 +2772,7 @@ const Appointment = () => {
                     <select
                       id="serviceId"
                       name="serviceId"
+                      data-testid="booking-service"
                       value={formData.serviceId}
                       onChange={handleInputChange}
                       className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4 bg-white appearance-none"
@@ -2809,6 +2834,7 @@ const Appointment = () => {
               <div className="flex justify-between pt-4">
                 <button
                   type="button"
+                  data-testid="booking-prev-step-2"
                   className="flex items-center px-6 py-3 rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 font-medium transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
                   onClick={goToPreviousStep}
                 >
@@ -2817,6 +2843,7 @@ const Appointment = () => {
                 </button>
                 <button
                   type="button"
+                  data-testid="booking-next-step-2"
                   className={`flex items-center px-6 py-3 rounded-lg text-white font-medium transition-all ${canProceedToNextStep()
                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 hover:text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
                     : 'bg-gray-400 cursor-not-allowed'
@@ -2833,7 +2860,7 @@ const Appointment = () => {
 
           {/* Step 3: Select Date and Time */}
           {currentStep === 3 && (
-            <div className="p-6 md:p-8">
+            <div className="p-6 md:p-8" data-testid="booking-step-3">
               <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b border-gray-100 flex items-center">
                 <span className="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full mr-3 inline-block"></span>
                 Chọn ngày và giờ khám
@@ -2939,6 +2966,8 @@ const Appointment = () => {
                           return (
                             <div
                               key={day.dateString}
+                              data-testid="booking-date-option"
+                              data-date={day.dateString}
                               className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full text-xs font-medium
                                 ${!day.isCurrentMonth ? 'text-gray-300' : (isLimitSelected ? (isBlockedToday ? 'text-red-700' : 'text-yellow-700') : 'text-gray-800')}
                                 ${isToday ? 'ring-1 ring-gray-300' : ''}
@@ -3002,6 +3031,9 @@ const Appointment = () => {
                           return (
                             <div
                               key={`timeslot-${slot._id || index}`}
+                              data-testid="booking-time-slot"
+                              data-start-time={slot.startTime}
+                              data-end-time={slot.endTime}
                               className={`
                                 rounded-lg border p-2 text-center cursor-pointer transition-all relative
                                 ${slot.isBooked
@@ -3074,6 +3106,7 @@ const Appointment = () => {
               <div className="flex justify-between pt-4">
                 <button
                   type="button"
+                  data-testid="booking-prev-step-3"
                   className="flex items-center px-6 py-3 rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 font-medium transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
                   onClick={goToPreviousStep}
                 >
@@ -3082,6 +3115,7 @@ const Appointment = () => {
                 </button>
                 <button
                   type="button"
+                  data-testid="booking-next-step-3"
                   className={`flex items-center px-6 py-3 rounded-lg text-white font-medium transition-all ${canProceedToNextStep()
                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 hover:text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
                     : 'bg-gray-400 cursor-not-allowed'
@@ -3098,7 +3132,7 @@ const Appointment = () => {
 
           {/* Step 4: Payment */}
           {currentStep === 4 && (
-            <div className="p-6 md:p-8">
+            <div className="p-6 md:p-8" data-testid="booking-step-4">
               <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b border-gray-100 flex items-center">
                 <span className="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full mr-3 inline-block"></span>
                 Thông tin thanh toán
@@ -3183,6 +3217,7 @@ const Appointment = () => {
                       type="text"
                       id="discountCode"
                       name="discountCode"
+                      data-testid="booking-discount-code"
                       value={formData.discountCode}
                       onChange={handleInputChange}
                       placeholder="Nhập mã giảm giá"
@@ -3216,6 +3251,7 @@ const Appointment = () => {
                   <select
                     id="appointmentType"
                     name="appointmentType"
+                    data-testid="booking-appointment-type"
                     value={formData.appointmentType}
                     onChange={handleInputChange}
                     className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4 bg-white appearance-none"
@@ -3239,6 +3275,7 @@ const Appointment = () => {
                 <textarea
                   id="symptoms"
                   name="symptoms"
+                  data-testid="booking-symptoms"
                   value={formData.symptoms}
                   onChange={handleInputChange}
                   placeholder="Mô tả triệu chứng của bạn"
@@ -3254,6 +3291,7 @@ const Appointment = () => {
                 <textarea
                   id="medicalHistory"
                   name="medicalHistory"
+                  data-testid="booking-medical-history"
                   value={formData.medicalHistory}
                   onChange={handleInputChange}
                   placeholder="Các bệnh đã mắc, dị ứng, thuốc đang sử dụng..."
@@ -3269,6 +3307,7 @@ const Appointment = () => {
                 <textarea
                   id="notes"
                   name="notes"
+                  data-testid="booking-notes"
                   value={formData.notes}
                   onChange={handleInputChange}
                   placeholder="Các yêu cầu đặc biệt hoặc thông tin khác..."
@@ -3280,6 +3319,7 @@ const Appointment = () => {
               <div className="flex justify-between pt-4">
                 <button
                   type="button"
+                  data-testid="booking-prev-step-4"
                   className="flex items-center px-6 py-3 rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 font-medium transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
                   onClick={goToPreviousStep}
                 >
@@ -3288,6 +3328,7 @@ const Appointment = () => {
                 </button>
                 <button
                   type="button"
+                  data-testid="booking-next-step-4"
                   className="flex items-center px-6 py-3 rounded-lg text-white font-medium bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all"
                   onClick={goToNextStep}
                 >
@@ -3300,7 +3341,7 @@ const Appointment = () => {
 
           {/* Step 5: Confirmation */}
           {currentStep === 5 && (
-            <div className="p-6 md:p-8">
+            <div className="p-6 md:p-8" data-testid="booking-step-5">
               <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b border-gray-100 flex items-center">
                 <span className="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full mr-3 inline-block"></span>
                 Xác nhận đặt lịch
@@ -3426,6 +3467,7 @@ const Appointment = () => {
               <div className="flex justify-between pt-4">
                 <button
                   type="button"
+                  data-testid="booking-prev-step-5"
                   className="flex items-center px-6 py-3 rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 font-medium transition-all shadow-sm hover:shadow transform hover:-translate-y-0.5"
                   onClick={goToPreviousStep}
                 >
@@ -3434,6 +3476,7 @@ const Appointment = () => {
                 </button>
                 <button
                   type="submit"
+                  data-testid="booking-submit"
                   className="flex items-center px-8 py-3 rounded-lg text-white font-medium bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 hover:text-white shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
                   disabled={loading}
                 >

@@ -12,6 +12,15 @@ import VideoCallButton from '../../components/VideoCallButton';
 import UserBilling from '../../components/UserBilling';
 
 
+// =============================================================================
+// TRANG CHI TIẾT LỊCH HẸN - AppointmentDetail.jsx
+// =============================================================================
+// Các data-testid trong component này được Selenium sử dụng:
+//   - 'appointment-detail-page' -> Xác nhận trang chi tiết đã tải xong
+// Selenium mở trang này với tham số ?selenium_paypal_mock=1 trong URL
+// để PayPalButton.jsx hiển thị chế độ mock thay vì tải SDK PayPal thật.
+// Luồng test: mở trang -> scroll đến UserBilling -> chọn PayPal -> mock approve
+// =============================================================================
 const AppointmentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -430,7 +439,7 @@ const AppointmentDetail = () => {
     (appointment.rescheduleHistory && appointment.rescheduleHistory.length > 0);
 
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-gray-50 min-h-screen py-8" data-testid="appointment-detail-page"> {/* [SELENIUM] Selenium chờ phần tử này để xác nhận trang đã tải xong */}
       <div className="container mx-auto px-4">
         {/* Back button and page title */}
         <div className="mb-6">

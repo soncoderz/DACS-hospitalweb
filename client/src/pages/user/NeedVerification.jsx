@@ -18,7 +18,7 @@ const NeedVerification = () => {
   if (!email) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8" data-testid="need-verification-missing-email">
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-500 mb-4">
               <FaExclamationTriangle className="text-3xl" />
@@ -71,7 +71,7 @@ const NeedVerification = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8" data-testid="need-verification-page">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-500 mb-4">
             <FaEnvelope className="text-3xl" />
@@ -119,6 +119,7 @@ const NeedVerification = () => {
             }`}
             onClick={handleResendVerification}
             disabled={sending}
+            data-testid="resend-verification-email"
           >
             {sending ? 'Đang gửi...' : 'Gửi lại email xác thực'}
           </button>

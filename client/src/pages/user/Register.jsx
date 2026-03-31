@@ -163,8 +163,8 @@ const Register = ({ onLoginClick }) => {
 
       {/* Registration form */}
       {step === 0 ? (
-        <div key="step1" className="space-y-4">
-          <form onSubmit={nextStep}>
+        <div key="step1" className="space-y-4" data-testid="register-step-1">
+          <form onSubmit={nextStep} data-testid="register-step-1-form">
             {/* Personal Information Step */}
             <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 shadow-sm">
               <h3 className="text-lg font-medium text-blue-800 mb-4 pb-2 border-b border-blue-100 flex items-center">
@@ -187,6 +187,7 @@ const Register = ({ onLoginClick }) => {
                       name="fullName"
                       type="text"
                       required
+                      data-testid="register-full-name"
                       value={formData.fullName}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -210,6 +211,7 @@ const Register = ({ onLoginClick }) => {
                         name="dateOfBirth"
                         type="date"
                         required
+                        data-testid="register-date-of-birth"
                         max={new Date().toISOString().split('T')[0]}
                         value={formData.dateOfBirth}
                         onChange={handleChange}
@@ -231,6 +233,7 @@ const Register = ({ onLoginClick }) => {
                         id="gender"
                         name="gender"
                         required
+                        data-testid="register-gender"
                         value={formData.gender}
                         onChange={handleChange}
                         className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
@@ -262,6 +265,7 @@ const Register = ({ onLoginClick }) => {
                       id="address"
                       name="address"
                       type="text"
+                      data-testid="register-address"
                       value={formData.address}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -286,6 +290,7 @@ const Register = ({ onLoginClick }) => {
             <div className="flex justify-end mt-4">
               <button
                 type="submit"
+                data-testid="register-next-step"
                 className="flex items-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
               >
                 Tiếp tục
@@ -295,8 +300,8 @@ const Register = ({ onLoginClick }) => {
           </form>
         </div>
       ) : (
-        <div key="step2" className="space-y-4">
-          <form onSubmit={handleSubmit}>
+        <div key="step2" className="space-y-4" data-testid="register-step-2">
+          <form onSubmit={handleSubmit} data-testid="register-step-2-form">
             {/* Account Information Step */}
             <div className="bg-green-50 p-6 rounded-lg border border-green-100 shadow-sm">
               <h3 className="text-lg font-medium text-green-800 mb-4 pb-2 border-b border-green-100 flex items-center">
@@ -320,6 +325,7 @@ const Register = ({ onLoginClick }) => {
                       type="email"
                       autoComplete="email"
                       required
+                      data-testid="register-email"
                       value={formData.email}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -342,6 +348,7 @@ const Register = ({ onLoginClick }) => {
                       name="phoneNumber"
                       type="tel"
                       required
+                      data-testid="register-phone-number"
                       value={formData.phoneNumber}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -364,6 +371,7 @@ const Register = ({ onLoginClick }) => {
                       name="password"
                       type={showPassword ? "text" : "password"}
                       required
+                      data-testid="register-password"
                       value={formData.password}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -399,6 +407,7 @@ const Register = ({ onLoginClick }) => {
                       name="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       required
+                      data-testid="register-confirm-password"
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -425,6 +434,7 @@ const Register = ({ onLoginClick }) => {
                       id="acceptTerms"
                       name="acceptTerms"
                       type="checkbox"
+                      data-testid="register-accept-terms"
                       checked={formData.acceptTerms}
                       onChange={handleChange}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
@@ -443,6 +453,7 @@ const Register = ({ onLoginClick }) => {
               <button
                 type="button"
                 onClick={prevStep}
+                data-testid="register-prev-step"
                 className="flex items-center px-5 py-2.5 border border-gray-300 shadow-sm rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <FaArrowLeft className="mr-2 h-4 w-4" style={{minWidth: '1rem'}} />
@@ -452,6 +463,7 @@ const Register = ({ onLoginClick }) => {
               <button
                 type="submit"
                 disabled={loading}
+                data-testid="register-submit"
                 className="flex items-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {loading ? (
@@ -476,6 +488,7 @@ const Register = ({ onLoginClick }) => {
         <button 
           type="button" 
           onClick={onLoginClick}
+          data-testid="switch-to-login"
           className="inline-flex items-center font-medium text-blue-600 hover:text-blue-500 hover:underline focus:outline-none"
         >
           <FaUser className="mr-1.5 h-4 w-4" style={{minWidth: '1rem'}} />

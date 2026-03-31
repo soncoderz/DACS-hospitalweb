@@ -13,6 +13,20 @@ import CancelAppointmentModal from '../../components/shared/CancelAppointmentMod
 import { Tab } from 'react-bootstrap';
 import { Tabs as BoostrapTabs } from 'react-bootstrap';
 
+// =============================================================================
+// TRANG DANH SÁCH LỊCH HẸN - Appointments.jsx
+// =============================================================================
+// Các thuộc tính data-testid trong component này được Selenium sử dụng để:
+//   - 'appointments-page' -> Xác nhận đã chuyển đến trang danh sách lịch hẹn
+//                            (sau khi đặt lịch thành công từ Appointment.jsx)
+//   - 'appointment-card'  -> Mỗi thẻ lịch hẹn, kèm data-appointment-id và data-booking-code
+//                            để Selenium tìm đúng lịch hẹn vừa đặt
+//
+// Selenium kiểm tra sau khi booking thành công:
+//   1. URL chuyển về /appointments
+//   2. Trang chứa ít nhất 1 appointment-card
+//   3. Nội dung trang hiển thị tên dịch vụ và giờ khám đã đặt
+// =============================================================================
 const Appointments = () => {
   const { user } = useAuth();
   const location = useLocation();
@@ -816,7 +830,8 @@ const Appointments = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
-      <div className="container mx-auto px-4">
+      {/* [SELENIUM] data-testid="appointments-page": Selenium chờ phần tử này để xác nhận đã đến trang danh sách lịch hẹn */}
+      <div className="container mx-auto px-4" data-testid="appointments-page">
         {/* Page Header */}
         <div className="mb-8 text-center md:text-left">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Lịch sử đặt khám</h1>
@@ -976,8 +991,15 @@ const Appointments = () => {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* [SELENIUM] Mỗi lịch hẹn được bọc trong div có data-testid="appointment-card"
+                với data-appointment-id và data-booking-code để Selenium tìm đúng lịch hẹn */}
             {appointments.map((appointment) => (
-              <div key={appointment._id}>
+              <div
+                key={appointment._id}
+                data-testid="appointment-card"
+                data-appointment-id={appointment._id}
+                data-booking-code={appointment.bookingCode || ''}
+              >
                 {renderAppointmentCard(appointment)}
               </div>
             ))}

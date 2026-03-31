@@ -65,7 +65,24 @@ The build output will be in the `dist` directory.
 - `npm run dev` - Start the development server
 - `npm run build` - Build for production
 - `npm run preview` - Preview the production build locally
+- `npm run selenium` - Run the Selenium suite against an already running client and server
+- `npm run selenium:local` - Start the client and server, then run the Selenium suite
+- `npm run selenium:headed` - Run the Selenium suite against an already running stack and keep the browser visible
+- `npm run selenium:local:headed` - Start the client and server when needed, then run the Selenium suite with a visible browser
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Selenium E2E
+
+1. Copy `.env.selenium.example` to `.env.selenium` and adjust the values you need.
+2. Make sure `SELENIUM_BROWSER` is set to `chrome` or `edge`, and that browser is installed on the machine.
+3. Make sure `server/.env` is valid and MongoDB is reachable, because the suite creates a test user and books a real appointment in the local database.
+4. Install dependencies with `npm install`.
+5. Run `npm run selenium:local` from the `client` directory to start the stack and execute the suite.
+6. If the app is already running, use `npm run selenium` or `npm run selenium:headed` instead of starting duplicate dev servers.
+7. The PayPal step uses mock mode by default. To run the real PayPal sandbox popup, set `SELENIUM_PAYPAL_FLOW=sandbox`, fill `SELENIUM_PAYPAL_SANDBOX_EMAIL` and `SELENIUM_PAYPAL_SANDBOX_PASSWORD` in `.env.selenium`, and run the suite in headed mode.
+8. Real PayPal sandbox mode relies on `localStorage` auth in the popup success page, so the Selenium runner automatically uses `remember me` for that payment step.
+
+Reports and screenshots are written to `client/selenium/artifacts/`.

@@ -3,6 +3,18 @@ import api from '../utils/api';
 import { FaMoneyBillWave, FaCheck, FaClock, FaPills, FaBed, FaStethoscope, FaCreditCard, FaWallet, FaTimes, FaInfoCircle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import PayPalButton from './PayPalButton';
+// =============================================================================
+// COMPONENT THANH TOÁN - UserBilling.jsx
+// =============================================================================
+// Các data-testid trong component này được Selenium sử dụng:
+//   - 'user-billing'                       -> Xác nhận phần thanh toán đã hiển thị
+//   - 'billing-consultation-method-paypal' -> Nút chọn PayPal
+//   - 'billing-consultation-pay-button'    -> Nút "Thanh Toán"
+//   - 'billing-consultation-paid-method'   -> Hiển thị phương thức đã thanh toán
+//   - 'paypal-modal'                       -> Modal chứa PayPalButton
+//   - 'paypal-modal-close'                 -> Nút đóng modal PayPal
+// Luồng test: chọn PayPal -> bấm thanh toán -> mock approve -> kiểm tra kết quả
+// =============================================================================
 const UserBilling = ({ appointmentId, onPaymentComplete, hospitalization, appointment }) => {
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -214,7 +226,7 @@ const UserBilling = ({ appointmentId, onPaymentComplete, hospitalization, appoin
     );
   }
   return (
-    <div className="bg-white rounded-lg shadow-md">
+    <div className="bg-white rounded-lg shadow-md" data-testid="user-billing"> {/* [SELENIUM] Selenium chờ phần tử này để thao tác thanh toán */}
       <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex justify-between items-start mb-4">
           <div>
@@ -292,7 +304,7 @@ const UserBilling = ({ appointmentId, onPaymentComplete, hospitalization, appoin
                     </p>
                   )}
                   {bill.consultationBill.status === 'paid' && bill.consultationBill.paymentMethod && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500" data-testid="billing-consultation-paid-method"> {/* [SELENIUM] Selenium đọc text này để kiểm tra phương thức thanh toán */}
                       {getPaymentMethodIcon(bill.consultationBill.paymentMethod)}
                       Phương thức: {getPaymentMethodLabel(bill.consultationBill.paymentMethod)}
                     </p>
@@ -313,6 +325,7 @@ const UserBilling = ({ appointmentId, onPaymentComplete, hospitalization, appoin
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => setPaymentMethods({ ...paymentMethods, consultation: 'momo' })}
+                          data-testid="billing-consultation-method-momo"
                           className={`px-4 py-2 rounded-lg font-medium transition-all ${
                             paymentMethods.consultation === 'momo'
                               ? 'bg-pink-600 text-white shadow-md'
@@ -323,6 +336,7 @@ const UserBilling = ({ appointmentId, onPaymentComplete, hospitalization, appoin
                         </button>
                         <button
                           onClick={() => setPaymentMethods({ ...paymentMethods, consultation: 'paypal' })}
+                          data-testid="billing-consultation-method-paypal" /* [SELENIUM] Selenium bấm nút này để chọn PayPal */
                           className={`px-4 py-2 rounded-lg font-medium transition-all ${
                             paymentMethods.consultation === 'paypal'
                               ? 'bg-blue-500 text-white shadow-md'
@@ -335,6 +349,7 @@ const UserBilling = ({ appointmentId, onPaymentComplete, hospitalization, appoin
                       <button
                         disabled={loading}
                         onClick={() => pay('consultation')}
+                        data-testid="billing-consultation-pay-button" /* [SELENIUM] Selenium bấm nút này để mở PayPal modal */
                         className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
                       >
                         {loading ? (
@@ -772,11 +787,12 @@ const UserBilling = ({ appointmentId, onPaymentComplete, hospitalization, appoin
       </div>
       {/* PayPal Modal */}
       {showPayPalModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" data-testid="paypal-modal"> {/* [SELENIUM] Selenium chờ modal này xuất hiện */}
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
             <button
               onClick={() => setShowPayPalModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              data-testid="paypal-modal-close"
             >
               <FaTimes className="text-xl" />
             </button>

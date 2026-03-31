@@ -10,6 +10,23 @@ import {
   FaGoogle, FaFacebookF, FaUserPlus 
 } from 'react-icons/fa';
 
+// =============================================================================
+// TRANG ĐĂNG NHẬP - Login.jsx
+// =============================================================================
+// Các thuộc tính data-testid trong component này được Selenium sử dụng để:
+//   - 'login-form'        -> Xác nhận trang đăng nhập đã tải xong
+//   - 'login-email'       -> Điền email vào ô input
+//   - 'login-password'    -> Điền mật khẩu vào ô input
+//   - 'login-remember-me' -> Tick/bỏ tick checkbox "Ghi nhớ đăng nhập"
+//   - 'login-submit'      -> Bấm nút đăng nhập
+//   - 'switch-to-register'-> Chuyển sang form đăng ký (chưa dùng trong test hiện tại)
+//
+// Selenium kiểm tra:
+//   - Đăng nhập email không tồn tại -> vẫn ở trang /auth, không lưu session
+//   - Đăng nhập sai mật khẩu -> vẫn ở trang /auth, không lưu session
+//   - Đăng nhập đúng, rememberMe=false -> lưu vào sessionStorage
+//   - Đăng nhập đúng, rememberMe=true  -> lưu vào localStorage
+// =============================================================================
 const Login = ({ onRegisterClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,9 +147,11 @@ const Login = ({ onRegisterClick }) => {
 
   return (
     <div className="w-full">
+      {/* [SELENIUM] data-testid="login-form": Selenium chờ form này xuất hiện để xác nhận trang đăng nhập đã sẵn sàng */}
       <motion.form 
         onSubmit={handleSubmit} 
         className="space-y-5"
+        data-testid="login-form"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
@@ -153,6 +172,7 @@ const Login = ({ onRegisterClick }) => {
               type="email"
               autoComplete="email"
               required
+              data-testid="login-email"  /* [SELENIUM] Selenium điền email test vào đây */
               value={formData.email}
               onChange={handleChange}
               className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -182,6 +202,7 @@ const Login = ({ onRegisterClick }) => {
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               required
+              data-testid="login-password"  /* [SELENIUM] Selenium điền mật khẩu test vào đây */
               value={formData.password}
               onChange={handleChange}
               className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -207,6 +228,7 @@ const Login = ({ onRegisterClick }) => {
             id="rememberMe"
             name="rememberMe"
             type="checkbox"
+            data-testid="login-remember-me"  /* [SELENIUM] Selenium tick/bỏ tick checkbox này để test lưu session */
             checked={formData.rememberMe}
             onChange={handleChange}
             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
@@ -220,6 +242,7 @@ const Login = ({ onRegisterClick }) => {
         <button
           type="submit"
           disabled={loading}
+          data-testid="login-submit"  /* [SELENIUM] Selenium bấm nút này để submit form đăng nhập */
           className="relative w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 overflow-hidden"
         >
           <span className="relative z-10 flex items-center">
@@ -278,6 +301,7 @@ const Login = ({ onRegisterClick }) => {
           whileTap={{ scale: 0.97 }}
           type="button" 
           onClick={onRegisterClick}
+          data-testid="switch-to-register"
           className="inline-flex items-center font-medium text-blue-600 hover:text-blue-500 hover:underline focus:outline-none"
         >
           <FaUserPlus className="mr-1.5" style={{minWidth: '1rem'}} />

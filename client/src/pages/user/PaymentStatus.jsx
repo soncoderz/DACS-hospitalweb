@@ -56,16 +56,16 @@ const PaymentStatus = () => {
   };
 
   return (
-    <div className="payment-status-container">
+    <div className="payment-status-container" data-testid="payment-status-page">
       <div className="payment-status-card">
         {status === 'processing' ? (
-          <div className="processing-payment">
+          <div className="processing-payment" data-testid="payment-status-processing">
             <FaSpinner className="spinner" />
             <h2>Đang xử lý thanh toán...</h2>
             <p>Vui lòng không đóng trang này.</p>
           </div>
         ) : status === 'success' ? (
-          <div className="success-payment">
+          <div className="success-payment" data-testid="payment-status-success">
             <div className="status-icon success">
               <FaCheckCircle />
             </div>
@@ -101,7 +101,7 @@ const PaymentStatus = () => {
             </div>
           </div>
         ) : (
-          <div className="failed-payment">
+          <div className="failed-payment" data-testid="payment-status-failed">
             <div className="status-icon failed">
               <FaTimesCircle />
             </div>

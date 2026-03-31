@@ -1,29 +1,35 @@
-node_modules/
-.env
-.env.*
-.env.local
-.env.development
-.env.production
-.env.test
-.env.test.*
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local tooling
+.kiro/
+.sixth/
+
+# Dependencies
+**/node_modules/
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+
+# Logs
+*.log
 requests.log
 logs/
-*.log
-dist/
-.vscode/
-.kiro/specs/
-server/logs/
-Myapp/
-AI_ARCHITECTURE.md
-AI_DATA_CONSISTENCY.md
-@"
-node_modules/
-.env
+**/logs/
+
+# Test coverage / artifacts
+coverage/
+**/coverage/
+client/selenium/artifacts/
+
+# Build outputs
 dist/
 build/
-.expo/
-coverage/
-android/.gradle/
-android/app/build/
-ios/Pods/
-"@ | Out-File -Encoding utf8 .gitignore
+**/dist/
+**/build/

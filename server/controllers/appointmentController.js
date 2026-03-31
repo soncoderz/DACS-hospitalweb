@@ -15,12 +15,35 @@ const Coupon = require('../models/Coupon');
 const MedicalRecord = require('../models/MedicalRecord');
 const { checkCompletionEligibility, finalizeAppointmentCompletion } = require('../utils/appointmentCompletionHelper');
 // Import socket functions for time slot locking and real-time updates
-const { 
+const {
   isTimeSlotLocked, 
   getTimeSlotLocker, 
   unlockTimeSlot,
   broadcastTimeSlotUpdate
 } = require('../config/socketConfig');
+
+const APPOINTMENT_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+const appointmentDateKeyFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: APPOINTMENT_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+function toAppointmentDateKey(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const parts = appointmentDateKeyFormatter.formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : '';
+}
 
 /**
  * @desc    Get all services for a specific hospital
@@ -282,8 +305,8 @@ exports.createAppointment = async (req, res) => {
     const requestDate = new Date(appointmentDate);
 
     // Chuyển đổi sang định dạng chuỗi YYYY-MM-DD để tránh vấn đề múi giờ
-    const scheduleDateStr = scheduleDate.toISOString().split('T')[0];
-    const requestDateStr = requestDate.toISOString().split('T')[0];
+    const scheduleDateStr = toAppointmentDateKey(scheduleDate);
+    const requestDateStr = toAppointmentDateKey(requestDate);
     
     // So sánh chuỗi ngày thay vì các thành phần riêng lẻ
     if (scheduleDateStr !== requestDateStr) {
@@ -1456,8 +1479,8 @@ exports.rescheduleAppointment = async (req, res) => {
     
     // Kiểm tra thời gian mới có hợp lệ không
     // Convert date to YYYY-MM-DD format để so sánh ngày không bị ảnh hưởng bởi time zone
-    const scheduleDate = new Date(newSchedule.date).toISOString().split('T')[0];
-    const newAppointmentDate = new Date(appointmentDate).toISOString().split('T')[0];
+    const scheduleDate = toAppointmentDateKey(newSchedule.date);
+    const newAppointmentDate = toAppointmentDateKey(appointmentDate);
     
     if (scheduleDate !== newAppointmentDate) {
       return res.status(400).json({
@@ -1486,8 +1509,8 @@ exports.rescheduleAppointment = async (req, res) => {
                        oldScheduleId.toString() === scheduleId.toString();
     
     // RÀNG BUỘC MỚI 6: Nếu đổi trong cùng ngày, phải chọn khung giờ khác
-    const oldDateString = oldAppointmentDate.toISOString().split('T')[0];
-    const newDateString = new Date(appointmentDate).toISOString().split('T')[0];
+    const oldDateString = toAppointmentDateKey(oldAppointmentDate);
+    const newDateString = toAppointmentDateKey(appointmentDate);
     
     if (oldDateString === newDateString && isSameSlot) {
       return res.status(400).json({
