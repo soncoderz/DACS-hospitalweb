@@ -1,0 +1,119 @@
+name: Selenium CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: selenium-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  selenium-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.runCommand({ ping: 1 }).ok' | mongosh mongodb://127.0.0.1:27017/admin --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      CI: true
+      NODE_ENV: development
+      PORT: 5000
+      JWT_SECRET: ci-jwt-secret
+      MONGODB_URI: mongodb://127.0.0.1:27017/hospitalweb-ci
+      FRONTEND_URL: http://127.0.0.1:3000
+      CLIENT_URL: http://127.0.0.1:3000
+      VITE_API_URL: http://127.0.0.1:5000/api
+      VITE_GOOGLE_CLIENT_ID: ci-google-client-id
+      SELENIUM_BASE_URL: http://127.0.0.1:3000
+      SELENIUM_API_URL: http://127.0.0.1:5000/api
+      SELENIUM_BROWSER: chrome
+      SELENIUM_HEADLESS: false
+      SELENIUM_PRECHECK_WAIT_MS: 20000
+      SELENIUM_TIMEOUT_MS: 30000
+      SELENIUM_PAYPAL_FLOW: sandbox
+      SELENIUM_EMAIL_ON_FAILURE: false
+      SELENIUM_EMAIL_REPORT: false
+      SELENIUM_USER_EMAIL: ${{ secrets.SELENIUM_USER_EMAIL }}
+      SELENIUM_USER_PASSWORD: ${{ secrets.SELENIUM_USER_PASSWORD }}
+      SELENIUM_PAYPAL_SANDBOX_EMAIL: ${{ secrets.SELENIUM_PAYPAL_SANDBOX_EMAIL }}
+      SELENIUM_PAYPAL_SANDBOX_PASSWORD: ${{ secrets.SELENIUM_PAYPAL_SANDBOX_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
+
+      - name: Show tool versions
+        run: |
+          node --version
+          npm --version
+          google-chrome --version || chromium-browser --version || chromium --version
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Validate required Selenium secrets
+        run: |
+          test -n "$SELENIUM_USER_EMAIL" || (echo "Missing secret: SELENIUM_USER_EMAIL" && exit 1)
+          test -n "$SELENIUM_USER_PASSWORD" || (echo "Missing secret: SELENIUM_USER_PASSWORD" && exit 1)
+          test -n "$SELENIUM_PAYPAL_SANDBOX_EMAIL" || (echo "Missing secret: SELENIUM_PAYPAL_SANDBOX_EMAIL" && exit 1)
+          test -n "$SELENIUM_PAYPAL_SANDBOX_PASSWORD" || (echo "Missing secret: SELENIUM_PAYPAL_SANDBOX_PASSWORD" && exit 1)
+
+      - name: Ensure Xvfb is available
+        run: |
+          which xvfb-run || (sudo apt-get update && sudo apt-get install -y xvfb)
+
+      - name: Seed MongoDB test data
+        working-directory: server
+        run: |
+          npm run seed
+          node scripts/addScheduleForDoctor.js
+
+      - name: Ensure Selenium login user exists
+        working-directory: server
+        run: node scripts/ensureSeleniumLoginUser.js "$SELENIUM_USER_EMAIL" "$SELENIUM_USER_PASSWORD"
+
+      - name: Build client
+        working-directory: client
+        run: npm run build
+
+      - name: Run Selenium suite
+        working-directory: client
+        run: xvfb-run -a npm run selenium:local:headed
+
+      - name: Upload Selenium artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-artifacts-${{ github.run_attempt }}
+          path: |
+            client/selenium/artifacts/**
+            server/logs/**
+          if-no-files-found: ignore
